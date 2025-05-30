@@ -1,0 +1,37 @@
+<?php
+
+return [
+
+    'actions' => 'Actions sur le sujet',
+    'created' => 'Sujet créé',
+    'confirm_perma_delete' => 'Êtes-vous sûr de vouloir supprimer définitivement ce sujet ?|Êtes-vous sûr de vouloir supprimer définitivement ces sujets ?',
+    'confirm_restore' => 'Êtes-vous sûr de vouloir restaurer ce sujet ?|Êtes-vous sûr de vouloir restaurer ces sujets ?',
+    'confirm_delete' => 'Êtes-vous sûr de vouloir supprimer ce sujet ?|Êtes-vous sûr de vouloir supprimer ces sujets ?',
+    'confirm_lock' => 'Êtes-vous sûr de vouloir fermer ce sujet ?||Êtes-vous sûr de vouloir fermer ces sujets ?',
+    'confirm_unlock' => 'Êtes-vous sûr de vouloir rouvrir ce sujet ?||Êtes-vous sûr de vouloir rouvrir ces sujets ?',
+    'confirm_pin' => 'Êtes-vous sûr de vouloir épingler ce sujet ?||Êtes-vous sûr de vouloir épingler ces sujets ?',
+    'confirm_unpin' => 'Êtes-vous sûr de vouloir détacher ce sujet ?||Êtes-vous sûr de vouloir détacher ces sujets ?',
+    'delete' => 'Supprimer ce sujet',
+    'deleted' => 'Sujet supprimé|Sujets supprimés',
+    'lock' => 'Fermer',
+    'locked' => 'Fermé',
+    'marked_read' => 'Toutes les discussions ont été marquées comme lues',
+    'new_thread' => 'Nouveau sujet',
+    'newest' => 'Sujet le plus récent',
+    'none_found' => 'Aucun sujet trouvé',
+    'perma_delete' => 'Supprimer définitivement le sujet|Supprimer définitivement les sujets',
+    'perma_deleted' => 'Sujet définitivement supprimé|Sujets définitivement supprimés',
+    'pin' => 'Épingler',
+    'pinned' => 'Épinglé',
+    'post_the_first' => 'Postez le premier message !',
+    'recent' => 'Sujets récents',
+    'restored' => 'Sujet restauré|Sujets restaurés',
+    'select_all' => 'Sélectionner tous les sujets',
+    'thread' => 'Sujet|Sujets',
+    'updated' => 'Sujet mis à jour|Sujets mis à jour',
+    'unlock' => 'Ouvrir',
+    'unpin' => 'Détacher',
+    'unread_updated' => 'Sujets non lus et mis à jour',
+    'view' => 'Voir le sujet',
+
+];
