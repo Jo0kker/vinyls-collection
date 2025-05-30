@@ -8,11 +8,11 @@
             <div class="flex flex-col md:flex-row items-center gap-2">
                 @if (Gate::allows('deleteThreads', $thread->category) && Gate::allows('delete', $thread))
                     @if ($thread->trashed())
-                        <x-forum::button-link href="#" class="bg-red-500 hover:bg-red-400" data-open-modal="perma-delete-thread">
+                        <x-forum::button-link href="#" class="btn-danger" data-open-modal="perma-delete-thread">
                             <i data-feather="trash"></i> {{ trans('forum::general.perma_delete') }}
                         </x-forum::button-link>
                     @else
-                        <x-forum::button-link href="#" class="bg-red-500 hover:bg-red-400 inline-flex items-center gap-2" data-open-modal="delete-thread">
+                        <x-forum::button-link href="#" class="btn-danger" data-open-modal="delete-thread">
                             <i data-feather="trash" class="w-4"></i> {{ trans('forum::general.delete') }}
                         </x-forum::button-link>
                     @endif
@@ -31,33 +31,33 @@
                         @if (!$thread->trashed())
                             @can ('lockThreads', $category)
                                 @if ($thread->locked)
-                                    <x-forum::button-link href="#" data-open-modal="unlock-thread" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-400">
+                                    <x-forum::button-link href="#" data-open-modal="unlock-thread" class="btn-secondary">
                                         <i data-feather="unlock" class="w-4"></i> {{ trans('forum::threads.unlock') }}
                                     </x-forum::button-link>
                                 @else
-                                    <x-forum::button-link href="#" data-open-modal="lock-thread" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-400">
+                                    <x-forum::button-link href="#" data-open-modal="lock-thread" class="btn-secondary">
                                         <i data-feather="lock" class="w-4"></i> {{ trans('forum::threads.lock') }}
                                     </x-forum::button-link>
                                 @endif
                             @endcan
                             @can ('pinThreads', $category)
                                 @if ($thread->pinned)
-                                    <x-forum::button-link href="#" data-open-modal="unpin-thread" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-400">
+                                    <x-forum::button-link href="#" data-open-modal="unpin-thread" class="btn-secondary">
                                         <i data-feather="arrow-down"></i> {{ trans('forum::threads.unpin') }}
                                     </x-forum::button-link>
                                 @else
-                                    <x-forum::button-link href="#" data-open-modal="pin-thread" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-400">
+                                    <x-forum::button-link href="#" data-open-modal="pin-thread" class="btn-secondary">
                                         <i data-feather="arrow-up" class="w-4"></i> {{ trans('forum::threads.pin') }}
                                     </x-forum::button-link>
                                 @endif
                             @endcan
                             @can ('rename', $thread)
-                                <x-forum::button-link href="#"  data-open-modal="rename-thread" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-400">
+                                <x-forum::button-link href="#"  data-open-modal="rename-thread" class="btn-secondary">
                                     <i data-feather="edit-2" class="w-4"></i> {{ trans('forum::general.rename') }}
                                 </x-forum::button-link>
                             @endcan
                             @can ('moveThreadsFrom', $category)
-                                <x-forum::button-link href="#" data-open-modal="move-thread" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-400">
+                                <x-forum::button-link href="#" data-open-modal="move-thread" class="btn-secondary">
                                     <i data-feather="corner-up-right" class="w-4"></i> {{ trans('forum::general.move') }}
                                 </x-forum::button-link>
                             @endcan

@@ -50,5 +50,6 @@ return [
     'updated' => 'Updated',
     'weight' => 'Weight',
     'with_selection' => 'With selection…',
-
+    'dashboard' => 'Dashboard',
+    'profile' => 'Profile',
 ];

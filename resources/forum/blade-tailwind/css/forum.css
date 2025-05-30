@@ -11,22 +11,54 @@
     }
 
     h1 {
-        @apply text-4xl my-6;
+        @apply text-4xl my-6 text-vinyl;
     }
 
     h2 {
-        @apply text-2xl;
+        @apply text-2xl text-vinyl;
     }
 
     h3 {
-        @apply text-xl;
+        @apply text-xl text-vinyl;
     }
 
     a {
-        @apply text-blue-500;
+        @apply text-vinyl;
     }
 
     a:hover {
-        @apply text-blue-800;
+        @apply text-accent;
     }
+
+    .category-title {
+        @apply text-header font-bold px-2 py-1 rounded bg-vinyl/40;
+    }
+}
+
+@theme {
+  --color-white: #f4f4f4;
+  --color-black: #181818;
+  --color-header: #2d3142;
+  --color-background: #23272e;
+  --color-main: #f6f7fa; /* gris très clair pour la carte principale */
+  --color-accent: #7d8ca3; /* bleu-gris doux */
+  --color-secondary: #3e4c59; /* gris/bleu rétro */
+  --color-link: #7d8ca3; /* bleu-gris doux */
+  --color-highlight: #b8b8ff; /* violet pastel rétro */
+  --color-vinyl: #bfa76a; /* beige rétro plus foncé */
+}
+
+@layer components {
+  .category-title {
+    @apply text-header font-bold px-2 py-1 rounded bg-vinyl/70 shadow-sm border border-vinyl/60;
+  }
+  .btn-main {
+    @apply bg-accent text-header font-semibold px-3 py-2 rounded-md shadow hover:bg-secondary hover:text-white transition inline-flex items-center gap-2;
+  }
+  .btn-secondary {
+    @apply bg-secondary text-white font-semibold px-3 py-2 rounded-md shadow hover:bg-accent hover:text-header transition inline-flex items-center gap-2;
+  }
+  .btn-danger {
+    @apply bg-vinyl text-header font-semibold px-3 py-2 rounded-md shadow hover:bg-accent hover:text-white transition inline-flex items-center gap-2 border border-vinyl/60;
+  }
 }

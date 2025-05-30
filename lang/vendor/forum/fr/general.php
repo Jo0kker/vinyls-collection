@@ -50,5 +50,6 @@ return [
     'updated' => 'Mis à jour',
     'weight' => 'Position',
     'with_selection' => 'Avec la sélection…',
-
+    'dashboard' => 'Tableau de bord',
+    'profile' => 'Profil',
 ];

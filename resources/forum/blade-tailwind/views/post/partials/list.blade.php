@@ -4,7 +4,7 @@
     <div class="bg-gray-100 border-b px-6 py-4 flex justify-between flex-row-reverse rounded-t-md">
         @if (!isset($single) || !$single)
             <span class="float-end">
-                <a href="{{ Forum::route('thread.show', $post) }}" class="text-blue-500">#{{ $post->sequence }}</a>
+                <a href="{{ Forum::route('thread.show', $post) }}" class="text-link hover:text-accent transition">#{{ $post->sequence }}</a>
                 @if ($post->sequence != 1)
                     @can ('deletePosts', $post->thread)
                         @can ('delete', $post)
@@ -43,7 +43,7 @@
         @if (!isset($single) || !$single)
             <div class="flex items-center gap-4 justify-end mt-4">
                 @if (!$post->trashed())
-                    <a href="{{ Forum::route('post.show', $post) }}" class="text-gray-500 hover:text-gray-800">{{ trans('forum::general.permalink') }}</a>
+                    <a href="{{ Forum::route('post.show', $post) }}" class="text-link hover:text-accent transition underline">{{ trans('forum::general.permalink') }}</a>
                     @if ($post->sequence != 1)
                         @can ('deletePosts', $post->thread)
                             @can ('delete', $post)
@@ -52,10 +52,10 @@
                         @endcan
                     @endif
                     @can ('edit', $post)
-                        <a href="{{ Forum::route('post.edit', $post) }}" class="text-blue-500">{{ trans('forum::general.edit') }}</a>
+                        <a href="{{ Forum::route('post.edit', $post) }}" class="text-link hover:text-accent transition">{{ trans('forum::general.edit') }}</a>
                     @endcan
                     @can ('reply', $post->thread)
-                        <a href="{{ Forum::route('post.create', $post) }}" class="text-blue-500">{{ trans('forum::general.reply') }}</a>
+                        <a href="{{ Forum::route('post.create', $post) }}" class="text-link hover:text-accent transition">{{ trans('forum::general.reply') }}</a>
                     @endcan
                 @else
                     @can ('restorePosts', $post->thread)
