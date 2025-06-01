@@ -12,7 +12,7 @@
             @csrf
             @method('DELETE')
 
-            <div class="bg-white border rounded-md mb-3">
+            <div class="border rounded-md mb-3">
                 <div class="p-4">
 
                     @if (config('forum.general.soft_deletes'))

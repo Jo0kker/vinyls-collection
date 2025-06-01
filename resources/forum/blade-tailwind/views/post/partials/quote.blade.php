@@ -1,4 +1,4 @@
-<div class="bg-white rounded-md border mb-2">
+<div class="dark:bg-gray-800 rounded-md border mb-2">
     <div class="p-6">
         <div class="flex justify-between flex-row-reverse mb-2">
             <span>

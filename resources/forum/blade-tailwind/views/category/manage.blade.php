@@ -5,7 +5,7 @@
         <h2 class="text-3xl font-medium my-3">{{ trans('forum::general.manage') }}</h2>
 
         @can ('createCategories')
-            <x-forum::button type="button" data-open-modal="create-category" class="btn-main px-6">
+            <x-forum::button type="button" data-open-modal="create-category" class="px-6">
                 {{ trans('forum::categories.create') }}
             </x-forum::button>
 
@@ -23,7 +23,7 @@
         </transition>
 
         <div class="flex justify-end py-3">
-            <button type="button" class="btn-main py-2 px-8 hover:cursor-pointer disabled:opacity-50" :disabled="state.isSavingDisabled" @click="onSave">
+            <button type="button" class="bg-blue-500 text-white rounded py-2 px-8 hover:cursor-pointer disabled:opacity-50" :disabled="state.isSavingDisabled" @click="onSave">
                 {{ trans('forum::general.save') }}
             </button>
         </div>
@@ -47,8 +47,8 @@
                             <div class="text-muted">@{{ element.description }}</div>
                         </span>
                         <span>
-                            <a class="text-link hover:text-accent transition px-3 py-2 text-sm ml-2 btn-secondary" :href="element.route + '#modal=edit-category'">{{ trans('forum::general.edit') }}</a>
-                            <a class="btn-danger px-3 py-2 text-sm ml-2" :href="element.route + '#modal=delete-category'">{{ trans('forum::general.delete') }}</a>
+                            <a class="text-blue-500 hover:text-blue-800 px-3 py-2 text-sm ml-2" :href="element.route + '#modal=edit-category'">{{ trans('forum::general.edit') }}</a>
+                            <a class="bg-red-500 hover:bg-red-400 text-white hover:text-white px-3 py-2 text-sm rounded ml-2" :href="element.route + '#modal=delete-category'">{{ trans('forum::general.delete') }}</a>
                         </span>
                     </span>
 

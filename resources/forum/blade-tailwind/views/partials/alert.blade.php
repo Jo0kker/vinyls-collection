@@ -1,8 +1,8 @@
 @php
 $colorClasses = match ($type) {
-    'primary', '', null => 'bg-accent text-header',
-    'success' => 'bg-secondary text-white',
-    'danger' => 'bg-vinyl text-header'
+    'primary', '', null => 'bg-blue-100 text-blue-700',
+    'success', '', null => 'bg-green-100 text-green-700',
+    'danger' => 'bg-orange-100 text-orange-700'
 };
 @endphp
 

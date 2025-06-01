@@ -22,9 +22,14 @@
         "vue": "^3.5.16"
     },
     "dependencies": {
+        "@melloware/coloris": "^0.24.2",
         "@simonwep/pickr": "^1.9.1",
         "@tailwindcss/postcss": "^4.1.8",
+        "alpinejs": "^3.14.9",
+        "date-fns": "^4.1.0",
         "feather-icons": "^4.29.2",
+        "laravel-echo": "^2.1.4",
+        "nested-sort": "^5.2.0",
         "vuedraggable": "^4.1.0"
     }
 }
