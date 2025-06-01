@@ -1,5 +1,10 @@
 <?php
 
+use App\Policies\CategoryPolicy;
+use App\Policies\ForumPolicy;
+use App\Policies\PostPolicy;
+use App\Policies\ThreadPolicy;
+
 return [
 
     /*
@@ -13,11 +18,11 @@ return [
     */
 
     'policies' => [
-        'forum' => TeamTeaTime\Forum\Policies\ForumPolicy::class,
+        'forum' => ForumPolicy::class,
         'model' => [
-            TeamTeaTime\Forum\Models\Category::class => TeamTeaTime\Forum\Policies\CategoryPolicy::class,
-            TeamTeaTime\Forum\Models\Thread::class => TeamTeaTime\Forum\Policies\ThreadPolicy::class,
-            TeamTeaTime\Forum\Models\Post::class => TeamTeaTime\Forum\Policies\PostPolicy::class,
+            TeamTeaTime\Forum\Models\Category::class => CategoryPolicy::class,
+            TeamTeaTime\Forum\Models\Thread::class => ThreadPolicy::class,
+            TeamTeaTime\Forum\Models\Post::class => PostPolicy::class,
         ],
     ],
 

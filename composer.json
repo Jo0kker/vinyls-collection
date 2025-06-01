@@ -13,6 +13,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "riari/laravel-forum": "^7.0",
+        "spatie/laravel-permission": "^6.19",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
