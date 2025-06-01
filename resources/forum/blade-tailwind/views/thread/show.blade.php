@@ -1,9 +1,9 @@
 @extends ('forum::layouts.main', ['thread' => null, 'breadcrumbs_append' => [$thread->title], 'thread_title' => $thread->title])
 
 @section ('content')
-    <div id="thread">
+    <div id="thread" class="bg-gray-100 dark:bg-gray-900 rounded-lg shadow-md p-6">
         <div class="flex flex-col md:flex-row justify-between my-4">
-            <h2 class="grow text-3xl font-semibold">{{ $thread->title }}</h2>
+            <h2 class="grow text-3xl font-semibold text-gray-900 dark:text-white">{{ $thread->title }}</h2>
 
             <div class="flex flex-col md:flex-row items-center gap-2">
                 @if (Gate::allows('deleteThreads', $thread->category) && Gate::allows('delete', $thread))
@@ -18,7 +18,7 @@
                     @endif
                 @endif
                 @if ($thread->trashed() && Gate::allows('restoreThreads', $thread->category) && Gate::allows('restore', $thread))
-                    <x-forum::button-link href="#" data-open-modal="restore-thread" class="inline-flex items-center gap-2">
+                    <x-forum::button-link href="#" data-open-modal="restore-thread" class="btn-main">
                         <i data-feather="refresh-cw" class="w-4"></i> {{ trans('forum::general.restore') }}
                     </x-forum::button-link>
                 @endif
@@ -93,10 +93,10 @@
                 @if (!$thread->trashed())
                     @can ('reply', $thread)
                         <x-forum::button-group>
-                            <x-forum::button-link href="{{ Forum::route('post.create', $thread) }}">
+                            <x-forum::button-link href="{{ Forum::route('post.create', $thread) }}" class="btn-main">
                                 {{ trans('forum::general.new_reply') }}
                             </x-forum::button-link>
-                            <x-forum::button-link href="#quick-reply">
+                            <x-forum::button-link href="#quick-reply" class="btn-main">
                                 {{ trans('forum::general.quick_reply') }}
                             </x-forum::button-link>
                         </x-forum::button-group>
@@ -108,7 +108,7 @@
         @if ((count($posts) > 1 || $posts->currentPage() > 1) && (Gate::allows('deletePosts', $thread) || Gate::allows('restorePosts', $thread)) && count($selectablePosts) > 0)
             <div class="text-end mb-2">
                 <div class="form-check">
-                    <label for="selectAllPosts">
+                    <label for="selectAllPosts" class="text-gray-900 dark:text-white">
                         {{ trans('forum::posts.select_all') }}
                     </label>
                     <input type="checkbox" value="" id="selectAllPosts" class="align-middle" @click="toggleAll" :checked="state.selectedPosts.length == posts.data.length">
@@ -122,14 +122,14 @@
 
         @if ((count($posts) > 1 || $posts->currentPage() > 1) && (Gate::allows('deletePosts', $thread) || Gate::allows('restorePosts', $thread)) && count($selectablePosts) > 0)
                 <div class="fixed bottom-0 right-0 m-2" style="z-index: 1000;" v-if="state.selectedPosts.length">
-                    <div class="bg-white shadow-sm rounded-md min-w-96 max-w-full">
-                        <div class="border-b text-center py-4 px-6">
+                    <div class="bg-gray-100 dark:bg-gray-900 shadow-lg rounded-lg min-w-96 max-w-full">
+                        <div class="border-b border-gray-200 dark:border-gray-700 text-center py-4 px-6 text-gray-900 dark:text-white">
                             {{ trans('forum::general.with_selection') }}
                         </div>
                         <div class="p-6">
                             <div class="mb-3">
                                 <div>
-                                    <x-forum::label for="bulk-actions">{{ trans_choice('forum::general.actions', 1) }}</x-forum::label>
+                                    <x-forum::label for="bulk-actions" class="text-gray-900 dark:text-white">{{ trans_choice('forum::general.actions', 1) }}</x-forum::label>
                                 </div>
 
                                 <x-forum::select id="bulk-actions" v-model="state.selectedPostAction">
@@ -141,14 +141,14 @@
                             @if (config('forum.general.soft_deletes'))
                                 <div class="form-check mb-3" v-if="state.selectedPostAction == 'delete'">
                                     <input class="form-check-input" type="checkbox" name="permadelete" value="1" id="permadelete">
-                                    <label class="form-check-label" for="permadelete">
+                                    <label class="form-check-label text-gray-900 dark:text-white" for="permadelete">
                                         {{ trans('forum::general.perma_delete') }}
                                     </label>
                                 </div>
                             @endif
 
                             <div class="text-end">
-                                <x-forum::button type="submit" class="px-5" @click="submitPosts">{{ trans('forum::general.proceed') }}</x-forum::button>
+                                <x-forum::button type="submit" class="btn-main px-5" @click="submitPosts">{{ trans('forum::general.proceed') }}</x-forum::button>
                             </div>
                         </div>
                     </div>
@@ -160,7 +160,7 @@
 
         @if (!$thread->trashed())
             @can ('reply', $thread)
-                <h2>{{ trans('forum::general.quick_reply') }}</h2>
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">{{ trans('forum::general.quick_reply') }}</h2>
                 <div id="quick-reply" class="mt-4">
                     <form method="POST" action="{{ Forum::route('post.store', $thread) }}">
                         @csrf
@@ -170,7 +170,7 @@
                         </div>
 
                         <div class="text-end">
-                            <x-forum::button type="submit" class="px-5">{{ trans('forum::general.reply') }}</x-forum::button>
+                            <x-forum::button type="submit" class="btn-main px-5">{{ trans('forum::general.reply') }}</x-forum::button>
                         </div>
                     </form>
                 </div>
@@ -188,7 +188,7 @@
             {{ trans('forum::general.generic_confirm') }}
 
             @slot('actions')
-                <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
+                <x-forum::button type="submit" class="btn-main">{{ trans('forum::general.proceed') }}</x-forum::button>
             @endslot
         @endcomponent
     @endif
@@ -200,140 +200,12 @@
             @slot('route', Forum::route('thread.delete', $thread))
             @slot('method', 'DELETE')
 
-            @if (config('forum.general.soft_deletes'))
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="permadelete" value="1" id="permadelete">
-                    <label class="form-check-label" for="permadelete">
-                        {{ trans('forum::general.perma_delete') }}
-                    </label>
-                </div>
-            @else
-                {{ trans('forum::general.generic_confirm') }}
-            @endif
+            {{ trans('forum::general.generic_confirm') }}
 
             @slot('actions')
-                <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
+                <x-forum::button type="submit" class="btn-danger">{{ trans('forum::general.proceed') }}</x-forum::button>
             @endslot
         @endcomponent
-
-        @if (config('forum.general.soft_deletes'))
-            @component('forum::modal-form')
-                @slot('key', 'perma-delete-thread')
-                @slot('title', '<i data-feather="trash" class="text-gray-500"></i>' . trans_choice('forum::threads.perma_delete', 1))
-                @slot('route', Forum::route('thread.delete', $thread))
-                @slot('method', 'DELETE')
-
-                <input type="hidden" name="permadelete" value="1" />
-
-                {{ trans('forum::general.generic_confirm') }}
-
-                @slot('actions')
-                    <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                @endslot
-            @endcomponent
-        @endif
-    @endif
-
-    @if (!$thread->trashed())
-        @can ('lockThreads', $category)
-            @if ($thread->locked)
-                @component('forum::modal-form')
-                    @slot('key', 'unlock-thread')
-                    @slot('title', '<i data-feather="unlock" class="text-gray-500"></i> ' . trans('forum::threads.unlock'))
-                    @slot('route', Forum::route('thread.unlock', $thread))
-                    @slot('method', 'POST')
-
-                    {{ trans('forum::general.generic_confirm') }}
-
-                    @slot('actions')
-                        <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                    @endslot
-                @endcomponent
-            @else
-                @component('forum::modal-form')
-                    @slot('key', 'lock-thread')
-                    @slot('title', '<i data-feather="lock" class="text-gray-500"></i> ' . trans('forum::threads.lock'))
-                    @slot('route', Forum::route('thread.lock', $thread))
-                    @slot('method', 'POST')
-
-                    {{ trans('forum::general.generic_confirm') }}
-
-                    @slot('actions')
-                        <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                    @endslot
-                @endcomponent
-            @endif
-        @endcan
-
-        @can ('pinThreads', $category)
-            @if ($thread->pinned)
-                @component('forum::modal-form')
-                    @slot('key', 'unpin-thread')
-                    @slot('title', '<i data-feather="arrow-down" class="text-gray-500"></i> ' . trans('forum::threads.unpin'))
-                    @slot('route', Forum::route('thread.unpin', $thread))
-                    @slot('method', 'POST')
-
-                    {{ trans('forum::general.generic_confirm') }}
-
-                    @slot('actions')
-                        <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                    @endslot
-                @endcomponent
-            @else
-                @component('forum::modal-form')
-                    @slot('key', 'pin-thread')
-                    @slot('title', '<i data-feather="arrow-up" class="text-gray-500"></i> ' . trans('forum::threads.pin'))
-                    @slot('route', Forum::route('thread.pin', $thread))
-                    @slot('method', 'POST')
-
-                    {{ trans('forum::general.generic_confirm') }}
-
-                    @slot('actions')
-                        <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                    @endslot
-                @endcomponent
-            @endif
-        @endcan
-
-        @can ('rename', $thread)
-            @component('forum::modal-form')
-                @slot('key', 'rename-thread')
-                @slot('title', '<i data-feather="edit-2" class="text-gray-500"></i> ' . trans('forum::general.rename'))
-                @slot('route', Forum::route('thread.rename', $thread))
-                @slot('method', 'POST')
-
-                <div>
-                    <x-forum::label for="new-title">{{ trans('forum::general.title') }}</x-forum::label>
-                    <x-forum::input type="text" name="title" value="{{ $thread->title }}" class="w-full" />
-                </div>
-
-                @slot('actions')
-                    <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                @endslot
-            @endcomponent
-        @endcan
-
-        @can ('moveThreadsFrom', $category)
-            @component('forum::modal-form')
-                @slot('key', 'move-thread')
-                @slot('title', '<i data-feather="corner-up-right" class="text-gray-500"></i> ' . trans('forum::general.move'))
-                @slot('route', Forum::route('thread.move', $thread))
-                @slot('method', 'POST')
-
-                <div class="input-group">
-                    <div class="input-group-prepend">
-                        <label class="input-group-text" for="category-id">{{ trans_choice('forum::categories.category', 1) }}</label>
-                    </div>
-                    <select name="category_id" id="category-id" class="form-select">
-                        @include ('forum::category.partials.options', ['hide' => $thread->category])
-                    </select>
-                </div>
-
-                @slot('actions')
-                    <x-forum::button type="submit">{{ trans('forum::general.proceed') }}</x-forum::button>
-                @endslot
-            @endcomponent
-        @endcan
     @endif
 
     <script type="module">

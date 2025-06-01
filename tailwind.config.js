@@ -9,6 +9,7 @@ export default {
         './resources/views/**/*.blade.php',
         './resources/js/**/*.vue',
         './resources/forum/blade-tailwind/views/**/*.blade.php',
+        './resources/forum/blade-tailwind/css/**/*.css',
     ],
 
     theme: {

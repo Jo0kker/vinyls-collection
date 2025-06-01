@@ -1,64 +1,437 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 @import "tailwindcss";
 
-@layer base {
-    .forum {
-        font-family: "Open Sans", sans-serif;
-        font-optical-sizing: auto;
-        font-weight: 400;
-        font-style: normal;
-        font-variation-settings: "wdth" 100;
-    }
-
-    h1 {
-        @apply text-4xl my-6 text-vinyl;
-    }
-
-    h2 {
-        @apply text-2xl text-vinyl;
-    }
-
-    h3 {
-        @apply text-xl text-vinyl;
-    }
-
-    a {
-        @apply text-vinyl;
-    }
-
-    a:hover {
-        @apply text-accent;
-    }
-
-    .category-title {
-        @apply text-header font-bold px-2 py-1 rounded bg-vinyl/40;
-    }
+/* Forum specific styles */
+.forum-container {
+    font-family: "Open Sans", sans-serif;
+    color: #1a1a1a;
 }
 
-@theme {
-  --color-white: #f4f4f4;
-  --color-black: #181818;
-  --color-header: #2d3142;
-  --color-background: #23272e;
-  --color-main: #f6f7fa; /* gris très clair pour la carte principale */
-  --color-accent: #7d8ca3; /* bleu-gris doux */
-  --color-secondary: #3e4c59; /* gris/bleu rétro */
-  --color-link: #7d8ca3; /* bleu-gris doux */
-  --color-highlight: #b8b8ff; /* violet pastel rétro */
-  --color-vinyl: #bfa76a; /* beige rétro plus foncé */
+/* Navigation */
+.v-navbar {
+    @apply bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700;
+}
+
+.v-navbar a {
+    @apply text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200;
+}
+
+/* Main Content */
+#main {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md;
+}
+
+/* Posts */
+.post {
+    @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
+}
+
+.post-content {
+    @apply text-gray-700 dark:text-gray-300;
+}
+
+.post-meta {
+    @apply text-sm text-gray-500 dark:text-gray-400 mt-2;
+}
+
+.post-header {
+    @apply flex items-center justify-between mb-4;
+}
+
+.post-title {
+    @apply text-xl font-semibold text-gray-900 dark:text-white;
+}
+
+.post-author {
+    @apply text-gray-900 dark:text-white font-medium;
+}
+
+.post-date {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.post-body {
+    @apply text-gray-700 dark:text-gray-300 leading-relaxed;
+}
+
+.post-footer {
+    @apply mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400;
+}
+
+/* Breadcrumbs */
+.flex.flex-wrap {
+    @apply text-white;
+}
+
+.flex.flex-wrap li {
+    @apply text-white;
+}
+
+.flex.flex-wrap li:after {
+    @apply content-['/'] px-2 text-gray-300;
+}
+
+.flex.flex-wrap li:last-child:after {
+    @apply content-none;
+}
+
+.text-link {
+    @apply text-white hover:text-emerald-300 transition-colors duration-200;
+}
+
+.hover\:text-accent:hover {
+    @apply text-emerald-300;
+}
+
+/* Buttons */
+[data-open-modal="create-category"] {
+    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105;
+}
+
+.btn-main {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105;
+}
+
+.btn-primary {
+    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 cursor-pointer inline-flex items-center justify-center;
+}
+
+.btn-secondary {
+    @apply bg-gray-300 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-sm hover:shadow-md;
+}
+
+.btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+    @apply mb-4;
+}
+
+.breadcrumb ol {
+    @apply flex flex-wrap;
+}
+
+.breadcrumb li {
+    @apply text-gray-700 dark:text-gray-300;
+}
+
+.breadcrumb li:after {
+    @apply content-['/'] px-2 text-gray-400;
+}
+
+.breadcrumb li:last-child:after {
+    @apply content-none;
+}
+
+.breadcrumb a {
+    @apply text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors duration-200 font-medium;
 }
 
 @layer components {
-  .category-title {
-    @apply text-header font-bold px-2 py-1 rounded bg-vinyl/70 shadow-sm border border-vinyl/60;
-  }
-  .btn-main {
-    @apply bg-accent text-header font-semibold px-3 py-2 rounded-md shadow hover:bg-secondary hover:text-white transition inline-flex items-center gap-2;
-  }
-  .btn-secondary {
-    @apply bg-secondary text-white font-semibold px-3 py-2 rounded-md shadow hover:bg-accent hover:text-header transition inline-flex items-center gap-2;
-  }
-  .btn-danger {
-    @apply bg-vinyl text-header font-semibold px-3 py-2 rounded-md shadow hover:bg-accent hover:text-white transition inline-flex items-center gap-2 border border-vinyl/60;
-  }
+    .create-category {
+        @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 cursor-pointer inline-flex items-center justify-center shadow-sm;
+    }
+
+    .create-category:hover {
+        @apply shadow-md;
+    }
+
+    .create-category svg {
+        @apply w-5 h-5 mr-2;
+    }
+
+    .forum-card {
+        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4;
+    }
+
+    .forum-card-header {
+        @apply flex items-center justify-between mb-4;
+    }
+
+    .forum-card-title {
+        @apply text-xl font-semibold text-gray-900 dark:text-white;
+    }
+
+    .forum-card-content {
+        @apply text-gray-700 dark:text-gray-300;
+    }
+
+    .forum-card-footer {
+        @apply mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400;
+    }
+
+    .forum-breadcrumb {
+        @apply flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400;
+    }
+
+    .forum-breadcrumb-item {
+        @apply hover:text-gray-900 dark:hover:text-white;
+    }
+
+    .forum-breadcrumb-separator {
+        @apply text-gray-400 dark:text-gray-600;
+    }
+
+    .forum-post {
+        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
+    }
+
+    .forum-post-header {
+        @apply flex items-center justify-between mb-4;
+    }
+
+    .forum-post-author {
+        @apply text-gray-900 dark:text-white font-medium;
+    }
+
+    .forum-post-date {
+        @apply text-sm text-gray-500 dark:text-gray-400;
+    }
+
+    .forum-post-content {
+        @apply text-gray-700 dark:text-gray-300;
+    }
+
+    .forum-post-footer {
+        @apply mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400;
+    }
+
+    .forum-pagination {
+        @apply flex items-center justify-between mt-4;
+    }
+
+    .forum-pagination-link {
+        @apply text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white;
+    }
+
+    .forum-pagination-active {
+        @apply text-blue-600 dark:text-blue-400 font-medium;
+    }
+
+    .forum-modal {
+        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
+    }
+
+    .forum-modal-header {
+        @apply border-b border-gray-200 dark:border-gray-700 p-4;
+    }
+
+    .forum-modal-title {
+        @apply text-lg font-semibold text-gray-900 dark:text-white;
+    }
+
+    .forum-modal-content {
+        @apply p-4 text-gray-700 dark:text-gray-300;
+    }
+
+    .forum-modal-footer {
+        @apply border-t border-gray-200 dark:border-gray-700 p-4 flex justify-end space-x-2;
+    }
+
+    .forum-form-group {
+        @apply mb-4;
+    }
+
+    .forum-form-label {
+        @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    }
+
+    .forum-form-input {
+        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
+    }
+
+    .forum-form-textarea {
+        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
+    }
+
+    .forum-form-select {
+        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
+    }
+
+    .forum-alert {
+        @apply rounded-md p-4 mb-4;
+    }
+
+    .forum-alert-success {
+        @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
+    }
+
+    .forum-alert-danger {
+        @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
+    }
+
+    .forum-alert-warning {
+        @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200;
+    }
+
+    .forum-alert-info {
+        @apply bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200;
+    }
+
+    /* Styles spécifiques pour les catégories et threads */
+    .category-list {
+        @apply bg-gray-100 dark:bg-gray-900;
+    }
+
+    .category-item {
+        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
+    }
+
+    .thread-list {
+        @apply bg-gray-100 dark:bg-gray-900;
+    }
+
+    .thread-item {
+        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
+    }
+
+    .thread-title {
+        @apply text-lg font-semibold text-gray-900 dark:text-white;
+    }
+
+    .thread-meta {
+        @apply text-sm text-gray-500 dark:text-gray-400;
+    }
+
+    .category-title {
+        @apply text-xl font-bold text-gray-900 dark:text-white px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 shadow-sm;
+    }
+
+    .category-description {
+        @apply text-gray-600 dark:text-gray-300 mt-2;
+    }
+
+    .forum-form {
+        @apply space-y-4;
+    }
+
+    .form-group {
+        @apply space-y-2;
+    }
+
+    .form-label {
+        @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+    }
+
+    .form-input {
+        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
+    }
+
+    .form-textarea {
+        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
+    }
+
+    .alert {
+        @apply p-4 mb-4 rounded-md;
+    }
+
+    .alert-success {
+        @apply bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300;
+    }
+
+    .alert-danger {
+        @apply bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300;
+    }
+
+    .alert-warning {
+        @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300;
+    }
+
+    .alert-info {
+        @apply bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300;
+    }
+
+    .pagination {
+        @apply flex justify-center space-x-2 mt-4;
+    }
+
+    .pagination-item {
+        @apply px-3 py-1 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer;
+    }
+
+    .pagination-item.active {
+        @apply bg-blue-600 text-white hover:bg-blue-700;
+    }
+
+    .dropdown {
+        @apply relative inline-block;
+    }
+
+    .dropdown-menu {
+        @apply absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black;
+    }
+
+    .dropdown-item {
+        @apply block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer;
+    }
+
+    .modal {
+        @apply fixed inset-0 z-50 overflow-y-auto;
+    }
+
+    .modal-backdrop {
+        @apply fixed inset-0 bg-black transition-opacity;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        @apply relative bg-white dark:bg-gray-800 rounded-lg shadow-xl mx-auto my-8 max-w-lg p-6;
+    }
+
+    .modal-header {
+        @apply flex items-center justify-between mb-4;
+    }
+
+    .modal-title {
+        @apply text-lg font-semibold text-gray-900 dark:text-white;
+    }
+
+    .modal-body {
+        @apply text-gray-700 dark:text-gray-300;
+    }
+
+    .modal-footer {
+        @apply mt-4 flex justify-end space-x-2;
+    }
+
+    .breadcrumbs {
+        @apply flex space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4;
+    }
+
+    .breadcrumb-item {
+        @apply hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer;
+    }
+
+    .breadcrumb-separator {
+        @apply mx-2;
+    }
+
+    .user-menu {
+        @apply relative;
+    }
+
+    .user-menu-button {
+        @apply flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer;
+    }
+
+    .user-menu-dropdown {
+        @apply absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .forum-card {
+        @apply p-4;
+    }
+    
+    .thread-item {
+        @apply p-3;
+    }
+    
+    .post {
+        @apply p-3;
+    }
 }

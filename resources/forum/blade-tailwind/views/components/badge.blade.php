@@ -1,27 +1,15 @@
-@props([
-    'type' => 'default'
-])
+@props(['type' => 'default'])
 
 @php
-switch($type) {
-    case('info'):
-        $color = 'bg-blue-500';
-        break;
-
-    case('danger'):
-        $color = 'bg-red-500';
-        break;
-
-    case('warning'):
-        $color = 'bg-orange-500';
-        break;
-
-    default:
-        $color = 'bg-gray-400';
-        break;
-}
+$classes = match($type) {
+    'success' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+    'danger' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    'warning' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    'info' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+};
 @endphp
 
-<span {{ $attributes->merge(['class' => "$color rounded-full px-2 py-1 text-white text-xs font-semibold"]) }}>
+<span {{ $attributes->merge(['class' => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {$classes}"]) }}>
     {{ $slot }}
 </span>

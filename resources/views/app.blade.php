@@ -10,12 +10,27 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+        <!-- Styles -->
+        @vite(['resources/css/app.css', 'resources/forum/blade-tailwind/css/forum.css'])
+
         <!-- Scripts -->
         @routes
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
+
+        <script>
+            window.initialPage = @json($page);
+        </script>
+
+        <style>
+            [v-cloak] {
+                display: none;
+            }
+        </style>
     </head>
     <body class="font-sans antialiased">
-        @inertia
+        <div id="app" data-page="{{ json_encode($page) }}" v-cloak>
+            @inertia
+        </div>
     </body>
 </html>
