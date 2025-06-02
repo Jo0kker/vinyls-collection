@@ -1,437 +1,236 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 
-/* Forum specific styles */
-.forum-container {
-    font-family: "Open Sans", sans-serif;
-    color: #1a1a1a;
-}
-
-/* Navigation */
-.v-navbar {
-    @apply bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700;
-}
-
-.v-navbar a {
-    @apply text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200;
-}
-
-/* Main Content */
-#main {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md;
-}
-
-/* Posts */
-.post {
-    @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
-}
-
-.post-content {
-    @apply text-gray-700 dark:text-gray-300;
-}
-
-.post-meta {
-    @apply text-sm text-gray-500 dark:text-gray-400 mt-2;
-}
-
-.post-header {
-    @apply flex items-center justify-between mb-4;
-}
-
-.post-title {
-    @apply text-xl font-semibold text-gray-900 dark:text-white;
-}
-
-.post-author {
-    @apply text-gray-900 dark:text-white font-medium;
-}
-
-.post-date {
-    @apply text-sm text-gray-500 dark:text-gray-400;
-}
-
-.post-body {
-    @apply text-gray-700 dark:text-gray-300 leading-relaxed;
-}
-
-.post-footer {
-    @apply mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400;
-}
-
-/* Breadcrumbs */
-.flex.flex-wrap {
-    @apply text-white;
-}
-
-.flex.flex-wrap li {
-    @apply text-white;
-}
-
-.flex.flex-wrap li:after {
-    @apply content-['/'] px-2 text-gray-300;
-}
-
-.flex.flex-wrap li:last-child:after {
-    @apply content-none;
-}
-
-.text-link {
-    @apply text-white hover:text-emerald-300 transition-colors duration-200;
-}
-
-.hover\:text-accent:hover {
-    @apply text-emerald-300;
-}
-
-/* Buttons */
-[data-open-modal="create-category"] {
-    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105;
-}
-
-.btn-main {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105;
-}
-
-.btn-primary {
-    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 cursor-pointer inline-flex items-center justify-center;
-}
-
-.btn-secondary {
-    @apply bg-gray-300 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-sm hover:shadow-md;
-}
-
-.btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 cursor-pointer inline-flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105;
-}
-
-/* Breadcrumbs */
-.breadcrumb {
-    @apply mb-4;
-}
-
-.breadcrumb ol {
-    @apply flex flex-wrap;
-}
-
-.breadcrumb li {
-    @apply text-gray-700 dark:text-gray-300;
-}
-
-.breadcrumb li:after {
-    @apply content-['/'] px-2 text-gray-400;
-}
-
-.breadcrumb li:last-child:after {
-    @apply content-none;
-}
-
-.breadcrumb a {
-    @apply text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors duration-200 font-medium;
-}
-
-@layer components {
-    .create-category {
-        @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200 cursor-pointer inline-flex items-center justify-center shadow-sm;
+@layer base {
+    html {
+        @apply bg-white text-gray-900;
     }
 
-    .create-category:hover {
-        @apply shadow-md;
+    html.dark {
+        @apply bg-slate-900 text-gray-100;
     }
 
-    .create-category svg {
-        @apply w-5 h-5 mr-2;
+    body {
+        @apply bg-gray-100 text-gray-900 dark:bg-slate-900 dark:text-gray-100;
+        font-family: 'Open Sans', sans-serif;
     }
 
-    .forum-card {
-        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4;
+    .forum {
+        @apply bg-gray-100 text-gray-900 dark:bg-slate-900 dark:text-gray-100;
     }
 
-    .forum-card-header {
-        @apply flex items-center justify-between mb-4;
+    .pcr-app {
+        @apply bg-slate-800 text-gray-100 border border-slate-700 rounded-lg shadow-lg;
     }
 
-    .forum-card-title {
-        @apply text-xl font-semibold text-gray-900 dark:text-white;
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-semibold text-gray-900 dark:text-white;
     }
 
-    .forum-card-content {
-        @apply text-gray-700 dark:text-gray-300;
+    a {
+        @apply text-blue-600 dark:text-blue-400;
     }
 
-    .forum-card-footer {
-        @apply mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400;
+    a:hover {
+        @apply text-blue-800 dark:text-blue-300;
     }
 
-    .forum-breadcrumb {
-        @apply flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400;
+    button {
+        @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600;
     }
 
-    .forum-breadcrumb-item {
-        @apply hover:text-gray-900 dark:hover:text-white;
+    input,
+    select,
+    textarea {
+        @apply border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 dark:bg-slate-800 dark:text-white dark:border-slate-700;
     }
 
-    .forum-breadcrumb-separator {
-        @apply text-gray-400 dark:text-gray-600;
+    /* Styles pour le dropdown */
+    .dropdown-toggle {
+        @apply text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white transition-colors duration-200;
     }
 
-    .forum-post {
-        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
+    .dropdown-toggle svg {
+        @apply transition-transform duration-200;
     }
 
-    .forum-post-header {
-        @apply flex items-center justify-between mb-4;
-    }
-
-    .forum-post-author {
-        @apply text-gray-900 dark:text-white font-medium;
-    }
-
-    .forum-post-date {
-        @apply text-sm text-gray-500 dark:text-gray-400;
-    }
-
-    .forum-post-content {
-        @apply text-gray-700 dark:text-gray-300;
-    }
-
-    .forum-post-footer {
-        @apply mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400;
-    }
-
-    .forum-pagination {
-        @apply flex items-center justify-between mt-4;
-    }
-
-    .forum-pagination-link {
-        @apply text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white;
-    }
-
-    .forum-pagination-active {
-        @apply text-blue-600 dark:text-blue-400 font-medium;
-    }
-
-    .forum-modal {
-        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
-    }
-
-    .forum-modal-header {
-        @apply border-b border-gray-200 dark:border-gray-700 p-4;
-    }
-
-    .forum-modal-title {
-        @apply text-lg font-semibold text-gray-900 dark:text-white;
-    }
-
-    .forum-modal-content {
-        @apply p-4 text-gray-700 dark:text-gray-300;
-    }
-
-    .forum-modal-footer {
-        @apply border-t border-gray-200 dark:border-gray-700 p-4 flex justify-end space-x-2;
-    }
-
-    .forum-form-group {
-        @apply mb-4;
-    }
-
-    .forum-form-label {
-        @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
-    }
-
-    .forum-form-input {
-        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
-    }
-
-    .forum-form-textarea {
-        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
-    }
-
-    .forum-form-select {
-        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
-    }
-
-    .forum-alert {
-        @apply rounded-md p-4 mb-4;
-    }
-
-    .forum-alert-success {
-        @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
-    }
-
-    .forum-alert-danger {
-        @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
-    }
-
-    .forum-alert-warning {
-        @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200;
-    }
-
-    .forum-alert-info {
-        @apply bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200;
-    }
-
-    /* Styles spécifiques pour les catégories et threads */
-    .category-list {
-        @apply bg-gray-100 dark:bg-gray-900;
-    }
-
-    .category-item {
-        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
-    }
-
-    .thread-list {
-        @apply bg-gray-100 dark:bg-gray-900;
-    }
-
-    .thread-item {
-        @apply bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 mb-4;
-    }
-
-    .thread-title {
-        @apply text-lg font-semibold text-gray-900 dark:text-white;
-    }
-
-    .thread-meta {
-        @apply text-sm text-gray-500 dark:text-gray-400;
-    }
-
-    .category-title {
-        @apply text-xl font-bold text-gray-900 dark:text-white px-2 py-1 rounded bg-blue-100 dark:bg-blue-900 shadow-sm;
-    }
-
-    .category-description {
-        @apply text-gray-600 dark:text-gray-300 mt-2;
-    }
-
-    .forum-form {
-        @apply space-y-4;
-    }
-
-    .form-group {
-        @apply space-y-2;
-    }
-
-    .form-label {
-        @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
-    }
-
-    .form-input {
-        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
-    }
-
-    .form-textarea {
-        @apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500;
-    }
-
-    .alert {
-        @apply p-4 mb-4 rounded-md;
-    }
-
-    .alert-success {
-        @apply bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300;
-    }
-
-    .alert-danger {
-        @apply bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300;
-    }
-
-    .alert-warning {
-        @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300;
-    }
-
-    .alert-info {
-        @apply bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300;
-    }
-
-    .pagination {
-        @apply flex justify-center space-x-2 mt-4;
-    }
-
-    .pagination-item {
-        @apply px-3 py-1 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer;
-    }
-
-    .pagination-item.active {
-        @apply bg-blue-600 text-white hover:bg-blue-700;
-    }
-
-    .dropdown {
-        @apply relative inline-block;
+    .dropdown-toggle[aria-expanded="true"] svg {
+        @apply rotate-180;
     }
 
     .dropdown-menu {
-        @apply absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black;
+        @apply absolute z-50 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 focus:outline-none;
+        transform-origin: top right;
+        transition: transform 0.2s ease-out;
+    }
+
+    .dropdown-menu[aria-hidden="true"] {
+        @apply hidden;
+    }
+
+    .dropdown-menu[aria-hidden="false"] {
+        @apply block;
     }
 
     .dropdown-item {
-        @apply block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer;
+        @apply block w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700;
     }
 
-    .modal {
-        @apply fixed inset-0 z-50 overflow-y-auto;
+    .dropdown-item:first-child {
+        @apply rounded-t-md;
     }
 
-    .modal-backdrop {
-        @apply fixed inset-0 bg-black transition-opacity;
-        background-color: rgba(0, 0, 0, 0.5);
+    .dropdown-item:last-child {
+        @apply rounded-b-md;
     }
 
-    .modal-content {
-        @apply relative bg-white dark:bg-gray-800 rounded-lg shadow-xl mx-auto my-8 max-w-lg p-6;
+    .dropdown-divider {
+        @apply border-t border-gray-200 dark:border-slate-700 my-1;
     }
 
-    .modal-header {
-        @apply flex items-center justify-between mb-4;
+    /* Styles spécifiques pour le select bulk-actions */
+    .bg-gray-800 #bulk-actions,
+    .bg-gray-800 select#bulk-actions {
+        @apply !min-w-[200px] !bg-slate-700 !text-white !border !border-slate-600 !rounded !px-3 !py-2 !appearance-none !cursor-pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+        background-position: right 0.5rem center !important;
+        background-repeat: no-repeat !important;
+        background-size: 1.5em 1.5em !important;
+        padding-right: 2.5rem !important;
     }
 
-    .modal-title {
-        @apply text-lg font-semibold text-gray-900 dark:text-white;
+    .bg-gray-800 #bulk-actions:focus,
+    .bg-gray-800 select#bulk-actions:focus {
+        @apply !outline-none !ring-2 !ring-blue-400 !border-blue-400;
     }
 
-    .modal-body {
-        @apply text-gray-700 dark:text-gray-300;
+    .bg-gray-800 #bulk-actions option,
+    .bg-gray-800 select#bulk-actions option {
+        @apply !bg-slate-700 !text-white;
     }
 
-    .modal-footer {
-        @apply mt-4 flex justify-end space-x-2;
+    /* Styles pour les autres selects dans le conteneur sombre */
+    .bg-gray-800 select:not(#bulk-actions) {
+        @apply !bg-slate-700 !text-white !border-slate-600;
     }
 
-    .breadcrumbs {
-        @apply flex space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4;
+    .bg-gray-800 select:not(#bulk-actions):focus {
+        @apply !outline-none !ring-2 !ring-blue-400 !border-blue-400;
     }
 
-    .breadcrumb-item {
-        @apply hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer;
+    .bg-gray-800 select:not(#bulk-actions) option {
+        @apply !bg-slate-700 !text-white;
     }
 
-    .breadcrumb-separator {
-        @apply mx-2;
+    table {
+        @apply w-full border-collapse;
     }
 
-    .user-menu {
-        @apply relative;
+    th {
+        @apply text-left bg-gray-200 p-2 dark:bg-slate-700 dark:text-gray-100;
     }
 
-    .user-menu-button {
-        @apply flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer;
+    td {
+        @apply border-t border-gray-300 p-2 dark:border-slate-700;
     }
 
-    .user-menu-dropdown {
-        @apply absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black;
+    .v-navbar {
+        @apply bg-white text-gray-800 dark:bg-slate-800 dark:text-gray-100;
+    }
+
+    .nav-link,
+    .dropdown-toggle,
+    .nav-item a {
+        @apply text-gray-600 dark:text-gray-300;
+    }
+
+    .navbar-toggler-icon {
+        @apply text-gray-800 dark:text-white;
+    }
+
+    .alert {
+        @apply p-4 rounded mb-4 border;
+    }
+
+    .alert-success {
+        @apply bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-100 dark:border-green-700;
+    }
+
+    .alert-error {
+        @apply bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-100 dark:border-red-700;
     }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .forum-card {
-        @apply p-4;
-    }
-    
-    .thread-item {
-        @apply p-3;
-    }
-    
-    .post {
-        @apply p-3;
-    }
+/* Color Picker Styles */
+html.dark .pcr-app {
+    @apply !bg-slate-800 !text-gray-100 !border !border-slate-700 !rounded-lg !shadow-lg;
 }
+
+html.dark .pcr-selection {
+    @apply !bg-slate-800;
+}
+
+html.dark .pcr-color-preview {
+    @apply !border-slate-700;
+}
+
+html.dark .pcr-color-palette {
+    @apply !border-slate-700;
+}
+
+html.dark .pcr-color-chooser {
+    @apply !border-slate-700;
+}
+
+html.dark .pcr-swatches {
+    @apply !border-t !border-slate-700;
+}
+
+html.dark .pcr-swatches button {
+    @apply !border !border-slate-700;
+}
+
+html.dark .pcr-interaction {
+    @apply !border-t !border-slate-700;
+}
+
+html.dark .pcr-interaction input {
+    @apply !bg-slate-700 !text-white !border-slate-600;
+}
+
+html.dark .pcr-interaction input[type="button"]:hover {
+    @apply bg-slate-600;
+}
+
+html.dark .pcr-result {
+    @apply !text-white;
+}
+
+html.dark .pcr-type.active {
+    @apply !bg-slate-600 !text-white;
+}
+
+html.dark .pcr-save {
+    @apply !bg-blue-600 !text-white;
+}
+
+html.dark .pcr-save:hover {
+    @apply bg-blue-700;
+}
+
+html.dark .pcr-cancel {
+    @apply !bg-slate-600 !text-white;
+}
+
+html.dark .pcr-cancel:hover {
+    @apply bg-slate-700;
+}
+
+html.dark .pcr-clear {
+    @apply !bg-red-600 !text-white;
+}
+
+html.dark .pcr-clear:hover {
+    @apply bg-red-700;
+}
+
