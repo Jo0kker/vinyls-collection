@@ -21,12 +21,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 
     @vite(['resources/forum/blade-tailwind/css/forum.css', 'resources/forum/blade-tailwind/js/forum.js'])
+
+    <!-- TinyMCE -->
+    <script src="https://cdn.tiny.cloud/1/w5h4t1htcxijwdh3k2fmiu1ocx7uk21rtw96p2jy2w0dnaha/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body class="forum">
     <nav class="v-navbar shadow py-4">
         <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
             <div class="flex justify-between items-center">
-                <a class="text-2xl font-bold text-blue-600 dark:text-blue-400" href="/">
+                <a class="text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2" href="/">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                    </svg>
                     Vinyls Collection
                 </a>
                 <button class="navbar-toggler block md:hidden border rounded-md px-2 py-1" type="button" :class="{ collapsed: isCollapsed }" @click="isCollapsed = !isCollapsed">
@@ -109,5 +116,7 @@
     <script>
         window.defaultCategoryColor = '{{ config('forum.frontend.default_category_color') }}';
     </script>
+
+    @stack('scripts')
 </body>
 </html>
