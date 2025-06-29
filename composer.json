@@ -12,11 +12,14 @@
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "league/flysystem-aws-s3-v3": "^3.29",
         "riari/laravel-forum": "^7.0",
         "spatie/laravel-permission": "^6.19",
-        "tightenco/ziggy": "^2.0"
+        "tightenco/ziggy": "^2.0",
+        "ext-gd": "*"
     },
     "require-dev": {
+        "roave/security-advisories": "dev-latest",
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.13",

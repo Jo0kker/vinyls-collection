@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +23,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'first_name',
+        'last_name',
+        'bio',
+        'tagline',
+        'old_id',
     ];
 
     /**
@@ -45,5 +51,40 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function collections()
+    {
+        return $this->hasMany(Collection::class);
+    }
+
+    public function vinyls()
+    {
+        // Relation many-to-many avec la table pivot collection_vinyls (ou CollectionVinyl)
+        return $this->belongsToMany(Vinyl::class, 'collection_vinyls', 'user_id', 'vinyl_id')
+            ->withPivot([
+                'collection_id',
+                'prix_achat',
+                'provenance',
+                'annee_achat',
+                'vente',
+                'commentaires',
+                'note',
+                'date_ajout',
+                'created_at',
+                'updated_at',
+            ]);
+    }
+
+    public function vinylCollections()
+    {
+        // Accès direct aux associations (pivot)
+        return $this->hasMany(CollectionVinyl::class, 'user_id');
+    }
+
+    // Si tu veux les vinyles ajoutés/créés par l'utilisateur (optionnel, à adapter)
+    public function addedVinyls()
+    {
+        return $this->hasMany(Vinyl::class, 'created_by');
     }
 }

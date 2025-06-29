@@ -62,6 +62,23 @@ return [
             ]) : [],
         ],
 
+        'mysql_old' => [
+            'driver' => 'mysql',
+            'url' => env('OLD_DATABASE_URL'),
+            'host' => env('OLD_DB_HOST', '127.0.0.1'),
+            'port' => env('OLD_DB_PORT', '3306'),
+            'database' => env('OLD_DB_DATABASE', 'forge'),
+            'username' => env('OLD_DB_USERNAME', 'forge'),
+            'password' => env('OLD_DB_PASSWORD', ''),
+            'unix_socket' => env('OLD_DB_SOCKET', ''),
+            'charset' => 'latin1',
+            'collation' => 'latin1_swedish_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

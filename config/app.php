@@ -123,4 +123,5 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'import_default_avatar' => env('IMPORT_DEFAULT_AVATAR', false),
 ];
