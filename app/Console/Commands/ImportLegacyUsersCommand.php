@@ -175,9 +175,25 @@ class ImportLegacyUsersCommand extends Command
 
             $bar->finish();
             $this->line('');
+            
+            // Assigner le rôle 'user' à tous les utilisateurs importés
+            $this->info("Attribution du rôle 'user' aux utilisateurs importés...");
+            $importedUsers = User::whereNotNull('old_id')->whereDoesntHave('roles')->get();
+            $roleAssigned = 0;
+            
+            foreach ($importedUsers as $user) {
+                try {
+                    $user->assignRole('user');
+                    $roleAssigned++;
+                } catch (\Exception $e) {
+                    $this->warn("Impossible d'assigner le rôle à l'utilisateur {$user->email}: " . $e->getMessage());
+                }
+            }
+            
             $this->info("\nImport terminé avec succès !");
             $this->info(sprintf("Temps total : %.2f secondes", microtime(true) - $startTime));
             $this->info(sprintf("Utilisateurs importés : %d", $imported));
+            $this->info(sprintf("Rôles 'user' assignés : %d", $roleAssigned));
         } catch (\Exception $e) {
             $this->error("Erreur lors de l'import : " . $e->getMessage());
             $this->error('Trace : ' . $e->getTraceAsString());

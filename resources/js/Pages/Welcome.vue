@@ -35,8 +35,8 @@ function handleImageError() {
 
 <template>
     <Head>
-        <title>Vinyls Collection - Gérez et partagez votre collection de vinyles</title>
-        <meta name="description" content="Vinyls Collection est la plateforme communautaire pour gérer, partager et discuter autour de votre collection de vinyles. Rejoignez le forum, échangez avec d'autres passionnés et enrichissez votre discothèque !" />
+        <title>Vinyls Collection - Gérez votre collection de vinyles</title>
+        <meta name="description" content="Plateforme communautaire pour gérer, partager et discuter de votre collection de vinyles. Forum actif et outils de gestion complets." />
     </Head>
 
     <div v-if="isLoading" class="fixed inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">

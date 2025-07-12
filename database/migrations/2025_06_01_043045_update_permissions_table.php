@@ -63,6 +63,18 @@ return new class extends Migration
         // Création du rôle admin
         $admin = Role::create(['name' => 'admin']);
         $admin->givePermissionTo(Permission::all());
+
+        // Création du rôle utilisateur normal
+        $user = Role::create(['name' => 'user']);
+        $user->givePermissionTo([
+            'create threads',
+            'edit own threads',
+            'delete own threads',
+            'reply to threads',
+            'create posts',
+            'edit own posts',
+            'delete own posts',
+        ]);
     }
 
     /**
@@ -71,7 +83,7 @@ return new class extends Migration
     public function down(): void
     {
         // Suppression des rôles
-        Role::whereIn('name', ['moderator', 'admin'])->delete();
+        Role::whereIn('name', ['moderator', 'admin', 'user'])->delete();
         
         // Suppression des permissions
         Permission::whereIn('name', [

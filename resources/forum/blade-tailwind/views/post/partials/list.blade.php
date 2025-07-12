@@ -1,7 +1,9 @@
 @php
     $user = $post->author;
     $vinylCount = $user ? $user->vinylCollections()->count() : 0;
-    $userRole = $user && $user->roles->first() ? $user->roles->first()->name : 'Membre';
+    $role = $user && $user->roles->first() ? $user->roles->first() : null;
+    $userRole = $role ? $role->name : 'Membre';
+    $roleColor = $role && $role->color ? $role->color : '#3b82f6';
 @endphp
 
 <div @if (!$post->trashed())id="post-{{ $post->sequence }}"@endif
@@ -31,8 +33,8 @@
 
                 <!-- Rôle -->
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
-                        {{ $userRole }}
+                    <span class="px-2 py-1 rounded-full text-white font-medium" style="background-color: {{ $roleColor }};">
+                        {{ ucfirst($userRole) }}
                     </span>
                 </div>
 

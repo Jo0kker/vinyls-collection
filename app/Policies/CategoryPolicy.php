@@ -9,7 +9,13 @@ class CategoryPolicy
 {
     public function view(User $user, Category $category): bool
     {
-        return true;
+        // Si la catégorie n'est pas privée, tout le monde peut la voir
+        if (!$category->is_private) {
+            return true;
+        }
+        
+        // Si la catégorie est privée, seuls les administrateurs peuvent la voir
+        return $user->hasPermissionTo('manage categories');
     }
 
     public function edit(User $user, Category $category): bool
@@ -24,7 +30,13 @@ class CategoryPolicy
 
     public function createThreads(User $user, Category $category): bool
     {
-        return true;
+        // Si la catégorie est privée, seuls les administrateurs peuvent créer des threads
+        if ($category->is_private) {
+            return $user->hasPermissionTo('manage categories');
+        }
+        
+        // Pour les catégories publiques, vérifier si l'utilisateur a la permission de créer des threads
+        return $user->hasPermissionTo('create threads');
     }
 
     public function manageThreads(User $user, Category $category): bool

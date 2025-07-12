@@ -14,6 +14,42 @@
         @endif
         {{ trans('forum::general.home_title') }}
     </title>
+    
+    @php
+        $page_title = '';
+        if (isset($thread_title)) {
+            $page_title .= $thread_title . ' — ';
+        }
+        if (isset($category)) {
+            $page_title .= $category->title . ' — ';
+        }
+        $page_title .= trans('forum::general.home_title');
+        
+        $page_description = isset($meta_description) ? $meta_description : trans('forum::general.forum_description');
+    @endphp
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{{ $page_description }}">
+    <meta name="keywords" content="forum, vinyles, collection, musique, discussion, communauté">
+    <meta name="author" content="Vinyls Collection">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{{ $page_title }}">
+    <meta property="og:description" content="{{ $page_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:site_name" content="Vinyls Collection">
+    <meta property="og:image" content="{{ asset('images/forum-og.jpg') }}">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $page_title }}">
+    <meta name="twitter:description" content="{{ $page_description }}">
+    <meta name="twitter:image" content="{{ asset('images/forum-og.jpg') }}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ url()->current() }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

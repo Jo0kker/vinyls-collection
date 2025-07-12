@@ -18,6 +18,24 @@ Route::get('/', function () {
     ]);
 });
 
+// SEO routes
+Route::get('/sitemap.xml', function () {
+    $sitemapPath = public_path('sitemap.xml');
+    if (file_exists($sitemapPath)) {
+        return response()->file($sitemapPath, [
+            'Content-Type' => 'application/xml'
+        ]);
+    }
+    return response('Sitemap not found', 404);
+})->name('sitemap');
+
+Route::get('/robots.txt', function () {
+    $content = "User-agent: *\nDisallow:\n\nSitemap: " . url('/sitemap.xml');
+    return response($content, 200, [
+        'Content-Type' => 'text/plain'
+    ]);
+})->name('robots');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

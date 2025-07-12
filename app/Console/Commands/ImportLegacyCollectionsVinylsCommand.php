@@ -202,6 +202,15 @@ class ImportLegacyCollectionsVinylsCommand extends Command
                     'collection_vinyl.annee',
                     'collection_vinyl.format',
                     'collection_vinyl.reference',
+                    'collection_vinyl.pochette',        // Image principale
+                    'collection_vinyl.visuels',         // Images multiples
+                    'collection_vinyl.pays',
+                    'collection_vinyl.tracks',
+                    'collection_vinyl.specificite',
+                    'collection_vinyl.refMatrice',
+                    'collection_vinyl.distribution',
+                    'collection_vinyl.edition',
+                    'collection_vinyl.anneeOriginal',
                     'vinyl.vinyl_titre',
                     'vinyl.vinyl_nom',
                     'vinyl.vinyl_format',
@@ -228,15 +237,22 @@ class ImportLegacyCollectionsVinylsCommand extends Command
                     $uniqueVinyls[$vinylKey] = [
                         'old_id' => $cv->vinyl_id,
                         'vinyl_titre' => $this->convertToUtf8($cv->titre ?: $cv->vinyl_titre),
+                        'vinyl_nom' => $this->convertToUtf8($cv->titre ?: $cv->vinyl_nom),
                         'artiste' => $this->convertToUtf8($cv->artiste),
                         'label' => $this->convertToUtf8($cv->label),
-                        'annee' => $cv->annee,
-                        'vinyl_format' => $this->getFormatId($cv->format ?: $cv->vinyl_format),
                         'reference' => $this->convertToUtf8($cv->reference),
-                        'vinyl_nom' => $this->convertToUtf8($cv->titre ?: $cv->vinyl_nom),
+                        'annee' => $cv->annee,
+                        'pays' => $cv->pays,
+                        'tracks' => $this->convertToUtf8($cv->tracks),
+                        'specificite' => $this->convertToUtf8($cv->specificite),
+                        'refMatrice' => $this->convertToUtf8($cv->refMatrice),
+                        'distribution' => $this->convertToUtf8($cv->distribution),
+                        'edition' => $cv->edition,
+                        'anneeOriginal' => $cv->anneeOriginal,
+                        'vinyl_format' => $this->getFormatId($cv->format ?: $cv->vinyl_format),
                         'vinyl_nbcollect' => 0,
                         'vinyl_alias' => 0,
-                        'pochette' => null, // Les images seront traitées par la commande séparée
+                        'visuels' => $cv->visuels,   // Chemins vers les images pour l'import ultérieur
                         'created_at' => now(),
                         'updated_at' => now()
                     ];

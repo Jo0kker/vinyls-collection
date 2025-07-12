@@ -23,7 +23,7 @@ class ImportVinylImagesCommand extends Command
         $this->initializeDefaultImage();
 
         // Compter les vinyles à traiter
-        $totalVinyls = Vinyl::whereNull('pochette')->count();
+        $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
         $this->info("📊 Trouvé {$totalVinyls} vinyles sans pochette à traiter");
 
         if ($totalVinyls === 0) {
@@ -54,19 +54,11 @@ class ImportVinylImagesCommand extends Command
         }
     }
 
-    private function determineImageUrl($vinylId)
+    private function determineImageUrl($vinyl)
     {
-        // Récupérer la première collection_vinyl liée à ce vinyle avec des visuels
-        $collectionVinylData = DB::connection('mysql_old')
-            ->table('collection_vinyl')
-            ->where('vinyl_id', $vinylId)
-            ->whereNotNull('visuels')
-            ->where('visuels', 'not like', '%none.jpg%')
-            ->select(['visuels'])
-            ->first();
-
-        if ($collectionVinylData && !empty($collectionVinylData->visuels)) {
-            $visuels = explode(';', $collectionVinylData->visuels);
+        // Utiliser directement la colonne visuels du vinyle importé
+        if (!empty($vinyl->visuels) && strpos($vinyl->visuels, 'none.jpg') === false) {
+            $visuels = explode(';', $vinyl->visuels);
             $firstVisual = trim($visuels[0]);
 
             // Vérifier que ce n'est pas juste un ; vide ou none.jpg
@@ -85,7 +77,7 @@ class ImportVinylImagesCommand extends Command
 
         $this->info("🚀 Traitement concurrent avec {$concurrency} connexions simultanées par batch de {$batchSize}...");
 
-        $totalVinyls = Vinyl::whereNull('pochette')->count();
+        $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
         $bar = $this->output->createProgressBar($totalVinyls);
         $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% | %elapsed:6s% écoulé | %estimated:-6s% estimé | %memory:6s% | %message%');
         $bar->start();
@@ -94,7 +86,7 @@ class ImportVinylImagesCommand extends Command
         $totalUploaded = 0;
         $chunkNumber = 0;
 
-        Vinyl::whereNull('pochette')->chunk($batchSize, function ($vinyls) use ($concurrency, $bar, &$totalProcessed, &$totalUploaded, &$chunkNumber) {
+        Vinyl::whereNull('pochette')->whereNotNull('visuels')->chunk($batchSize, function ($vinyls) use ($concurrency, $bar, &$totalProcessed, &$totalUploaded, &$chunkNumber) {
             $chunkNumber++;
             $result = $this->processBatchConcurrent($vinyls, $concurrency, $bar);
             $totalProcessed += $result['processed'];
@@ -119,7 +111,7 @@ class ImportVinylImagesCommand extends Command
     {
         $this->info("🐌 Traitement séquentiel (mode stable)...");
 
-        $totalVinyls = Vinyl::whereNull('pochette')->count();
+        $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
         $bar = $this->output->createProgressBar($totalVinyls);
         $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% | %elapsed:6s% écoulé | %estimated:-6s% estimé | %memory:6s% | %message%');
         $bar->start();
@@ -127,7 +119,7 @@ class ImportVinylImagesCommand extends Command
         $processed = 0;
         $uploaded = 0;
 
-        Vinyl::whereNull('pochette')->chunk(100, function ($vinyls) use ($bar, &$processed, &$uploaded) {
+        Vinyl::whereNull('pochette')->whereNotNull('visuels')->chunk(100, function ($vinyls) use ($bar, &$processed, &$uploaded) {
             foreach ($vinyls as $vinyl) {
                 if ($this->processVinylImageSequential($vinyl)) {
                     $uploaded++;
@@ -157,7 +149,7 @@ class ImportVinylImagesCommand extends Command
         // Préparer les vinyles avec leurs URLs d'images
         $vinylsWithUrls = [];
         foreach ($vinyls as $vinyl) {
-            $imageUrl = $this->determineImageUrl($vinyl->old_id);
+            $imageUrl = $this->determineImageUrl($vinyl);
             if ($imageUrl) {
                 $vinylsWithUrls[] = ['vinyl' => $vinyl, 'url' => $imageUrl];
             } else {
@@ -222,7 +214,7 @@ class ImportVinylImagesCommand extends Command
 
     private function processVinylImageSequential($vinyl)
     {
-        $imageUrl = $this->determineImageUrl($vinyl->old_id);
+        $imageUrl = $this->determineImageUrl($vinyl);
         if (!$imageUrl) {
             return false;
         }

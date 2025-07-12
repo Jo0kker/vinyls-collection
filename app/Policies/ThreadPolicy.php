@@ -9,6 +9,17 @@ class ThreadPolicy
 {
     public function view(User $user, Thread $thread): bool
     {
+        // Charger la catégorie si elle n'est pas déjà chargée
+        if (!$thread->relationLoaded('category')) {
+            $thread->load('category');
+        }
+        
+        // Si la catégorie est privée, seuls les administrateurs peuvent voir le thread
+        if ($thread->category && $thread->category->is_private) {
+            return $user->hasPermissionTo('manage categories');
+        }
+        
+        // Pour les catégories publiques, tout le monde peut voir
         return true;
     }
 
@@ -19,7 +30,23 @@ class ThreadPolicy
 
     public function reply(User $user, Thread $thread): bool
     {
-        return !$thread->locked;
+        // Si le thread est verrouillé, personne ne peut répondre
+        if ($thread->locked) {
+            return false;
+        }
+        
+        // Charger la catégorie si elle n'est pas déjà chargée
+        if (!$thread->relationLoaded('category')) {
+            $thread->load('category');
+        }
+        
+        // Si la catégorie est privée, seuls les administrateurs peuvent répondre
+        if ($thread->category && $thread->category->is_private) {
+            return $user->hasPermissionTo('manage categories');
+        }
+        
+        // Pour les catégories publiques, vérifier les permissions de base
+        return $user->hasPermissionTo('reply to threads');
     }
 
     public function delete(User $user, Thread $thread): bool
