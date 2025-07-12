@@ -19,7 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
             app.mount(el);
         },
         progress: {
-            color: '#4B5563',
+            color: '#2563eb',
+            showSpinner: true,
+        },
+        finish: (event) => {
+            // Hide loading overlay when page is loaded
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                overlay.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => overlay.remove(), 300);
+            }
         },
     });
 });

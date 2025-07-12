@@ -1,6 +1,7 @@
 @if ($paginator->hasPages())
     <nav aria-label="Pagination" class="flex justify-center mt-6">
-        <div class="flex items-center space-x-1">
+        <!-- Version Desktop -->
+        <div class="hidden sm:flex items-center space-x-1">
             {{-- Previous Page Link --}}
             @if ($paginator->onFirstPage())
                 <span class="px-3 py-2 text-gray-400 bg-gray-100 dark:bg-gray-700 dark:text-gray-500 rounded-md cursor-not-allowed" aria-disabled="true" aria-label="@lang('pagination.previous')">
@@ -49,7 +50,53 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
+                </span>
+            @endif
+        </div>
+
+        <!-- Version Mobile - Simple avec juste Précédent/Suivant + info page -->
+        <div class="flex sm:hidden items-center justify-between w-full max-w-sm mx-auto">
+            <!-- Bouton Précédent -->
+            @if ($paginator->onFirstPage())
+                <span class="flex items-center px-3 py-2 text-gray-400 bg-gray-100 dark:bg-gray-700 dark:text-gray-500 rounded-md cursor-not-allowed text-sm" aria-disabled="true">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Préc.
+                </span>
+            @else
+                <a href="{{ $paginator->previousPageUrl() }}" rel="prev" 
+                   class="flex items-center px-3 py-2 text-gray-700 bg-white dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Préc.
                 </a>
+            @endif
+
+            <!-- Info page courante -->
+            <div class="flex items-center">
+                <span class="text-sm text-gray-600 dark:text-gray-400 px-2">
+                    {{ $paginator->currentPage() }}/{{ $paginator->lastPage() }}
+                </span>
+            </div>
+
+            <!-- Bouton Suivant -->
+            @if ($paginator->hasMorePages())
+                <a href="{{ $paginator->nextPageUrl() }}" rel="next" 
+                   class="flex items-center px-3 py-2 text-gray-700 bg-white dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                    Suiv.
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+            @else
+                <span class="flex items-center px-3 py-2 text-gray-400 bg-gray-100 dark:bg-gray-700 dark:text-gray-500 rounded-md cursor-not-allowed text-sm" aria-disabled="true">
+                    Suiv.
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </span>
             @endif
         </div>
     </nav>

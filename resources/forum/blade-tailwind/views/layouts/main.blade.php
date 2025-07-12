@@ -21,6 +21,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 
     @vite(['resources/forum/blade-tailwind/css/forum.css', 'resources/forum/blade-tailwind/js/forum.js'])
+    
+    <style>
+        /* Ensure consistent background to prevent flash */
+        body {
+            background-color: rgb(243 244 246);
+            min-height: 100vh;
+        }
+        
+        .dark body {
+            background-color: rgb(17 24 39);
+        }
+        
+        /* Smooth transitions */
+        body, .container {
+            transition: background-color 0.3s ease;
+        }
+    </style>
 
     <!-- TinyMCE -->
     <script src="https://cdn.tiny.cloud/1/w5h4t1htcxijwdh3k2fmiu1ocx7uk21rtw96p2jy2w0dnaha/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>

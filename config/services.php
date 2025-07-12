@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'discogs' => [
+        'token' => env('DISCOGS_TOKEN'),
+    ],
+
 ];

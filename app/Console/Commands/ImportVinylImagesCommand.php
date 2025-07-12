@@ -56,31 +56,23 @@ class ImportVinylImagesCommand extends Command
 
     private function determineImageUrl($vinylId)
     {
-        // Récupérer les colonnes visuels et pochette de l'ancienne BDD
-        $vinylData = DB::connection('mysql_old')
-            ->table('vinyl')
+        // Récupérer la première collection_vinyl liée à ce vinyle avec des visuels
+        $collectionVinylData = DB::connection('mysql_old')
+            ->table('collection_vinyl')
             ->where('vinyl_id', $vinylId)
-            ->select(['visuels', 'pochette'])
+            ->whereNotNull('visuels')
+            ->where('visuels', 'not like', '%none.jpg%')
+            ->select(['visuels'])
             ->first();
 
-        if (!$vinylData) {
-            return null;
-        }
-
-        // 1. Priorité aux visuels (première image - meilleure qualité)
-        if (!empty($vinylData->visuels)) {
-            $visuels = explode(';', $vinylData->visuels);
+        if ($collectionVinylData && !empty($collectionVinylData->visuels)) {
+            $visuels = explode(';', $collectionVinylData->visuels);
             $firstVisual = trim($visuels[0]);
 
-            // Vérifier que ce n'est pas juste un ; vide
-            if (!empty($firstVisual)) {
+            // Vérifier que ce n'est pas juste un ; vide ou none.jpg
+            if (!empty($firstVisual) && strpos($firstVisual, 'none.jpg') === false) {
                 return "https://vinyls-collection.com/images/vinyls/{$firstVisual}";
             }
-        }
-
-        // 2. Fallback sur pochette
-        if (!empty($vinylData->pochette)) {
-            return "https://vinyls-collection.com/images/vinyls/{$vinylData->pochette}";
         }
 
         return null;

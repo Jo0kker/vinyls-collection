@@ -1,6 +1,150 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+
+// Props reçues du contrôleur
+defineProps({
+    stats: {
+        type: Object,
+        default: () => ({
+            collections_count: 0,
+            vinyls_count: 0,
+            total_value: 0,
+            year_additions: 0
+        })
+    },
+    recentCollections: {
+        type: Array,
+        default: () => []
+    },
+    recentVinyls: {
+        type: Array,
+        default: () => []
+    },
+    allCollections: {
+        type: Array,
+        default: () => []
+    }
+});
+
+// États des modales
+const showCollectionModal = ref(false);
+const showSearchModal = ref(false);
+const showVinylModal = ref(false);
+
+// Données des formulaires
+const newCollection = ref({
+    collection_nom: '',
+    collection_commentaires: ''
+});
+
+const searchQuery = ref('');
+const searchResults = ref([]);
+
+// Méthode pour formater les dates
+const formatDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+};
+
+// Méthodes pour les modales
+const openCollectionModal = () => {
+    showCollectionModal.value = true;
+};
+
+const closeCollectionModal = () => {
+    showCollectionModal.value = false;
+    newCollection.value = { collection_nom: '', collection_commentaires: '' };
+};
+
+const openSearchModal = () => {
+    showSearchModal.value = true;
+};
+
+const closeSearchModal = () => {
+    showSearchModal.value = false;
+    searchQuery.value = '';
+    searchResults.value = [];
+};
+
+const openVinylModal = () => {
+    showVinylModal.value = true;
+};
+
+const closeVinylModal = () => {
+    showVinylModal.value = false;
+    discogsQuery.value = '';
+    discogsResults.value = [];
+    selectedCollectionId.value = null;
+};
+
+// Méthodes pour les actions
+const createCollection = () => {
+    router.post('/collections', newCollection.value, {
+        onSuccess: () => {
+            closeCollectionModal();
+            // Rafraîchir la page pour voir la nouvelle collection
+            router.reload();
+        },
+        onError: (errors) => {
+            console.error('Erreur lors de la création:', errors);
+        }
+    });
+};
+
+// Variables pour Discogs
+const discogsQuery = ref('');
+const discogsResults = ref([]);
+const isSearchingDiscogs = ref(false);
+const selectedCollectionId = ref(null);
+const showCollectionError = ref(false);
+
+const searchDiscogs = async () => {
+    if (!discogsQuery.value.trim()) return;
+
+    isSearchingDiscogs.value = true;
+
+    try {
+        const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(discogsQuery.value)}`);
+        const data = await response.json();
+        discogsResults.value = data.results || [];
+    } catch (error) {
+        console.error('Erreur recherche Discogs:', error);
+        discogsResults.value = [];
+    } finally {
+        isSearchingDiscogs.value = false;
+    }
+};
+
+const addVinylFromDiscogs = (discogsItem) => {
+    // Validation côté client
+    if (!selectedCollectionId.value && allCollections.length > 0) {
+        showCollectionError.value = true;
+        setTimeout(() => {
+            showCollectionError.value = false;
+        }, 3000);
+        return;
+    }
+    
+    router.post('/vinyls/from-discogs', {
+        discogs_id: discogsItem.id,
+        discogs_data: discogsItem,
+        collection_id: selectedCollectionId.value
+    }, {
+        onSuccess: () => {
+            closeVinylModal();
+            router.reload();
+        },
+        onError: (errors) => {
+            console.error('Erreur lors de l\'ajout:', errors);
+        }
+    });
+};
 </script>
 
 <template>
@@ -8,20 +152,319 @@ import { Head } from '@inertiajs/vue3';
 
     <AuthenticatedLayout>
         <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
-            >
-                Tableau de bord
-            </h2>
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                    Tableau de bord
+                </h2>
+                <div class="flex items-center gap-4">
+                    <Link href="/collections"
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                        Mes Collections
+                    </Link>
+                    <Link href="/vinyls"
+                       class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">
+                        Mes Vinyles
+                    </Link>
+                </div>
+            </div>
         </template>
 
-        <div class="py-12">
+        <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div
-                    class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800"
-                >
-                    <div class="p-6 text-gray-900 dark:text-gray-100">
-                        Vous êtes connecté !
+                <!-- Statistiques rapides -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+                                    <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Collections</h3>
+                                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.collections_count }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
+                                    <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Vinyles</h3>
+                                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ stats.vinyls_count }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Layout en 2 colonnes -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Colonne gauche: Liste des collections -->
+                    <div class="lg:col-span-1 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Mes Collections</h3>
+                                <Link href="/collections" class="text-blue-600 hover:text-blue-800 text-sm">
+                                    Voir tout
+                                </Link>
+                            </div>
+                            <div class="space-y-3">
+                                <Link v-for="collection in recentCollections" :key="collection.id"
+                                     :href="`/collections/${collection.id}`"
+                                     class="block p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer border-l-4 border-blue-500">
+                                    <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ collection.collection_nom }}</h4>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ collection.vinyls_count }} vinyles</p>
+                                </Link>
+                                <div v-if="recentCollections.length === 0" class="text-center py-8">
+                                    <p class="text-gray-500 dark:text-gray-400 text-sm">Aucune collection</p>
+                                    <Link href="/collections/create" class="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">
+                                        Créer votre première collection
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne droite: Détails et vinyles récents -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Détails de la collection sélectionnée -->
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                            <div class="p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Vinyles Récents</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div v-for="vinyl in recentVinyls" :key="vinyl.id"
+                                         class="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        <div class="w-12 h-12 rounded-lg mr-4 overflow-hidden flex-shrink-0">
+                                            <img v-if="vinyl.pochette"
+                                                 :src="vinyl.pochette"
+                                                 :alt="vinyl.vinyl_nom"
+                                                 class="w-full h-full object-cover"
+                                                 @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'">
+                                            <div v-else class="w-full h-full bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                                                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                                    <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ vinyl.vinyl_nom }}</h4>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ vinyl.artiste }}</p>
+                                            <p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-1">{{ vinyl.collection_nom }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="recentVinyls.length === 0" class="text-center py-8">
+                                    <p class="text-gray-500 dark:text-gray-400 text-sm">Aucun vinyle ajouté récemment</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions rapides -->
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                            <div class="p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Actions rapides</h3>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <button @click="openCollectionModal"
+                                       class="flex flex-col items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        <span class="text-xs font-medium text-blue-600 dark:text-blue-400">Nouvelle collection</span>
+                                    </button>
+
+                                    <button @click="openVinylModal"
+                                       class="flex flex-col items-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+                                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        <span class="text-xs font-medium text-purple-600 dark:text-purple-400">Ajouter un vinyle</span>
+                                    </button>
+
+                                    <button @click="openSearchModal"
+                                       class="flex flex-col items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+                                        <svg class="w-6 h-6 text-green-600 dark:text-green-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                        <span class="text-xs font-medium text-green-600 dark:text-green-400">Parcourir</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Nouvelle Collection -->
+        <div v-if="showCollectionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Créer une nouvelle collection</h3>
+                    <form @submit.prevent="createCollection">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Nom de la collection
+                            </label>
+                            <input v-model="newCollection.collection_nom"
+                                   type="text"
+                                   required
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Description (optionnel)
+                            </label>
+                            <textarea v-model="newCollection.collection_commentaires"
+                                      rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button @click="closeCollectionModal"
+                                    type="button"
+                                    class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                                Annuler
+                            </button>
+                            <button type="submit"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                Créer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Recherche/Parcours -->
+        <div v-if="showSearchModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Parcourir votre collection</h3>
+                    <div class="mb-4">
+                        <input v-model="searchQuery"
+                               type="text"
+                               placeholder="Rechercher un vinyle, artiste, collection..."
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div class="mb-6 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 dark:text-gray-400 text-center py-8">Tapez pour rechercher dans votre collection...</p>
+                    </div>
+                    <div class="flex justify-end">
+                        <button @click="closeSearchModal"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Ajouter Vinyle (Discogs) -->
+        <div v-if="showVinylModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Ajouter un vinyle depuis Discogs</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Recherchez par nom d'artiste, album ou utilisez un code Discogs : 
+                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[r123456]</code> pour un release ou 
+                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[m123456]</code> pour un master
+                    </p>
+                    
+                    <!-- Sélecteur de collection -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Collection de destination <span class="text-red-500">*</span>
+                        </label>
+                        <select v-model="selectedCollectionId" 
+                                :class="[
+                                    'w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white',
+                                    selectedCollectionId ? 'border-gray-300 dark:border-gray-600' : 'border-red-300 dark:border-red-600'
+                                ]">
+                            <option value="">Sélectionnez une collection</option>
+                            <option v-for="collection in allCollections" 
+                                    :key="collection.id" 
+                                    :value="collection.id">
+                                {{ collection.collection_nom }}
+                            </option>
+                        </select>
+                        <p v-if="!selectedCollectionId" class="text-xs text-red-500 dark:text-red-400 mt-1">
+                            ⚠️ Veuillez sélectionner une collection avant d'ajouter un vinyle.
+                        </p>
+                        <p v-else class="text-xs text-green-600 dark:text-green-400 mt-1">
+                            ✓ Le vinyle sera ajouté à "{{ allCollections.find(c => c.id == selectedCollectionId)?.collection_nom }}"
+                        </p>
+                    </div>
+                    
+                    <!-- Notification d'erreur -->
+                    <div v-if="showCollectionError" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <strong>Erreur :</strong> Veuillez sélectionner une collection avant d'ajouter un vinyle.
+                    </div>
+                    
+                    <div class="mb-4 flex gap-2">
+                        <input v-model="discogsQuery"
+                               @keyup.enter="searchDiscogs"
+                               type="text"
+                               placeholder="Rechercher un vinyle sur Discogs (artiste, album, code [r123456] ou [m123456]...)"
+                               class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                        <button @click="searchDiscogs"
+                                :disabled="isSearchingDiscogs || !discogsQuery.trim()"
+                                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50">
+                            {{ isSearchingDiscogs ? 'Recherche...' : 'Rechercher' }}
+                        </button>
+                    </div>
+                    <div class="mb-6 max-h-96 overflow-y-auto">
+                        <div v-if="discogsResults.length === 0 && !isSearchingDiscogs && !discogsQuery.trim()"
+                             class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            Recherchez votre vinyle sur Discogs pour l'ajouter à votre collection...
+                        </div>
+                        <div v-else-if="isSearchingDiscogs"
+                             class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            Recherche en cours...
+                        </div>
+                        <div v-else-if="discogsResults.length === 0"
+                             class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            Aucun résultat trouvé pour "{{ discogsQuery }}"
+                        </div>
+                        <div v-else class="space-y-3">
+                            <div v-for="result in discogsResults" :key="result.id"
+                                 class="flex items-center p-4 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <img v-if="result.thumb"
+                                     :src="result.thumb"
+                                     :alt="result.title"
+                                     class="w-16 h-16 object-cover rounded mr-4">
+                                <div v-else class="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded mr-4 flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900 dark:text-white">{{ result.title }}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ result.year }} • {{ result.format?.join(', ') }}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-500">{{ result.label?.join(', ') }}</p>
+                                </div>
+                                <button @click="addVinylFromDiscogs(result)"
+                                        class="ml-4 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
+                                    Ajouter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button @click="closeVinylModal"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Fermer
+                        </button>
                     </div>
                 </div>
             </div>
