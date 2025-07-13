@@ -234,10 +234,10 @@
                         </li>
                     @else
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('login') }}">Log in</a>
+                            <a class="nav-link" href="{{ route('login') }}">Connexion</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('register') }}">Register</a>
+                            <a class="nav-link" href="{{ route('register') }}">Inscription</a>
                         </li>
                     @endif
                 </ul>

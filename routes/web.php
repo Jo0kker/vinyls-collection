@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\VinylController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Api\DiscogsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -19,22 +20,8 @@ Route::get('/', function () {
 });
 
 // SEO routes
-Route::get('/sitemap.xml', function () {
-    $sitemapPath = public_path('sitemap.xml');
-    if (file_exists($sitemapPath)) {
-        return response()->file($sitemapPath, [
-            'Content-Type' => 'application/xml'
-        ]);
-    }
-    return response('Sitemap not found', 404);
-})->name('sitemap');
-
-Route::get('/robots.txt', function () {
-    $content = "User-agent: *\nDisallow:\n\nSitemap: " . url('/sitemap.xml');
-    return response($content, 200, [
-        'Content-Type' => 'text/plain'
-    ]);
-})->name('robots');
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])

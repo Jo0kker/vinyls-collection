@@ -20,7 +20,7 @@ const showingNavigationDropdown = ref(false);
                 <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
                     <div class="flex justify-between items-center">
                         <!-- Logo -->
-                        <Link :href="route('dashboard')" class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        <Link href="/" class="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             <ApplicationLogo />
                         </Link>
                         
