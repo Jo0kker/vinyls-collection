@@ -8,13 +8,19 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\Vinyl;
+use App\Jobs\ProcessVinylImageUpload;
+use App\Jobs\MonitorVinylImportProgress;
+use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
 class ImportVinylImagesCommand extends Command
 {
-    protected $signature = 'import:vinyl-images {--concurrent=10} {--batch=100} {--method=concurrent}';
+    protected $signature = 'import:vinyl-images {--concurrent=10} {--batch=300} {--method=concurrent} {--direct-s3=true} {--queue=false} {--email=}';
     protected $description = 'Import optimisé des images depuis les colonnes visuels/pochette';
 
     private $defaultImageBase64 = null;
+    private $s3Client = null;
+    private $s3Bucket = null;
 
     public function handle()
     {
@@ -22,6 +28,11 @@ class ImportVinylImagesCommand extends Command
 
         // Initialiser l'image par défaut
         $this->initializeDefaultImage();
+
+        // Initialiser le client S3 direct si demandé
+        if ($this->option('direct-s3')) {
+            $this->initializeS3Client();
+        }
 
         // Compter les vinyles à traiter
         $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
@@ -33,11 +44,15 @@ class ImportVinylImagesCommand extends Command
         }
 
         // Choisir la méthode de traitement
-        $method = $this->option('method');
-        if ($method === 'concurrent' || $this->confirm('Utiliser le mode concurrent (plus rapide) ?', true)) {
-            $this->processConcurrent();
+        if ($this->option('queue')) {
+            $this->processWithQueue();
         } else {
-            $this->processSequential();
+            $method = $this->option('method');
+            if ($method === 'concurrent' || $this->confirm('Utiliser le mode concurrent (plus rapide) ?', true)) {
+                $this->processConcurrent();
+            } else {
+                $this->processSequential();
+            }
         }
 
         return 0;
@@ -52,6 +67,25 @@ class ImportVinylImagesCommand extends Command
         } else {
             $this->warn('⚠️  Image par défaut default_vinyl.jpg non trouvée');
             $this->defaultImageBase64 = '';
+        }
+    }
+
+    private function initializeS3Client()
+    {
+        try {
+            $this->s3Client = new S3Client([
+                'version' => 'latest',
+                'region' => env('AWS_DEFAULT_REGION'),
+                'credentials' => [
+                    'key' => env('AWS_ACCESS_KEY_ID'),
+                    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+                ],
+            ]);
+            $this->s3Bucket = env('AWS_BUCKET');
+            $this->info('✅ Client S3 direct initialisé');
+        } catch (\Exception $e) {
+            $this->warn('⚠️  Impossible d\'initialiser le client S3 direct, fallback vers Storage');
+            $this->s3Client = null;
         }
     }
 
@@ -99,8 +133,10 @@ class ImportVinylImagesCommand extends Command
                 $bar->setMessage(sprintf("Lot %d | Succès: %.1f%% | Images: %d/%d", $chunkNumber, $successRate, $totalUploaded, $totalProcessed));
             }
 
-            // Petite pause entre les lots pour éviter de surcharger
-            usleep(500000); // 0.5 seconde
+            // Pause réduite ou conditionnelle
+            if (memory_get_usage() > 128 * 1024 * 1024) { // Si > 128MB
+                usleep(100000); // 0.1 seconde seulement
+            }
         });
 
         $bar->finish();
@@ -253,18 +289,17 @@ class ImportVinylImagesCommand extends Command
         try {
             // Compresser l'image
             $compressedImage = $this->compressImage($imageData);
-
             $imagePath = "vinyls/" . Str::uuid() . ".jpg";
 
-            // Upload vers S3 avec optimisations
-            $uploaded = Storage::disk('s3')->put($imagePath, $compressedImage, [
-                'ContentType' => 'image/jpeg',
-                'CacheControl' => 'max-age=31536000', // Cache 1 an
-                'visibility' => 'public',
-            ]);
+            // Upload direct S3 ou fallback Storage
+            if ($this->s3Client && $this->s3Bucket) {
+                $uploaded = $this->uploadToS3Direct($imagePath, $compressedImage);
+            } else {
+                $uploaded = $this->uploadToS3Storage($imagePath, $compressedImage);
+            }
 
             if ($uploaded) {
-                $url = Storage::disk('s3')->url($imagePath);
+                $url = $this->generateS3Url($imagePath);
                 $vinyl->update(['pochette' => $url]);
                 return true;
             }
@@ -273,6 +308,44 @@ class ImportVinylImagesCommand extends Command
         }
 
         return false;
+    }
+
+    private function uploadToS3Direct($imagePath, $compressedImage)
+    {
+        try {
+            $result = $this->s3Client->putObject([
+                'Bucket' => $this->s3Bucket,
+                'Key' => $imagePath,
+                'Body' => $compressedImage,
+                'ACL' => 'public-read',
+                'ContentType' => 'image/jpeg',
+                'CacheControl' => 'max-age=31536000',
+                'Metadata' => [
+                    'upload-method' => 'direct-s3'
+                ]
+            ]);
+            return !empty($result['ObjectURL']) || !empty($result['@metadata']);
+        } catch (AwsException $e) {
+            return false;
+        }
+    }
+
+    private function uploadToS3Storage($imagePath, $compressedImage)
+    {
+        return Storage::disk('s3')->put($imagePath, $compressedImage, [
+            'ContentType' => 'image/jpeg',
+            'CacheControl' => 'max-age=31536000',
+            'visibility' => 'public',
+        ]);
+    }
+
+    private function generateS3Url($imagePath)
+    {
+        if ($this->s3Client && $this->s3Bucket) {
+            $region = env('AWS_DEFAULT_REGION');
+            return "https://{$this->s3Bucket}.s3.{$region}.amazonaws.com/{$imagePath}";
+        }
+        return Storage::disk('s3')->url($imagePath);
     }
 
     private function compressImage($imageData, $quality = 80)
@@ -324,6 +397,65 @@ class ImportVinylImagesCommand extends Command
 
         } catch (\Exception $e) {
             return $imageData; // Retourne l'original en cas d'erreur
+        }
+    }
+
+    private function processWithQueue()
+    {
+        $batchSize = (int) $this->option('batch');
+        $email = $this->option('email');
+        
+        $this->info("🚀 Traitement avec queue Laravel (ultra-rapide)...");
+
+        $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
+        $this->info("📤 Dispatch de {$totalVinyls} jobs vers la queue...");
+
+        $bar = $this->output->createProgressBar($totalVinyls);
+        $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% | %elapsed:6s% écoulé | %estimated:-6s% estimé | %memory:6s% | Jobs dispatched');
+        $bar->start();
+
+        $dispatched = 0;
+        $chunkCount = 0;
+        $startTime = now();
+        $sessionId = Str::uuid();
+
+        Vinyl::whereNull('pochette')->whereNotNull('visuels')->chunk($batchSize, function ($vinyls) use ($bar, &$dispatched, &$chunkCount) {
+            $chunkCount++;
+            
+            foreach ($vinyls as $vinyl) {
+                $imageUrl = $this->determineImageUrl($vinyl);
+                if ($imageUrl) {
+                    // Délai croissant pour éviter la surcharge
+                    $delay = now()->addSeconds($chunkCount * 2);
+                    ProcessVinylImageUpload::dispatch($vinyl, $imageUrl, $this->defaultImageBase64)->delay($delay);
+                    $dispatched++;
+                }
+                $bar->advance();
+            }
+            
+            // Petite pause pour éviter de spam la queue
+            if ($chunkCount % 10 === 0) {
+                usleep(100000); // 0.1s pause tous les 10 chunks
+            }
+        });
+
+        $bar->finish();
+        $this->line('');
+        $this->info("✅ {$dispatched} jobs dispatchés avec succès !");
+        $this->info("⏰ Jobs étalés sur " . ceil($chunkCount * 2 / 60) . " minutes pour éviter la surcharge");
+        
+        // Démarrer le monitoring si email fourni
+        if ($email) {
+            $delay = now()->addMinutes(ceil($chunkCount * 2 / 60) + 10); // Attendre que tous les jobs soient dispatchés + 10min
+            MonitorVinylImportProgress::dispatch($sessionId, $dispatched, $startTime, $email)->delay($delay);
+            $this->info("📧 Email de résultat sera envoyé à: {$email}");
+        }
+        
+        $this->info("💡 Lancez plusieurs workers: './vendor/bin/sail artisan queue:work --queue=default --sleep=1 --tries=2'");
+        $this->info("📊 Surveillez: './vendor/bin/sail artisan queue:monitor'");
+        
+        if (!$email) {
+            $this->warn("💡 Ajoutez --email=votre@email.com pour recevoir un rapport détaillé par email !");
         }
     }
 
