@@ -8,8 +8,11 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './resources/js/**/*.vue',
-        './resources/forum/blade-tailwind/views/**/*.blade.php',
-        './resources/forum/blade-tailwind/css/**/*.css',
+        './resources/js/**/*.js',
+        './resources/forum/**/*.blade.php',
+        './resources/forum/**/*.css',
+        './resources/forum/**/*.js',
+        './resources/forum/**/*.vue',
     ],
 
     darkMode: 'class',

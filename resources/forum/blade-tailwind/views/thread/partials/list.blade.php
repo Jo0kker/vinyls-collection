@@ -1,4 +1,4 @@
-<div class="shadow-md rounded-lg my-2 dark:bg-slate-700" :class="{ 'ring-1 ring-blue-500': state.selectedThreads.includes({{ $thread->id }}) }">
+<div class="shadow-md rounded-lg my-2 bg-white dark:bg-slate-700" :class="{ 'ring-1 ring-blue-500': state.selectedThreads.includes({{ $thread->id }}) }">
     <div class="flex flex-col md:items-start md:flex-row md:justify-between md:gap-4 p-6">
         <div class="md:w-3/6 text-center md:text-left">
             <span class="lead">
@@ -6,7 +6,7 @@
             </span>
             <br>
             {{ $thread->authorName }}
-            <span class="text-gray-500"> @include ('forum::partials.timestamp', ['carbon' => $thread->created_at])</span>
+            <span class="text-gray-600 dark:text-gray-300"> @include ('forum::partials.timestamp', ['carbon' => $thread->created_at])</span>
 
             @if (!isset($category))
                 <br>

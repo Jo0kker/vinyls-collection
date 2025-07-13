@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark" data-theme="dark">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,11 +20,158 @@
 
         <script>
             window.initialPage = @json($page);
+            
+            // Force dark mode always
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.theme = 'dark';
         </script>
 
         <style>
             [v-cloak] {
                 display: none;
+            }
+            
+            /* Force dark mode globally */
+            html, html * {
+                color-scheme: dark !important;
+            }
+            
+            html {
+                background-color: #111827 !important;
+                color: #f9fafb !important;
+            }
+            
+            body {
+                background-color: #111827 !important;
+                color: #f9fafb !important;
+            }
+            
+            /* Force all backgrounds to dark */
+            .bg-white {
+                background-color: #1f2937 !important;
+            }
+            
+            .bg-gray-50 {
+                background-color: #374151 !important;
+            }
+            
+            .bg-gray-100 {
+                background-color: #111827 !important;
+            }
+            
+            /* Force all text to light */
+            .text-gray-900 {
+                color: #f9fafb !important;
+            }
+            
+            .text-gray-800 {
+                color: #e5e7eb !important;
+            }
+            
+            .text-gray-700 {
+                color: #d1d5db !important;
+            }
+            
+            /* Navigation specific */
+            .v-navbar {
+                background-color: #1f2937 !important;
+                color: #f9fafb !important;
+            }
+            
+            /* Force button styles */
+            button {
+                color: #e5e7eb !important;
+            }
+            
+            .bg-gray-300 {
+                background-color: #4b5563 !important;
+                color: #e5e7eb !important;
+            }
+            
+            .text-gray-700 {
+                color: #e5e7eb !important;
+            }
+            
+            /* Modal backgrounds */
+            .bg-gray-600 {
+                background-color: rgba(17, 24, 39, 0.8) !important;
+            }
+            
+            /* Form inputs */
+            input, textarea, select {
+                background-color: #374151 !important;
+                border-color: #4b5563 !important;
+                color: #f9fafb !important;
+            }
+            
+            /* Hover states */
+            .hover\:bg-gray-400:hover {
+                background-color: #6b7280 !important;
+                color: #f9fafb !important;
+            }
+            
+            /* Actions rapides - Force colored backgrounds to dark variants */
+            .bg-blue-50 {
+                background-color: rgba(59, 130, 246, 0.1) !important;
+            }
+            
+            .bg-purple-50 {
+                background-color: rgba(139, 92, 246, 0.1) !important;
+            }
+            
+            .bg-green-50 {
+                background-color: rgba(34, 197, 94, 0.1) !important;
+            }
+            
+            /* Hover states for colored backgrounds */
+            .hover\:bg-blue-100:hover {
+                background-color: rgba(59, 130, 246, 0.2) !important;
+            }
+            
+            .hover\:bg-purple-100:hover {
+                background-color: rgba(139, 92, 246, 0.2) !important;
+            }
+            
+            .hover\:bg-green-100:hover {
+                background-color: rgba(34, 197, 94, 0.2) !important;
+            }
+            
+            /* Modal vinyl cards hover fix */
+            .hover\:bg-gray-50:hover {
+                background-color: #374151 !important;
+                color: #f9fafb !important;
+            }
+            
+            .dark\:hover\:bg-gray-700:hover {
+                background-color: #374151 !important;
+                color: #f9fafb !important;
+            }
+            
+            /* Modal content fix */
+            .border {
+                border-color: #4b5563 !important;
+            }
+            
+            .dark\:border-gray-600 {
+                border-color: #4b5563 !important;
+            }
+            
+            /* Navbar hover fix */
+            .hover\:text-gray-800:hover {
+                color: #d1d5db !important;
+            }
+            
+            .dark\:hover\:text-gray-200:hover {
+                color: #d1d5db !important;
+            }
+            
+            .hover\:text-gray-700:hover {
+                color: #d1d5db !important;
+            }
+            
+            .dark\:hover\:text-gray-300:hover {
+                color: #d1d5db !important;
             }
         </style>
     </head>

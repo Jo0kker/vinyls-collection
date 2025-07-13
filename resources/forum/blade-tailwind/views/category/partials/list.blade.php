@@ -1,11 +1,11 @@
 <div class="my-4">
-    <div class="bg-slate-700 shadow rounded-md relative">
+    <div class="bg-white dark:bg-slate-700 shadow rounded-md relative">
         <div class="flex flex-col md:items-start md:flex-row md:justify-between md:gap-4 p-6">
             <div class="md:w-3/6 text-center md:text-left">
                 <h5 class="text-lg">
                     <a href="{{ Forum::route('category.show', $category) }}" style="color: {{ $category->color_light_mode }};">{{ $category->title }}</a>
                 </h5>
-                <p class="text-gray-500">{{ $category->description }}</p>
+                <p class="text-gray-600 dark:text-gray-300">{{ $category->description }}</p>
             </div>
             <div class="md:w-1/6 flex flex-col items-center gap-1 mt-2 md:mt-0">
                 @if ($category->accepts_threads)
@@ -17,17 +17,17 @@
                     </x-forum::badge>
                 @endif
             </div>
-            <div class="md:w-2/6 text-gray-500 text-center md:text-right mt-2 md:mt-0">
+            <div class="md:w-2/6 text-gray-600 dark:text-gray-300 text-center md:text-right mt-2 md:mt-0">
                 @if ($category->accepts_threads)
                     @if ($category->newestThread)
                         <div>
-                            <a href="{{ Forum::route('thread.show', $category->newestThread) }}" class="mr-1">{{ $category->newestThread->title }}</a>
+                            <a href="{{ Forum::route('thread.show', $category->newestThread) }}" class="mr-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">{{ $category->newestThread->title }}</a>
                             @include ('forum::partials.timestamp', ['carbon' => $category->newestThread->created_at])
                         </div>
                     @endif
                     @if ($category->latestActiveThread && $category->latestActiveThread->post_count > 1)
                         <div>
-                            <a href="{{ Forum::route('thread.show', $category->latestActiveThread->lastPost) }}" class="mr-1">Re: {{ $category->latestActiveThread->title }}</a>
+                            <a href="{{ Forum::route('thread.show', $category->latestActiveThread->lastPost) }}" class="mr-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Re: {{ $category->latestActiveThread->title }}</a>
                             @include ('forum::partials.timestamp', ['carbon' => $category->latestActiveThread->lastPost->created_at])
                         </div>
                     @endif

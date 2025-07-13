@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\Vinyl;
 
 class ImportVinylImagesCommand extends Command
@@ -253,7 +254,7 @@ class ImportVinylImagesCommand extends Command
             // Compresser l'image
             $compressedImage = $this->compressImage($imageData);
 
-            $imagePath = "vinyls/{$vinyl->old_id}.jpg";
+            $imagePath = "vinyls/" . Str::uuid() . ".jpg";
 
             // Upload vers S3 avec optimisations
             $uploaded = Storage::disk('s3')->put($imagePath, $compressedImage, [

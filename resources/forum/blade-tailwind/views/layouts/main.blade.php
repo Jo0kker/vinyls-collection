@@ -59,19 +59,111 @@
     @vite(['resources/forum/blade-tailwind/css/forum.css', 'resources/forum/blade-tailwind/js/forum.js'])
     
     <style>
-        /* Ensure consistent background to prevent flash */
+        /* Force dark mode globally */
+        html, html * {
+            color-scheme: dark !important;
+        }
+        
         body {
-            background-color: rgb(243 244 246);
+            background-color: rgb(17 24 39) !important;
             min-height: 100vh;
+            color: rgb(249 250 251) !important;
         }
         
-        .dark body {
-            background-color: rgb(17 24 39);
+        /* Force all backgrounds to dark */
+        .bg-white {
+            background-color: rgb(31 41 55) !important;
         }
         
-        /* Smooth transitions */
-        body, .container {
-            transition: background-color 0.3s ease;
+        .bg-gray-50 {
+            background-color: rgb(55 65 81) !important;
+        }
+        
+        .bg-gray-100 {
+            background-color: rgb(17 24 39) !important;
+        }
+        
+        /* Force all text to light */
+        .text-gray-900 {
+            color: rgb(249 250 251) !important;
+        }
+        
+        .text-gray-800 {
+            color: rgb(229 231 235) !important;
+        }
+        
+        .text-gray-700 {
+            color: rgb(209 213 219) !important;
+        }
+        
+        /* Force headings and title text */
+        h1, h2, h3, h4, h5, h6 {
+            color: rgb(249 250 251) !important;
+        }
+        
+        .text-3xl {
+            color: rgb(249 250 251) !important;
+        }
+        
+        /* Navigation specific */
+        .v-navbar {
+            background-color: rgb(31 41 55) !important;
+            color: rgb(249 250 251) !important;
+        }
+        
+        /* Container */
+        .container {
+            background-color: transparent !important;
+        }
+        
+        /* Shadow adjustments for dark mode */
+        .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        /* Force button styles */
+        button {
+            color: rgb(229 231 235) !important;
+        }
+        
+        .bg-gray-300 {
+            background-color: rgb(75 85 99) !important;
+            color: rgb(229 231 235) !important;
+        }
+        
+        /* Modal backgrounds */
+        .bg-gray-600 {
+            background-color: rgba(17, 24, 39, 0.8) !important;
+        }
+        
+        /* Form inputs */
+        input, textarea, select {
+            background-color: rgb(55 65 81) !important;
+            border-color: rgb(75 85 99) !important;
+            color: rgb(249 250 251) !important;
+        }
+        
+        /* Hover states */
+        .hover\:bg-gray-400:hover {
+            background-color: rgb(107 114 128) !important;
+            color: rgb(249 250 251) !important;
+        }
+        
+        /* Navbar hover fix */
+        .hover\:text-gray-800:hover {
+            color: rgb(209 213 219) !important;
+        }
+        
+        .dark\:hover\:text-gray-200:hover {
+            color: rgb(209 213 219) !important;
+        }
+        
+        .hover\:text-gray-700:hover {
+            color: rgb(209 213 219) !important;
+        }
+        
+        .dark\:hover\:text-gray-300:hover {
+            color: rgb(209 213 219) !important;
         }
     </style>
 
@@ -157,7 +249,7 @@
         @include ('forum::partials.breadcrumbs')
         @include ('forum::partials.alerts')
 
-        <div class="dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6 text-gray-900 dark:text-gray-100">
                 @yield('content')
             </div>
@@ -168,6 +260,11 @@
 
     <script>
         window.defaultCategoryColor = '{{ config('forum.frontend.default_category_color') }}';
+        
+        // Force dark mode always
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.theme = 'dark';
     </script>
 
     @stack('scripts')
