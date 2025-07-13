@@ -39,4 +39,8 @@ return [
         'token' => env('DISCOGS_TOKEN'),
     ],
 
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
+
 ];

@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-gd": "*",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/breeze": "^2.3",
         "laravel/framework": "^12.0",
@@ -15,8 +16,9 @@
         "league/flysystem-aws-s3-v3": "^3.29",
         "riari/laravel-forum": "^7.0",
         "spatie/laravel-permission": "^6.19",
-        "tightenco/ziggy": "^2.0",
-        "ext-gd": "*"
+        "symfony/brevo-mailer": "^7.3",
+        "symfony/http-client": "^7.3",
+        "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
         "roave/security-advisories": "dev-latest",
