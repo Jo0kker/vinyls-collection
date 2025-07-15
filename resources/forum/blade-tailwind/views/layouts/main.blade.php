@@ -14,7 +14,7 @@
         @endif
         {{ trans('forum::general.home_title') }}
     </title>
-    
+
     @php
         $page_title = '';
         if (isset($thread_title)) {
@@ -24,16 +24,16 @@
             $page_title .= $category->title . ' — ';
         }
         $page_title .= trans('forum::general.home_title');
-        
+
         $page_description = isset($meta_description) ? $meta_description : trans('forum::general.forum_description');
     @endphp
-    
+
     <!-- SEO Meta Tags -->
     <meta name="description" content="{{ $page_description }}">
     <meta name="keywords" content="forum, vinyles, collection, musique, discussion, communauté">
     <meta name="author" content="Vinyls Collection">
     <meta name="robots" content="index, follow">
-    
+
     <!-- Open Graph -->
     <meta property="og:title" content="{{ $page_title }}">
     <meta property="og:description" content="{{ $page_description }}">
@@ -41,13 +41,13 @@
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:site_name" content="Vinyls Collection">
     <meta property="og:image" content="{{ asset('images/forum-og.jpg') }}">
-    
+
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $page_title }}">
     <meta name="twitter:description" content="{{ $page_description }}">
     <meta name="twitter:image" content="{{ asset('images/forum-og.jpg') }}">
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href="{{ url()->current() }}">
 
@@ -57,111 +57,111 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 
     @vite(['resources/forum/blade-tailwind/css/forum.css', 'resources/forum/blade-tailwind/js/forum.js'])
-    
+
     <style>
         /* Force dark mode globally */
         html, html * {
             color-scheme: dark !important;
         }
-        
+
         body {
             background-color: rgb(17 24 39) !important;
             min-height: 100vh;
             color: rgb(249 250 251) !important;
         }
-        
+
         /* Force all backgrounds to dark */
         .bg-white {
             background-color: rgb(31 41 55) !important;
         }
-        
+
         .bg-gray-50 {
             background-color: rgb(55 65 81) !important;
         }
-        
+
         .bg-gray-100 {
             background-color: rgb(17 24 39) !important;
         }
-        
+
         /* Force all text to light */
         .text-gray-900 {
             color: rgb(249 250 251) !important;
         }
-        
+
         .text-gray-800 {
             color: rgb(229 231 235) !important;
         }
-        
+
         .text-gray-700 {
             color: rgb(209 213 219) !important;
         }
-        
+
         /* Force headings and title text */
         h1, h2, h3, h4, h5, h6 {
             color: rgb(249 250 251) !important;
         }
-        
+
         .text-3xl {
             color: rgb(249 250 251) !important;
         }
-        
+
         /* Navigation specific */
         .v-navbar {
             background-color: rgb(31 41 55) !important;
             color: rgb(249 250 251) !important;
         }
-        
+
         /* Container */
         .container {
             background-color: transparent !important;
         }
-        
+
         /* Shadow adjustments for dark mode */
         .shadow-sm {
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
         }
-        
+
         /* Force button styles */
         button {
             color: rgb(229 231 235) !important;
         }
-        
+
         .bg-gray-300 {
             background-color: rgb(75 85 99) !important;
             color: rgb(229 231 235) !important;
         }
-        
+
         /* Modal backgrounds */
         .bg-gray-600 {
             background-color: rgba(17, 24, 39, 0.8) !important;
         }
-        
+
         /* Form inputs */
         input, textarea, select {
             background-color: rgb(55 65 81) !important;
             border-color: rgb(75 85 99) !important;
             color: rgb(249 250 251) !important;
         }
-        
+
         /* Hover states */
         .hover\:bg-gray-400:hover {
             background-color: rgb(107 114 128) !important;
             color: rgb(249 250 251) !important;
         }
-        
+
         /* Navbar hover fix */
         .hover\:text-gray-800:hover {
             color: rgb(209 213 219) !important;
         }
-        
+
         .dark\:hover\:text-gray-200:hover {
             color: rgb(209 213 219) !important;
         }
-        
+
         .hover\:text-gray-700:hover {
             color: rgb(209 213 219) !important;
         }
-        
+
         .dark\:hover\:text-gray-300:hover {
             color: rgb(209 213 219) !important;
         }
@@ -260,7 +260,7 @@
 
     <script>
         window.defaultCategoryColor = '{{ config('forum.frontend.default_category_color') }}';
-        
+
         // Force dark mode always
         document.documentElement.classList.add('dark');
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -268,5 +268,18 @@
     </script>
 
     @stack('scripts')
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+        var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+        (function(){
+            var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+            s1.async=true;
+            s1.src='https://embed.tawk.to/624bef4a2abe5b455fc4d655/1fvs9tf84';
+            s1.charset='UTF-8';
+            s1.setAttribute('crossorigin','*');
+            s0.parentNode.insertBefore(s1,s0);
+        })();
+    </script>
+    <!--End of Tawk.to Script-->
 </body>
 </html>
