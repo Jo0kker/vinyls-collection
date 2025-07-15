@@ -95,7 +95,7 @@
             @endif
 
             <!-- Contenu du post - prend l'espace disponible -->
-            <div class="prose dark:prose-invert max-w-none flex-grow">
+            <div class="max-w-none flex-grow text-gray-900 dark:text-gray-100">
                 @if ($post->trashed())
                     @can ('viewTrashedPosts')
                         <div class="text-gray-500">
