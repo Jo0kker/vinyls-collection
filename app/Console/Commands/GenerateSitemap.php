@@ -44,10 +44,10 @@ class GenerateSitemap extends Command
         $sitemap->appendChild($urlset);
 
         // Add homepage
-        $this->addUrl($sitemap, $urlset, url('/'), now(), 'weekly', '1.0');
+        $this->addUrl($sitemap, $urlset, config('app.url'), now(), 'weekly', '1.0');
         
         // Add dashboard
-        $this->addUrl($sitemap, $urlset, route('dashboard'), now(), 'weekly', '0.8');
+        $this->addUrl($sitemap, $urlset, config('app.url') . '/dashboard', now(), 'weekly', '0.8');
         
         // Add forum pages
         $this->addForumUrls($sitemap, $urlset);
@@ -97,11 +97,12 @@ class GenerateSitemap extends Command
         $this->info('Adding forum URLs...');
         
         // Forum index
-        $this->addUrl($sitemap, $urlset, route('forum.index'), now(), 'daily', '0.9');
+        $this->addUrl($sitemap, $urlset, config('app.url') . '/forum', now(), 'daily', '0.9');
         
         // Categories
         Category::whereNull('parent_id')->get()->each(function ($category) use ($sitemap, $urlset) {
-            $this->addUrl($sitemap, $urlset, $category->route, $category->updated_at, 'weekly', '0.7');
+            $url = str_starts_with($category->route, 'http') ? $category->route : config('app.url') . $category->route;
+            $this->addUrl($sitemap, $urlset, $url, $category->updated_at, 'weekly', '0.7');
         });
         
         // Recent threads (limit to most recent 1000)
@@ -110,7 +111,8 @@ class GenerateSitemap extends Command
             ->limit(1000)
             ->get()
             ->each(function ($thread) use ($sitemap, $urlset) {
-                $this->addUrl($sitemap, $urlset, $thread->route, $thread->updated_at, 'weekly', '0.6');
+                $url = str_starts_with($thread->route, 'http') ? $thread->route : config('app.url') . $thread->route;
+                $this->addUrl($sitemap, $urlset, $url, $thread->updated_at, 'weekly', '0.6');
             });
     }
     
@@ -126,7 +128,8 @@ class GenerateSitemap extends Command
             ->each(function ($collection) use ($sitemap, $urlset) {
                 if ($collection->user && $collection->user->name) {
                     $lastmod = $collection->collection_date_modif ? Carbon::parse($collection->collection_date_modif) : $collection->updated_at;
-                    $this->addUrl($sitemap, $urlset, route('collections.show', $collection), $lastmod, 'monthly', '0.5');
+                    $url = config('app.url') . '/collections/' . $collection->id;
+                    $this->addUrl($sitemap, $urlset, $url, $lastmod, 'monthly', '0.5');
                 }
             });
     }
