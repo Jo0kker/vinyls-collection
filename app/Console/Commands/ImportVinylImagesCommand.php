@@ -15,7 +15,7 @@ use Aws\Exception\AwsException;
 
 class ImportVinylImagesCommand extends Command
 {
-    protected $signature = 'import:vinyl-images {--concurrent=10} {--batch=300} {--method=concurrent} {--direct-s3=true} {--queue=false} {--email=}';
+    protected $signature = 'import:vinyl-images {--concurrent=30} {--batch=500} {--method=concurrent} {--direct-s3=true} {--queue=false} {--email=} {--turbo=false} {--offset=0} {--limit=0} {--id-min=0} {--id-max=0}';
     protected $description = 'Import optimisé des images depuis les colonnes visuels/pochette';
 
     private $defaultImageBase64 = null;
@@ -34,8 +34,36 @@ class ImportVinylImagesCommand extends Command
             $this->initializeS3Client();
         }
 
-        // Compter les vinyles à traiter
-        $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
+        // Définir les filtres de traitement
+        $offset = (int) $this->option('offset');
+        $limit = (int) $this->option('limit');
+        $idMin = (int) $this->option('id-min');
+        $idMax = (int) $this->option('id-max');
+
+        $query = Vinyl::whereNull('pochette')->whereNotNull('visuels');
+
+        // Filtrage par ID (plus fiable que offset/limit)
+        if ($idMin > 0 && $idMax > 0) {
+            $query->whereBetween('id', [$idMin, $idMax]);
+            $this->info("🎯 Filtrage par ID: {$idMin} à {$idMax}");
+        } elseif ($idMin > 0) {
+            $query->where('id', '>=', $idMin);
+            $this->info("🎯 ID minimum: {$idMin}");
+        } elseif ($idMax > 0) {
+            $query->where('id', '<=', $idMax);
+            $this->info("🎯 ID maximum: {$idMax}");
+        } else {
+            // Fallback vers offset/limit si pas d'ID
+            if ($offset > 0) {
+                $this->info("🔄 Offset: {$offset}");
+            }
+
+            if ($limit > 0) {
+                $this->info("📏 Limit: {$limit}");
+            }
+        }
+
+        $totalVinyls = $query->count();
         $this->info("📊 Trouvé {$totalVinyls} vinyles sans pochette à traiter");
 
         if ($totalVinyls === 0) {
@@ -44,7 +72,9 @@ class ImportVinylImagesCommand extends Command
         }
 
         // Choisir la méthode de traitement
-        if ($this->option('queue')) {
+        if ($this->option('turbo')) {
+            $this->processTurbo();
+        } elseif ($this->option('queue') === 'true' || $this->option('queue') === true) {
             $this->processWithQueue();
         } else {
             $method = $this->option('method');
@@ -73,18 +103,26 @@ class ImportVinylImagesCommand extends Command
     private function initializeS3Client()
     {
         try {
-            $this->s3Client = new S3Client([
+            $config = [
                 'version' => 'latest',
                 'region' => env('AWS_DEFAULT_REGION'),
                 'credentials' => [
                     'key' => env('AWS_ACCESS_KEY_ID'),
                     'secret' => env('AWS_SECRET_ACCESS_KEY'),
                 ],
-            ]);
+            ];
+
+            // Support pour Cloudflare R2 ou autres endpoints
+            if (env('AWS_ENDPOINT')) {
+                $config['endpoint'] = env('AWS_ENDPOINT');
+                $config['use_path_style_endpoint'] = env('AWS_USE_PATH_STYLE_ENDPOINT', false);
+            }
+
+            $this->s3Client = new S3Client($config);
             $this->s3Bucket = env('AWS_BUCKET');
-            $this->info('✅ Client S3 direct initialisé');
+            $this->info('✅ Client S3 direct initialisé avec endpoint: ' . (env('AWS_ENDPOINT') ?: 'AWS standard'));
         } catch (\Exception $e) {
-            $this->warn('⚠️  Impossible d\'initialiser le client S3 direct, fallback vers Storage');
+            $this->warn('⚠️  Impossible d\'initialiser le client S3 direct: ' . $e->getMessage());
             $this->s3Client = null;
         }
     }
@@ -98,7 +136,7 @@ class ImportVinylImagesCommand extends Command
 
             // Vérifier que ce n'est pas juste un ; vide ou none.jpg
             if (!empty($firstVisual) && strpos($firstVisual, 'none.jpg') === false) {
-                return "https://vinyls-collection.com/images/vinyls/{$firstVisual}";
+                return "https://dhkhsvft.preview.infomaniak.website/images/vinyls/{$firstVisual}";
             }
         }
 
@@ -121,7 +159,9 @@ class ImportVinylImagesCommand extends Command
         $totalUploaded = 0;
         $chunkNumber = 0;
 
-        Vinyl::whereNull('pochette')->whereNotNull('visuels')->chunk($batchSize, function ($vinyls) use ($concurrency, $bar, &$totalProcessed, &$totalUploaded, &$chunkNumber) {
+        $query = $this->buildQuery();
+
+        $query->chunk($batchSize, function ($vinyls) use ($concurrency, $bar, &$totalProcessed, &$totalUploaded, &$chunkNumber) {
             $chunkNumber++;
             $result = $this->processBatchConcurrent($vinyls, $concurrency, $bar);
             $totalProcessed += $result['processed'];
@@ -133,10 +173,8 @@ class ImportVinylImagesCommand extends Command
                 $bar->setMessage(sprintf("Lot %d | Succès: %.1f%% | Images: %d/%d", $chunkNumber, $successRate, $totalUploaded, $totalProcessed));
             }
 
-            // Pause réduite ou conditionnelle
-            if (memory_get_usage() > 128 * 1024 * 1024) { // Si > 128MB
-                usleep(100000); // 0.1 seconde seulement
-            }
+            // Pas de pause du tout, on fonce !
+            // usleep supprimé pour maximum speed
         });
 
         $bar->finish();
@@ -341,10 +379,13 @@ class ImportVinylImagesCommand extends Command
 
     private function generateS3Url($imagePath)
     {
-        if ($this->s3Client && $this->s3Bucket) {
-            $region = env('AWS_DEFAULT_REGION');
-            return "https://{$this->s3Bucket}.s3.{$region}.amazonaws.com/{$imagePath}";
+        // Utiliser l'URL configurée (pour R2/Cloudflare ou autre)
+        $baseUrl = env('AWS_URL');
+        if ($baseUrl) {
+            return rtrim($baseUrl, '/') . '/' . $imagePath;
         }
+
+        // Fallback vers Storage Laravel
         return Storage::disk('s3')->url($imagePath);
     }
 
@@ -404,7 +445,7 @@ class ImportVinylImagesCommand extends Command
     {
         $batchSize = (int) $this->option('batch');
         $email = $this->option('email');
-        
+
         $this->info("🚀 Traitement avec queue Laravel (ultra-rapide)...");
 
         $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
@@ -421,7 +462,7 @@ class ImportVinylImagesCommand extends Command
 
         Vinyl::whereNull('pochette')->whereNotNull('visuels')->chunk($batchSize, function ($vinyls) use ($bar, &$dispatched, &$chunkCount) {
             $chunkCount++;
-            
+
             foreach ($vinyls as $vinyl) {
                 $imageUrl = $this->determineImageUrl($vinyl);
                 if ($imageUrl) {
@@ -432,7 +473,7 @@ class ImportVinylImagesCommand extends Command
                 }
                 $bar->advance();
             }
-            
+
             // Petite pause pour éviter de spam la queue
             if ($chunkCount % 10 === 0) {
                 usleep(100000); // 0.1s pause tous les 10 chunks
@@ -443,20 +484,236 @@ class ImportVinylImagesCommand extends Command
         $this->line('');
         $this->info("✅ {$dispatched} jobs dispatchés avec succès !");
         $this->info("⏰ Jobs étalés sur " . ceil($chunkCount * 2 / 60) . " minutes pour éviter la surcharge");
-        
+
         // Démarrer le monitoring si email fourni
         if ($email) {
             $delay = now()->addMinutes(ceil($chunkCount * 2 / 60) + 10); // Attendre que tous les jobs soient dispatchés + 10min
             MonitorVinylImportProgress::dispatch($sessionId, $dispatched, $startTime, $email)->delay($delay);
             $this->info("📧 Email de résultat sera envoyé à: {$email}");
         }
-        
+
         $this->info("💡 Lancez plusieurs workers: './vendor/bin/sail artisan queue:work --queue=default --sleep=1 --tries=2'");
         $this->info("📊 Surveillez: './vendor/bin/sail artisan queue:monitor'");
-        
+
         if (!$email) {
             $this->warn("💡 Ajoutez --email=votre@email.com pour recevoir un rapport détaillé par email !");
         }
+    }
+
+    private function processTurbo()
+    {
+        $concurrency = 100; // ULTRA concurrency
+        $batchSize = 2000; // MEGA batch
+
+        $this->info("🚀🚀 MODE TURBO ACTIVÉ - MAXIMUM SPEED 🚀🚀");
+        $this->info("⚡ Concurrent: {$concurrency} | Batch: {$batchSize} | Direct S3 | Pas de pause");
+
+        $totalVinyls = Vinyl::whereNull('pochette')->whereNotNull('visuels')->count();
+        $bar = $this->output->createProgressBar($totalVinyls);
+        $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% | %elapsed:6s% | %estimated:-6s% | %memory:6s% | %message%');
+        $bar->start();
+
+        $totalProcessed = 0;
+        $totalUploaded = 0;
+        $chunkNumber = 0;
+
+        $query = $this->buildQuery();
+
+        $query->chunk($batchSize, function ($vinyls) use ($concurrency, $bar, &$totalProcessed, &$totalUploaded, &$chunkNumber) {
+            $chunkNumber++;
+            $result = $this->processBatchTurbo($vinyls, $concurrency, $bar);
+            $totalProcessed += $result['processed'];
+            $totalUploaded += $result['uploaded'];
+
+            $successRate = $totalProcessed > 0 ? ($totalUploaded / $totalProcessed) * 100 : 0;
+            $bar->setMessage(sprintf("🚀 Turbo Lot %d | %.1f%% | %d/%d", $chunkNumber, $successRate, $totalUploaded, $totalProcessed));
+        });
+
+        $bar->finish();
+        $this->line('');
+        $this->displayResults($totalProcessed, $totalUploaded);
+    }
+
+    private function processBatchTurbo($vinyls, $concurrency, $bar)
+    {
+        $multiHandle = curl_multi_init();
+        curl_multi_setopt($multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, $concurrency);
+        curl_multi_setopt($multiHandle, CURLMOPT_MAXCONNECTS, $concurrency);
+
+        $curlHandles = [];
+        $processed = 0;
+        $uploaded = 0;
+
+        // Préparer tous les vinyls
+        $vinylsWithUrls = [];
+        foreach ($vinyls as $vinyl) {
+            $imageUrl = $this->determineImageUrl($vinyl);
+            if ($imageUrl) {
+                $vinylsWithUrls[] = ['vinyl' => $vinyl, 'url' => $imageUrl];
+            } else {
+                $processed++;
+                $bar->advance();
+            }
+        }
+
+        // Configurer cURL avec timeouts ultra courts
+        foreach ($vinylsWithUrls as $data) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $data['url'],
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5, // Timeout ULTRA court
+                CURLOPT_CONNECTTIMEOUT => 1, // Connection ULTRA court
+                CURLOPT_FOLLOWLOCATION => false, // Pas de redirect
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'Turbo',
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
+                CURLOPT_TCP_FASTOPEN => true,
+                CURLOPT_TCP_NODELAY => true,
+                CURLOPT_FRESH_CONNECT => true, // Force nouvelle connexion
+                CURLOPT_FORBID_REUSE => true, // Pas de réutilisation
+            ]);
+
+            curl_multi_add_handle($multiHandle, $ch);
+            $curlHandles[] = ['handle' => $ch, 'vinyl' => $data['vinyl']];
+        }
+
+        // Exécution parallèle ULTRA optimisée
+        $running = null;
+        do {
+            $status = curl_multi_exec($multiHandle, $running);
+            if ($running) {
+                curl_multi_select($multiHandle, 0.001); // Select timeout minuscule
+            }
+        } while ($running > 0 && $status === CURLM_OK);
+
+        // Traitement ultra-rapide des résultats
+        foreach ($curlHandles as $handleData) {
+            $ch = $handleData['handle'];
+            $vinyl = $handleData['vinyl'];
+
+            $imageData = curl_multi_getcontent($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if ($httpCode === 200 && $imageData && strlen($imageData) > 1000) {
+                if ($this->processAndUploadImageTurbo($vinyl, $imageData)) {
+                    $uploaded++;
+                }
+            }
+
+            curl_multi_remove_handle($multiHandle, $ch);
+            curl_close($ch);
+            $processed++;
+            $bar->advance();
+        }
+
+        curl_multi_close($multiHandle);
+        return ['processed' => $processed, 'uploaded' => $uploaded];
+    }
+
+    private function processAndUploadImageTurbo($vinyl, $imageData)
+    {
+        try {
+            // Compression rapide
+            $compressedImage = $this->compressImageTurbo($imageData);
+            $imagePath = "vinyls/" . Str::uuid() . ".jpg";
+
+            // Upload direct S3 obligatoire en turbo
+            if (!$this->s3Client || !$this->s3Bucket) {
+                return false;
+            }
+
+            $result = $this->s3Client->putObject([
+                'Bucket' => $this->s3Bucket,
+                'Key' => $imagePath,
+                'Body' => $compressedImage,
+                'ACL' => 'public-read',
+                'ContentType' => 'image/jpeg',
+                'CacheControl' => 'max-age=31536000',
+            ]);
+
+            if (!empty($result['@metadata'])) {
+                $url = $this->generateS3Url($imagePath);
+                $vinyl->update(['pochette' => $url]);
+                return true;
+            }
+        } catch (\Exception $e) {
+            // Fail silencieux en mode turbo pour la performance
+        }
+        return false;
+    }
+
+    private function compressImageTurbo($imageData)
+    {
+        // SKIP compression en mode ULTRA turbo pour max speed
+        // On upload direct l'image originale
+        return $imageData;
+
+        // Compression minimaliste seulement si image énorme
+        try {
+            if (strlen($imageData) < 2000000) { // Si < 2MB, skip compression
+                return $imageData;
+            }
+
+            $image = imagecreatefromstring($imageData);
+            if (!$image) return $imageData;
+
+            $width = imagesx($image);
+            $height = imagesy($image);
+
+            // Resize agressif seulement si vraiment énorme
+            if ($width > 2000 || $height > 2000) {
+                $ratio = min(1500 / $width, 1500 / $height);
+                $newWidth = (int)($width * $ratio);
+                $newHeight = (int)($height * $ratio);
+
+                $resized = imagecreatetruecolor($newWidth, $newHeight);
+                imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                imagedestroy($image);
+                $image = $resized;
+            }
+
+            ob_start();
+            imagejpeg($image, null, 70); // Qualité plus basse pour vitesse
+            $compressed = ob_get_contents();
+            ob_end_clean();
+            imagedestroy($image);
+
+            return $compressed;
+        } catch (\Exception $e) {
+            return $imageData;
+        }
+    }
+
+    private function buildQuery()
+    {
+        $query = Vinyl::whereNull('pochette')->whereNotNull('visuels');
+
+        $offset = (int) $this->option('offset');
+        $limit = (int) $this->option('limit');
+        $idMin = (int) $this->option('id-min');
+        $idMax = (int) $this->option('id-max');
+
+        // Filtrage par ID (prioritaire)
+        if ($idMin > 0 && $idMax > 0) {
+            $query->whereBetween('id', [$idMin, $idMax]);
+        } elseif ($idMin > 0) {
+            $query->where('id', '>=', $idMin);
+        } elseif ($idMax > 0) {
+            $query->where('id', '<=', $idMax);
+        } else {
+            // Fallback vers offset/limit
+            if ($offset > 0) {
+                $query->offset($offset);
+            }
+
+            if ($limit > 0) {
+                $query->limit($limit);
+            }
+        }
+
+        return $query;
     }
 
     private function displayResults($processed, $uploaded)
