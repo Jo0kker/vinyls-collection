@@ -3,7 +3,9 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Link, useForm, usePage } from '@inertiajs/vue3';
+import AvatarUploadModal from '@/Components/AvatarUploadModal.vue';
+import { Link, useForm, usePage, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 defineProps({
     mustVerifyEmail: {
@@ -20,6 +22,23 @@ const form = useForm({
     name: user.name,
     email: user.email,
 });
+
+// État du modal d'avatar
+const showAvatarModal = ref(false);
+
+// Fonctions
+function openAvatarModal() {
+    showAvatarModal.value = true;
+}
+
+function closeAvatarModal() {
+    showAvatarModal.value = false;
+}
+
+function onAvatarUploaded() {
+    // Recharger via Inertia pour mettre à jour les props
+    router.reload({ only: ['auth'] });
+}
 </script>
 
 <template>
@@ -33,6 +52,46 @@ const form = useForm({
                 Update your account's profile information and email address.
             </p>
         </header>
+
+        <!-- Section Avatar -->
+        <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                Avatar
+            </h3>
+            <div class="flex items-center space-x-6">
+                <!-- Avatar actuel -->
+                <div class="flex-shrink-0">
+                    <div class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
+                        <img v-if="user.avatar" 
+                             :src="user.avatar" 
+                             :alt="user.name"
+                             class="w-full h-full object-cover" />
+                        <span v-else class="text-white font-bold text-xl">
+                            {{ user.name.charAt(0).toUpperCase() }}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Boutons de gestion -->
+                <div class="flex flex-col gap-2">
+                    <button 
+                        type="button"
+                        @click="openAvatarModal"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        {{ user.avatar ? 'Changer l\'avatar' : 'Ajouter un avatar' }}
+                    </button>
+                    
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        JPG, PNG ou JPEG. Max 2MB.
+                    </p>
+                </div>
+            </div>
+        </div>
 
         <form
             @submit.prevent="form.patch(route('profile.update'))"
@@ -108,5 +167,12 @@ const form = useForm({
                 </Transition>
             </div>
         </form>
+
+        <!-- Modal d'upload d'avatar -->
+        <AvatarUploadModal 
+            :show="showAvatarModal"
+            @close="closeAvatarModal"
+            @uploaded="onAvatarUploaded"
+        />
     </section>
 </template>
