@@ -4,7 +4,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     collection_nom: '',
-    collection_commentaires: ''
+    collection_commentaires: '',
+    visibility: 'public'
 });
 
 const submit = () => {
@@ -66,6 +67,28 @@ const submit = () => {
                                 ></textarea>
                                 <p v-if="form.errors.collection_commentaires" class="mt-1 text-sm text-red-600">
                                     {{ form.errors.collection_commentaires }}
+                                </p>
+                            </div>
+
+                            <div class="mb-6">
+                                <label for="visibility" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Visibilité de la collection
+                                </label>
+                                <select 
+                                    id="visibility"
+                                    v-model="form.visibility"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                                    :class="{ 'border-red-500': form.errors.visibility }"
+                                >
+                                    <option value="public">🌍 Publique - Visible par tous les collectionneurs</option>
+                                    <option value="private">🔒 Privée - Visible uniquement par moi</option>
+                                    <option value="friends">👥 Amis - Visible par mes amis (prochainement)</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Les collections publiques apparaissent sur votre profil et dans les recherches.
+                                </p>
+                                <p v-if="form.errors.visibility" class="mt-1 text-sm text-red-600">
+                                    {{ form.errors.visibility }}
                                 </p>
                             </div>
 

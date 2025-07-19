@@ -66,14 +66,18 @@
                                             </div>
                                         </div>
                                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                            Par {{ thread.author.name }} • {{ formatDate(thread.created_at) }}
+                                            Par <Link :href="`/collectors/${thread.author.id}`" 
+                                                class="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300">{{ thread.author.name }}</Link> • {{ formatDate(thread.created_at) }}
                                         </p>
                                     </div>
                                     <div class="text-right text-sm text-gray-500 dark:text-gray-400 ml-4 min-w-0">
                                         <div class="font-medium">{{ thread.reply_count }} réponses</div>
                                         <div v-if="thread.lastPost" class="mt-1">
                                             <div class="text-xs">Dernier message par</div>
-                                            <div class="font-medium text-gray-700 dark:text-gray-300">{{ thread.lastPost.author.name }}</div>
+                                            <div class="font-medium text-gray-700 dark:text-gray-300">
+                                                <Link :href="`/collectors/${thread.lastPost.author.id}`" 
+                                                      class="hover:text-purple-600 dark:hover:text-purple-400">{{ thread.lastPost.author.name }}</Link>
+                                            </div>
                                             <Link :href="getLastPageUrl(thread)" 
                                                   class="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
                                                 {{ formatRelativeTime(thread.lastPost.created_at) }}
@@ -108,13 +112,17 @@
                                     </div>
                                     
                                     <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                                        Par {{ thread.author.name }} • {{ formatDate(thread.created_at) }}
+                                        Par <Link :href="`/collectors/${thread.author.id}`" 
+                                            class="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300">{{ thread.author.name }}</Link> • {{ formatDate(thread.created_at) }}
                                     </div>
                                     
                                     <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                                         <div class="font-medium">{{ thread.reply_count }} réponses</div>
                                         <div v-if="thread.lastPost" class="text-right">
-                                            <div>{{ thread.lastPost.author.name }}</div>
+                                            <div>
+                                                <Link :href="`/collectors/${thread.lastPost.author.id}`" 
+                                                      class="hover:text-purple-600 dark:hover:text-purple-400">{{ thread.lastPost.author.name }}</Link>
+                                            </div>
                                             <Link :href="getLastPageUrl(thread)" 
                                                   class="text-blue-600 dark:text-blue-400 hover:underline">
                                                 {{ formatRelativeTime(thread.lastPost.created_at) }}

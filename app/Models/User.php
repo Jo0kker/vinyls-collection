@@ -30,6 +30,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'bio',
         'tagline',
         'old_id',
+        'profile_public',
+        'location',
+        'avatar',
+        'social_links',
     ];
 
     /**
@@ -52,12 +56,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'profile_public' => 'boolean',
+            'social_links' => 'array',
         ];
     }
 
     public function collections()
     {
         return $this->hasMany(Collection::class);
+    }
+
+    public function publicCollections()
+    {
+        return $this->hasMany(Collection::class)->where('visibility', 'public');
     }
 
     public function vinyls()

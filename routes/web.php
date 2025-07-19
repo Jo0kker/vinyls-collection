@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\VinylController;
@@ -26,6 +27,11 @@ Route::get('/', function () {
 // SEO routes
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+
+// Public profiles routes (accessible to everyone)
+Route::get('/collectors', [PublicProfileController::class, 'index'])->name('collectors.index');
+Route::get('/collectors/{user}', [PublicProfileController::class, 'show'])->name('collectors.show');
+Route::get('/collectors/{user}/collections/{collection}', [PublicProfileController::class, 'showCollection'])->name('collectors.collection');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])

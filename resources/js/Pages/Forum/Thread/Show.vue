@@ -290,7 +290,10 @@
                                                 
                                                 <!-- Nom d'utilisateur -->
                                                 <div class="font-semibold text-gray-900 dark:text-white text-sm mb-1">
-                                                    {{ post.author.name }}
+                                                    <Link :href="`/collectors/${post.author.id}`" 
+                                                          class="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                                        {{ post.author.name }}
+                                                    </Link>
                                                 </div>
                                                 
                                                 <!-- Rôle -->
@@ -433,7 +436,10 @@
                                             <div class="flex-1">
                                                 <div class="flex items-center justify-between">
                                                     <div class="font-semibold text-gray-900 dark:text-white text-sm">
-                                                        {{ post.author.name }}
+                                                        <Link :href="`/collectors/${post.author.id}`" 
+                                                              class="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                                            {{ post.author.name }}
+                                                        </Link>
                                                     </div>
                                                     <a v-if="post.sequence" 
                                                        :href="route('forum.thread.show', { thread_id: thread.id }) + '#post-' + post.sequence" 

@@ -46,6 +46,7 @@ class CollectionController extends Controller
         $request->validate([
             'collection_nom' => 'required|string|max:255',
             'collection_commentaires' => 'nullable|string',
+            'visibility' => 'required|in:public,private,friends',
         ]);
 
         $user = Auth::user();
@@ -53,6 +54,7 @@ class CollectionController extends Controller
         $collection = $user->collections()->create([
             'collection_nom' => $request->collection_nom,
             'collection_commentaires' => $request->collection_commentaires,
+            'visibility' => $request->visibility,
             'collection_date_crea' => Carbon::now(),
             'collection_date_modif' => Carbon::now(),
             'ordre' => $user->collections()->count() + 1,
@@ -168,11 +170,13 @@ class CollectionController extends Controller
         $request->validate([
             'collection_nom' => 'required|string|max:255',
             'collection_commentaires' => 'nullable|string',
+            'visibility' => 'required|in:public,private,friends',
         ]);
 
         $collection->update([
             'collection_nom' => $request->collection_nom,
             'collection_commentaires' => $request->collection_commentaires,
+            'visibility' => $request->visibility,
             'collection_date_modif' => Carbon::now(),
         ]);
 

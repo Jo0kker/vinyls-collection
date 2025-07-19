@@ -45,7 +45,6 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
-                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Tableau de bord
                                 </NavLink>
@@ -54,7 +53,6 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('forum.index')"
                                     :active="route().current('forum.*')"
-                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Forum
                                 </NavLink>
@@ -63,15 +61,17 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('collections.index')"
                                     :active="route().current('collections.*')"
-                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Mes Collections
                                 </NavLink>
                             </li>
                             <li>
-                                <a href="#" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                                <NavLink
+                                    :href="route('collectors.index')"
+                                    :active="route().current('collectors.*')"
+                                >
                                     Collectionneurs
-                                </a>
+                                </NavLink>
                             </li>
                         </ul>
 

@@ -17,6 +17,7 @@ class Collection extends Model
         'user_id',
         'ordre',
         'old_id',
+        'visibility',
     ];
 
     public function user()

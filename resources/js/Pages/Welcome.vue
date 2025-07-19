@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const isLoading = ref(true);
 
@@ -43,7 +44,62 @@ function handleImageError() {
         <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
     </div>
 
-    <div v-else class="relative min-h-screen bg-gray-100 dark:bg-gray-900">
+    <component :is="$page.props.auth.user ? AuthenticatedLayout : 'div'" v-else>
+        <!-- Bannière d'information nouveau site -->
+        <div class="bg-gradient-to-r from-green-500 to-green-600 border-b border-green-600">
+            <div class="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between flex-wrap">
+                    <div class="w-0 flex-1 flex items-center">
+                        <span class="flex p-2 rounded-lg bg-green-800">
+                            <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                        <p class="ml-3 font-medium text-white truncate">
+                            <span class="md:hidden">
+                                Nouveau site ! Récupérez votre ancien compte.
+                            </span>
+                            <span class="hidden md:inline">
+                                🎉 Bienvenue sur le nouveau site Vinyls Collection ! Pour récupérer votre ancien compte, 
+                                <Link href="/forgot-password" class="underline font-semibold hover:text-green-100">
+                                    faites une demande de réinitialisation de mot de passe
+                                </Link>.
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation pour utilisateurs non connectés -->
+        <nav v-if="!$page.props.auth.user" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <Link href="/" class="flex items-center">
+                            <svg class="h-8 w-8 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                            </svg>
+                            <span class="text-xl font-semibold text-gray-900 dark:text-white">Vinyls Collection</span>
+                        </Link>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <Link href="/forum" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">
+                            Forum
+                        </Link>
+                        <Link href="/login" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">
+                            Connexion
+                        </Link>
+                        <Link href="/register" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Inscription
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="relative min-h-screen bg-gray-100 dark:bg-gray-900">
         <!-- Hero Section -->
         <div class="relative overflow-hidden">
             <div class="absolute inset-0">
@@ -166,7 +222,8 @@ function handleImageError() {
                 </div>
             </div>
         </footer>
-    </div>
+        </div>
+    </component>
 </template>
 
 <style>

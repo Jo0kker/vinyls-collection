@@ -42,11 +42,10 @@ const showingNavigationDropdown = ref(false);
                     >
                         <!-- Navigation Links -->
                         <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0">
-                            <li>
+                            <li v-if="$page.props.auth.user">
                                 <NavLink
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
-                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Tableau de bord
                                 </NavLink>
@@ -55,29 +54,46 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('forum.index')"
                                     :active="route().current('forum.*')"
-                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Forum
                                 </NavLink>
                             </li>
-                            <li>
+                            <li v-if="$page.props.auth.user">
                                 <NavLink
                                     :href="route('collections.index')"
                                     :active="route().current('collections.*')"
-                                    class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     Mes Collections
                                 </NavLink>
                             </li>
                             <li>
-                                <a href="#" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                                <NavLink
+                                    :href="route('collectors.index')"
+                                    :active="route().current('collectors.*')"
+                                >
                                     Collectionneurs
-                                </a>
+                                </NavLink>
+                            </li>
+                            <li v-if="!$page.props.auth.user">
+                                <Link
+                                    :href="route('login')"
+                                    class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700 transition duration-150 ease-in-out"
+                                >
+                                    Connexion
+                                </Link>
+                            </li>
+                            <li v-if="!$page.props.auth.user">
+                                <Link
+                                    :href="route('register')"
+                                    class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                                >
+                                    Inscription
+                                </Link>
                             </li>
                         </ul>
 
                         <!-- User menu - desktop -->
-                        <div class="hidden md:flex items-center gap-4">
+                        <div v-if="$page.props.auth.user" class="hidden md:flex items-center gap-4">
                             <div class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
@@ -120,6 +136,7 @@ const showingNavigationDropdown = ref(false);
 
                         <!-- User menu - mobile -->
                         <div 
+                            v-if="$page.props.auth.user"
                             :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                             class="md:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-600"
                         >
