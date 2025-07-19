@@ -14,9 +14,9 @@ class ForumController extends Controller
         $categories = Category::whereNull('parent_id')
             ->withCount('threads')
             ->with(['children' => function($query) {
-                $query->withCount('threads');
+                $query->withCount('threads')->orderBy('_lft');
             }])
-            ->orderBy('id')
+            ->orderBy('_lft')
             ->get()
             ->map(function ($category) {
                 return [

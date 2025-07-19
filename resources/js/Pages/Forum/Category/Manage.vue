@@ -23,9 +23,18 @@
                     <div class="p-6">
                         <!-- Categories List -->
                         <div class="space-y-4">
-                            <div v-for="category in categories" :key="category.id"
-                                 class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                                <div class="flex justify-between items-start">
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                💡 Glissez-déposez les catégories pour changer leur ordre d'affichage
+                            </p>
+                            <draggable 
+                                v-model="sortableCategories" 
+                                @end="updateCategoriesOrder"
+                                :options="{ animation: 150, ghostClass: 'sortable-ghost' }"
+                                class="space-y-4"
+                            >
+                                <div v-for="category in sortableCategories" :key="category.id"
+                                     class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 cursor-move hover:shadow-md transition-shadow">
+                                    <div class="flex justify-between items-start">
                                     <div class="flex-1">
                                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
                                             :style="{ color: category.color_light_mode }">
@@ -37,8 +46,17 @@
                                         
                                         <!-- Sub-categories -->
                                         <div v-if="category.children && category.children.length > 0" class="ml-6 space-y-2">
-                                            <div v-for="child in category.children" :key="child.id"
-                                                 class="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded p-3">
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                📋 Sous-catégories (glissez-déposez pour réorganiser)
+                                            </p>
+                                            <draggable 
+                                                v-model="category.children"
+                                                @end="() => updateSubCategoriesOrder(category)"
+                                                :options="{ animation: 150, ghostClass: 'sortable-ghost' }"
+                                                class="space-y-2"
+                                            >
+                                                <div v-for="child in category.children" :key="child.id"
+                                                     class="bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded p-3 cursor-move hover:shadow-sm transition-shadow">
                                                 <div class="flex justify-between items-start">
                                                     <div class="flex-1">
                                                         <h4 class="font-medium text-gray-800 dark:text-white"
@@ -60,7 +78,8 @@
                                                         </button>
                                                     </div>
                                                 </div>
-                                            </div>
+                                                </div>
+                                            </draggable>
                                         </div>
                                     </div>
                                     
@@ -74,8 +93,9 @@
                                             Supprimer
                                         </button>
                                     </div>
+                                    </div>
                                 </div>
-                            </div>
+                            </draggable>
                         </div>
                     </div>
                 </div>
@@ -258,6 +278,7 @@
 import ForumLayout from '@/Layouts/ForumLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { VueDraggableNext as draggable } from 'vue-draggable-next';
 
 const props = defineProps({
     categories: Array
@@ -285,6 +306,9 @@ const editForm = useForm({
     accepts_threads: true,
     is_private: false
 });
+
+// Reactive categories for drag & drop
+const sortableCategories = ref([...props.categories]);
 
 // Computed
 const mainCategories = computed(() => {
@@ -325,4 +349,74 @@ function deleteCategory(category) {
         router.delete(route('forum.category.destroy', { category_id: category.id }));
     }
 }
+
+// Drag & Drop functionality
+function updateCategoriesOrder() {
+    // Prepare the data for the API call
+    const orderedCategories = sortableCategories.value.map((category, index) => ({
+        id: category.id,
+        order: index
+    }));
+
+    // Send to backend
+    router.post(route('forum.category.bulk-manage'), {
+        categories: orderedCategories
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            console.log('Categories order updated successfully');
+        },
+        onError: (errors) => {
+            console.error('Error updating categories order:', errors);
+            // Reload page to reset order in case of error
+            router.reload();
+        }
+    });
+}
+
+// Drag & Drop functionality for sub-categories
+function updateSubCategoriesOrder(parentCategory) {
+    // Prepare the data for the API call for sub-categories
+    const orderedSubCategories = parentCategory.children.map((child, index) => ({
+        id: child.id,
+        order: index
+    }));
+
+    // Send to backend
+    router.post(route('forum.category.bulk-manage'), {
+        categories: orderedSubCategories
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            console.log('Sub-categories order updated successfully');
+        },
+        onError: (errors) => {
+            console.error('Error updating sub-categories order:', errors);
+            // Reload page to reset order in case of error
+            router.reload();
+        }
+    });
+}
 </script>
+
+<style scoped>
+.sortable-ghost {
+    opacity: 0.5;
+    background: #f3f4f6;
+    border: 2px dashed #9ca3af;
+}
+
+.sortable-ghost.dark {
+    background: #374151;
+    border-color: #6b7280;
+}
+
+/* Drag handle style */
+.cursor-move:hover {
+    background-color: #f9fafb;
+}
+
+.dark .cursor-move:hover {
+    background-color: #4b5563;
+}
+</style>

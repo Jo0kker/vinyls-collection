@@ -67,7 +67,7 @@ class ForumCategoryController extends Controller
 
         $categories = Category::with('children')
             ->whereNull('parent_id')
-            ->orderBy('weight')
+            ->orderBy('_lft')
             ->get();
 
         return Inertia::render('Forum/Category/Manage', [
@@ -101,7 +101,8 @@ class ForumCategoryController extends Controller
             'is_private' => $request->boolean('is_private'),
             'color_light_mode' => $request->color_light_mode,
             'color_dark_mode' => $request->color_dark_mode ?? $request->color_light_mode,
-            'weight' => Category::max('weight') + 1
+            '_lft' => (Category::max('_lft') ?? 0) + 1,
+            '_rgt' => (Category::max('_rgt') ?? 0) + 2
         ]);
 
         return redirect()->back()->with('success', 'Catégorie créée avec succès.');
@@ -176,15 +177,16 @@ class ForumCategoryController extends Controller
         $request->validate([
             'categories' => 'required|array',
             'categories.*.id' => 'required|integer|exists:forum_categories,id',
-            'categories.*.weight' => 'required|integer'
+            'categories.*.order' => 'required|integer'
         ]);
 
-        foreach ($request->categories as $categoryData) {
+        // Réorganiser selon l'ordre fourni
+        foreach ($request->categories as $index => $categoryData) {
             Category::where('id', $categoryData['id'])
-                ->update(['weight' => $categoryData['weight']]);
+                ->update(['_lft' => ($index * 2) + 1, '_rgt' => ($index * 2) + 2]);
         }
 
-        return response()->json(['success' => true]);
+        return redirect()->back()->with('success', 'Ordre des catégories mis à jour avec succès.');
     }
 
     private function canManageCategories($user)

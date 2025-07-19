@@ -31,6 +31,8 @@
         "feather-icons": "^4.29.2",
         "laravel-echo": "^2.1.4",
         "nested-sort": "^5.2.0",
+        "sortablejs": "^1.15.6",
+        "vue-draggable-next": "^2.2.1",
         "vuedraggable": "^4.1.0"
     }
 }
