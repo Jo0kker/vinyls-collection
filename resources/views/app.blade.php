@@ -11,7 +11,7 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Styles -->
-        @vite(['resources/css/app.css', 'resources/forum/blade-tailwind/css/forum.css'])
+        @vite(['resources/css/app.css'])
 
         <!-- Scripts -->
         @routes

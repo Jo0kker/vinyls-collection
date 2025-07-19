@@ -13,15 +13,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('🎵 Seeding Vinyls Collection Database...');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
+        // L'ordre est important à cause des dépendances
         $this->call([
-            CollectionSeeder::class,
+            UserSeeder::class,      // Créer les utilisateurs en premier
+            VinylSeeder::class,     // Créer les vinyles
+            CollectionSeeder::class, // Créer les collections et les liens avec les vinyles
+            ForumSeeder::class,     // Créer le forum avec catégories, threads et posts
         ]);
+
+        $this->command->info('🎉 Database seeding completed successfully!');
+        $this->command->info('');
+        $this->command->info('🔐 Comptes de test créés :');
+        $this->command->info('   Admin: admin@vinyls-collection.com / password');
+        $this->command->info('   User:  user@vinyls-collection.com / password');
+        $this->command->info('');
+        $this->command->info('📊 Données générées :');
+        $this->command->info('   - 32 utilisateurs');
+        $this->command->info('   - 150 vinyles');
+        $this->command->info('   - Collections complètes');
+        $this->command->info('   - Forum avec catégories et discussions');
     }
 }

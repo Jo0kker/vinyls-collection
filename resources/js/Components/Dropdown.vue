@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 
 const props = defineProps({
     align: {
@@ -31,22 +31,54 @@ const widthClass = computed(() => {
     }[props.width.toString()];
 });
 
+const dropdownRef = ref(null);
+const dynamicAlign = ref(props.align);
+
 const alignmentClasses = computed(() => {
-    if (props.align === 'left') {
+    if (dynamicAlign.value === 'left') {
         return 'ltr:origin-top-left rtl:origin-top-right start-0';
-    } else if (props.align === 'right') {
-        return 'ltr:origin-top-right rtl:origin-top-left end-0';
+    } else if (dynamicAlign.value === 'right') {
+        // Sur mobile : décale le dropdown vers la gauche pour qu'il reste visible
+        // Sur desktop : alignement normal
+        return 'ltr:origin-top-right rtl:origin-top-left -right-32 sm:-right-16 md:-right-4 lg:right-0 lg:end-0';
     } else {
         return 'origin-top';
     }
 });
 
 const open = ref(false);
+
+const checkDropdownPosition = async () => {
+    if (!open.value) return;
+    
+    await nextTick();
+    
+    const dropdown = dropdownRef.value;
+    if (!dropdown) return;
+    
+    const rect = dropdown.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    
+    // Si le dropdown sort de l'écran à droite
+    if (rect.right > windowWidth) {
+        dynamicAlign.value = 'left';
+    } else {
+        dynamicAlign.value = props.align;
+    }
+};
+
+// Surveiller l'ouverture du dropdown
+const toggleDropdown = () => {
+    open.value = !open.value;
+    if (open.value) {
+        checkDropdownPosition();
+    }
+};
 </script>
 
 <template>
     <div class="relative">
-        <div @click="open = !open">
+        <div @click="toggleDropdown">
             <slot name="trigger" />
         </div>
 
@@ -67,6 +99,7 @@ const open = ref(false);
         >
             <div
                 v-show="open"
+                ref="dropdownRef"
                 class="absolute z-50 mt-2 rounded-md shadow-lg"
                 :class="[widthClass, alignmentClasses]"
                 style="display: none"

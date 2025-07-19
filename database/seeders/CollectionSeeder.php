@@ -2,150 +2,104 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Collection;
-use App\Models\Vinyl;
 use App\Models\CollectionVinyl;
-use Carbon\Carbon;
+use App\Models\User;
+use App\Models\Vinyl;
+use Illuminate\Database\Seeder;
 
 class CollectionSeeder extends Seeder
 {
-    /**
-     * Run the database seeder.
-     */
     public function run(): void
     {
-        // Créer un utilisateur de test s'il n'existe pas
-        $user = User::firstOrCreate([
-            'email' => 'test@example.com'
-        ], [
-            'name' => 'Test User',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
-        ]);
+        $users = User::all();
+        $vinyls = Vinyl::all();
 
-        // Créer des collections pour cet utilisateur
-        $collections = [
-            [
-                'collection_nom' => 'Rock Classics',
-                'collection_commentaires' => 'Ma collection de rock classique',
-                'collection_date_crea' => Carbon::now()->subDays(30),
-                'collection_date_modif' => Carbon::now()->subDays(2),
-                'ordre' => 1,
-            ],
-            [
-                'collection_nom' => 'Jazz Masters',
-                'collection_commentaires' => 'Les plus grands du jazz',
-                'collection_date_crea' => Carbon::now()->subDays(25),
-                'collection_date_modif' => Carbon::now()->subDays(5),
-                'ordre' => 2,
-            ],
-            [
-                'collection_nom' => 'Electronic Beats',
-                'collection_commentaires' => 'Musique électronique moderne',
-                'collection_date_crea' => Carbon::now()->subDays(20),
-                'collection_date_modif' => Carbon::now()->subDays(1),
-                'ordre' => 3,
-            ],
-        ];
+        if ($users->isEmpty() || $vinyls->isEmpty()) {
+            $this->command->warn('Aucun utilisateur ou vinyle trouvé. Assurez-vous d\'exécuter UserSeeder et VinylSeeder avant.');
+            return;
+        }
 
-        foreach ($collections as $collectionData) {
-            $collection = $user->collections()->create($collectionData);
-
-            // Créer des vinyles pour chaque collection
-            $vinyls = $this->getVinylsForCollection($collection->collection_nom);
+        // Créer des collections pour chaque utilisateur
+        foreach ($users as $user) {
+            // Nombre aléatoire de collections par utilisateur (1 à 4)
+            $collectionsCount = fake()->numberBetween(1, 4);
             
-            foreach ($vinyls as $vinylData) {
-                $vinyl = Vinyl::create([
-                    'vinyl_nom' => $vinylData['nom'],
-                    'vinyl_titre' => $vinylData['titre'],
-                    'vinyl_format' => $vinylData['format'],
-                    'vinyl_nbcollect' => 1,
-                    'vinyl_alias' => 0,
-                ]);
+            for ($i = 0; $i < $collectionsCount; $i++) {
+                $collection = Collection::factory()
+                    ->forUser($user)
+                    ->create();
 
-                // Créer l'association avec la collection
-                CollectionVinyl::create([
-                    'collection_id' => $collection->id,
-                    'vinyl_id' => $vinyl->id,
-                    'user_id' => $user->id,
-                    'prix_achat' => $vinylData['prix'],
-                    'date_ajout' => Carbon::now()->subDays(rand(1, 30)),
-                    'note' => rand(7, 10),
-                    'commentaires' => $vinylData['commentaires'] ?? null,
-                ]);
+                // Ajouter des vinyles à chaque collection
+                $vinylsToAdd = $vinyls->random(fake()->numberBetween(3, 15));
+
+                foreach ($vinylsToAdd as $vinyl) {
+                    // Éviter les doublons dans la même collection
+                    if (!$collection->collectionVinyls()->where('vinyl_id', $vinyl->id)->exists()) {
+                        CollectionVinyl::factory()
+                            ->forCollection($collection)
+                            ->forVinyl($vinyl)
+                            ->create();
+                    }
+                }
             }
         }
-    }
 
-    private function getVinylsForCollection($collectionName)
-    {
-        switch ($collectionName) {
-            case 'Rock Classics':
-                return [
-                    [
-                        'nom' => 'Led Zeppelin',
-                        'titre' => 'Led Zeppelin IV',
-                        'format' => 1, // LP
-                        'prix' => 25.99,
-                        'commentaires' => 'Excellent état, pochette d\'origine'
-                    ],
-                    [
-                        'nom' => 'Pink Floyd',
-                        'titre' => 'The Dark Side of the Moon',
-                        'format' => 1, // LP
-                        'prix' => 32.50,
-                        'commentaires' => 'Réédition 2016, son parfait'
-                    ],
-                    [
-                        'nom' => 'The Beatles',
-                        'titre' => 'Abbey Road',
-                        'format' => 1, // LP
-                        'prix' => 28.00,
-                        'commentaires' => 'Pressage original UK'
-                    ],
-                ];
+        // Créer quelques collections avec beaucoup de vinyles pour les premiers utilisateurs
+        $powerUsers = $users->take(3);
+        foreach ($powerUsers as $user) {
+            $bigCollection = Collection::factory()
+                ->forUser($user)
+                ->create([
+                    'collection_nom' => 'Ma Grande Collection',
+                    'collection_commentaires' => 'Collection principale avec tous mes vinyles favoris'
+                ]);
+
+            // Ajouter 30-50 vinyles
+            $manyVinyls = $vinyls->random(fake()->numberBetween(30, 50));
             
-            case 'Jazz Masters':
-                return [
-                    [
-                        'nom' => 'Miles Davis',
-                        'titre' => 'Kind of Blue',
-                        'format' => 1, // LP
-                        'prix' => 45.00,
-                        'commentaires' => 'Pressage Blue Note, état mint'
-                    ],
-                    [
-                        'nom' => 'John Coltrane',
-                        'titre' => 'A Love Supreme',
-                        'format' => 1, // LP
-                        'prix' => 38.99,
-                        'commentaires' => 'Réédition audiophile'
-                    ],
-                ];
-            
-            case 'Electronic Beats':
-                return [
-                    [
-                        'nom' => 'Daft Punk',
-                        'titre' => 'Discovery',
-                        'format' => 1, // LP
-                        'prix' => 35.00,
-                        'commentaires' => 'Double LP, édition limitée'
-                    ],
-                    [
-                        'nom' => 'Justice',
-                        'titre' => 'Cross',
-                        'format' => 1, // LP
-                        'prix' => 29.99,
-                        'commentaires' => 'Première édition'
-                    ],
-                ];
-            
-            default:
-                return [];
+            foreach ($manyVinyls as $vinyl) {
+                if (!$bigCollection->collectionVinyls()->where('vinyl_id', $vinyl->id)->exists()) {
+                    CollectionVinyl::factory()
+                        ->forCollection($bigCollection)
+                        ->forVinyl($vinyl)
+                        ->create();
+                }
+            }
         }
+
+        // Créer quelques collections avec des vinyles chers pour simuler des collectionneurs sérieux
+        $collectors = $users->take(5);
+        foreach ($collectors as $user) {
+            $expensiveCollection = Collection::factory()
+                ->forUser($user)
+                ->create([
+                    'collection_nom' => 'Collection Rare',
+                    'collection_commentaires' => 'Mes vinyles les plus précieux et rares'
+                ]);
+
+            // Ajouter 5-10 vinyles chers
+            $rareVinyls = $vinyls->random(fake()->numberBetween(5, 10));
+            
+            foreach ($rareVinyls as $vinyl) {
+                if (!$expensiveCollection->collectionVinyls()->where('vinyl_id', $vinyl->id)->exists()) {
+                    CollectionVinyl::factory()
+                        ->forCollection($expensiveCollection)
+                        ->forVinyl($vinyl)
+                        ->expensive()
+                        ->create();
+                }
+            }
+        }
+
+        $totalCollections = Collection::count();
+        $totalCollectionVinyls = CollectionVinyl::count();
+
+        $this->command->info('Collections créées avec succès !');
+        $this->command->info("- {$totalCollections} collections au total");
+        $this->command->info("- {$totalCollectionVinyls} entrées de vinyles dans les collections");
+        $this->command->info('- Collections variées par utilisateur (1-4 par utilisateur)');
+        $this->command->info('- Collections spéciales pour les power users');
+        $this->command->info('- Collections rares avec vinyles chers');
     }
 }

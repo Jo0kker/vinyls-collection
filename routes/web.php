@@ -6,6 +6,10 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\VinylController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Api\DiscogsController;
+use App\Http\Controllers\ForumController;
+use App\Http\Controllers\ForumCategoryController;
+use App\Http\Controllers\ForumThreadController;
+use App\Http\Controllers\ForumPostController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -44,6 +48,52 @@ Route::middleware('auth')->group(function () {
         Route::get('discogs/search', [DiscogsController::class, 'search'])->name('api.discogs.search');
         Route::get('discogs/release/{id}', [DiscogsController::class, 'getRelease'])->name('api.discogs.release');
     });
+    
+});
+
+// Forum routes publiques (consultation)
+Route::prefix('forum')->name('forum.')->group(function () {
+    Route::get('/', [ForumController::class, 'index'])->name('index');
+    Route::get('category/{category_id}', [ForumCategoryController::class, 'show'])->name('category.show');
+    Route::get('thread/{thread_id}', [ForumThreadController::class, 'show'])->name('thread.show');
+    Route::get('recent', [ForumController::class, 'recent'])->name('recent');
+    Route::get('search', [ForumController::class, 'search'])->name('search');
+});
+
+// Forum routes authentifiées (création/réponse)
+Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
+    Route::get('category/{category_id}/thread/create', [ForumThreadController::class, 'create'])->name('thread.create');
+    Route::post('category/{category_id}/thread', [ForumThreadController::class, 'store'])->name('thread.store');
+    Route::post('thread/{thread_id}/post', [ForumPostController::class, 'store'])->name('post.store');
+    
+    // Routes pour utilisateurs connectés
+    Route::get('unread', [ForumController::class, 'unread'])->name('unread');
+    Route::post('mark-all-read', [ForumController::class, 'markAllAsRead'])->name('mark-all-read');
+    Route::get('my-threads', [ForumController::class, 'myThreads'])->name('my-threads');
+    
+    // Thread management routes
+    Route::post('thread/{thread_id}/lock', [ForumThreadController::class, 'lock'])->name('thread.lock');
+    Route::post('thread/{thread_id}/unlock', [ForumThreadController::class, 'unlock'])->name('thread.unlock');
+    Route::post('thread/{thread_id}/pin', [ForumThreadController::class, 'pin'])->name('thread.pin');
+    Route::post('thread/{thread_id}/unpin', [ForumThreadController::class, 'unpin'])->name('thread.unpin');
+    Route::post('thread/{thread_id}/rename', [ForumThreadController::class, 'rename'])->name('thread.rename');
+    Route::post('thread/{thread_id}/move', [ForumThreadController::class, 'move'])->name('thread.move');
+    Route::delete('thread/{thread_id}', [ForumThreadController::class, 'destroy'])->name('thread.destroy');
+    Route::post('thread/{thread_id}/restore', [ForumThreadController::class, 'restore'])->name('thread.restore');
+    Route::delete('thread/{thread_id}/force', [ForumThreadController::class, 'forceDestroy'])->name('thread.force-destroy');
+    
+    // Post management routes
+    Route::delete('post/{post_id}', [ForumPostController::class, 'destroy'])->name('post.destroy');
+    Route::post('post/{post_id}/restore', [ForumPostController::class, 'restore'])->name('post.restore');
+    Route::delete('post/{post_id}/force', [ForumPostController::class, 'forceDestroy'])->name('post.force-destroy');
+    Route::post('post/bulk', [ForumPostController::class, 'bulk'])->name('post.bulk');
+    
+    // Category management routes (admin only)
+    Route::get('manage', [ForumCategoryController::class, 'manage'])->name('category.manage');
+    Route::post('category', [ForumCategoryController::class, 'store'])->name('category.store');
+    Route::put('category/{category_id}', [ForumCategoryController::class, 'update'])->name('category.update');
+    Route::delete('category/{category_id}', [ForumCategoryController::class, 'destroy'])->name('category.destroy');
+    Route::post('category/bulk-manage', [ForumCategoryController::class, 'bulkManage'])->name('category.bulk-manage');
 });
 
 require __DIR__.'/auth.php';

@@ -25,6 +25,7 @@
         "@melloware/coloris": "^0.24.2",
         "@simonwep/pickr": "^1.9.1",
         "@tailwindcss/postcss": "^4.1.8",
+        "@tinymce/tinymce-vue": "^6.2.0",
         "alpinejs": "^3.14.9",
         "date-fns": "^4.1.0",
         "feather-icons": "^4.29.2",

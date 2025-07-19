@@ -5,6 +5,7 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import ForumSubNav from '@/Components/ForumSubNav.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
@@ -13,9 +14,7 @@ const showingNavigationDropdown = ref(false);
 <template>
     <div>
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <nav
-                class="v-navbar shadow py-4 bg-white dark:bg-gray-800"
-            >
+            <nav class="v-navbar shadow py-4 bg-white dark:bg-gray-800">
                 <!-- Primary Navigation Menu -->
                 <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
                     <div class="flex justify-between items-center">
@@ -42,7 +41,7 @@ const showingNavigationDropdown = ref(false);
                     >
                         <!-- Navigation Links -->
                         <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0">
-                            <li>
+                            <li v-if="$page.props.auth.user">
                                 <NavLink
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
@@ -60,7 +59,7 @@ const showingNavigationDropdown = ref(false);
                                     Forum
                                 </NavLink>
                             </li>
-                            <li>
+                            <li v-if="$page.props.auth.user">
                                 <NavLink
                                     :href="route('collections.index')"
                                     :active="route().current('collections.*')"
@@ -76,9 +75,10 @@ const showingNavigationDropdown = ref(false);
                             </li>
                         </ul>
 
-                        <!-- User menu - desktop -->
-                        <div class="hidden md:flex items-center gap-4">
-                            <div class="relative">
+                        <!-- User menu -->
+                        <div class="flex items-center gap-4">
+                            <!-- Si utilisateur connecté -->
+                            <div v-if="$page.props.auth.user" class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
                                         <button
@@ -86,9 +86,8 @@ const showingNavigationDropdown = ref(false);
                                             class="inline-flex items-center rounded-md border border-transparent bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium leading-4 text-gray-500 dark:text-gray-400 transition duration-150 ease-in-out hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
                                         >
                                             {{ $page.props.auth.user.name }}
-
                                             <svg
-                                                class="-me-0.5 ms-2 h-4 w-4"
+                                                class="ms-2 -me-0.5 h-4 w-4"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 viewBox="0 0 20 20"
                                                 fill="currentColor"
@@ -103,58 +102,40 @@ const showingNavigationDropdown = ref(false);
                                     </template>
 
                                     <template #content>
-                                        <DropdownLink :href="route('profile.edit')">
-                                            Profil
-                                        </DropdownLink>
-                                        <DropdownLink
-                                            :href="route('logout')"
-                                            method="post"
-                                            as="button"
-                                        >
+                                        <DropdownLink :href="route('profile.edit')"> Profil </DropdownLink>
+                                        <DropdownLink :href="route('logout')" method="post" as="button">
                                             Déconnexion
                                         </DropdownLink>
                                     </template>
                                 </Dropdown>
                             </div>
-                        </div>
-
-                        <!-- User menu - mobile -->
-                        <div 
-                            :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
-                            class="md:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-600"
-                        >
-                            <div class="px-4 pb-2">
-                                <div class="text-base font-medium text-gray-800 dark:text-gray-200">
-                                    {{ $page.props.auth.user.name }}
-                                </div>
-                                <div class="text-sm font-medium text-gray-500">
-                                    {{ $page.props.auth.user.email }}
-                                </div>
-                            </div>
-                            <div class="space-y-1">
-                                <ResponsiveNavLink :href="route('profile.edit')">
-                                    Profil
-                                </ResponsiveNavLink>
-                                <ResponsiveNavLink
-                                    :href="route('logout')"
-                                    method="post"
-                                    as="button"
+                            
+                            <!-- Si utilisateur non connecté -->
+                            <div v-else class="flex items-center space-x-4">
+                                <Link 
+                                    :href="route('login')" 
+                                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-3 py-2 text-sm font-medium"
                                 >
-                                    Déconnexion
-                                </ResponsiveNavLink>
+                                    Connexion
+                                </Link>
+                                <Link 
+                                    :href="route('register')" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                >
+                                    Inscription
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </div>
-
             </nav>
 
+            <!-- Forum Sub Navigation (seulement sur les pages forum) -->
+            <ForumSubNav v-if="route().current('forum.*')" />
+
             <!-- Page Heading -->
-            <header
-                class="bg-white shadow dark:bg-gray-800"
-                v-if="$slots.header"
-            >
-                <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <header v-if="$slots.header" class="bg-white dark:bg-gray-800 shadow">
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                     <slot name="header" />
                 </div>
             </header>

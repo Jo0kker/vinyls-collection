@@ -63,7 +63,7 @@ trait SeoMetaTags
         return [
             'title' => substr($thread->title, 0, 45) . ' - Forum Vinyls',
             'description' => $description ?: substr("Discussion : {$thread->title}", 0, 140),
-            'canonical' => route('forum.thread.show', $thread),
+            'canonical' => route('forum.thread.show', $thread->id),
             'type' => 'article',
         ];
     }
@@ -75,7 +75,7 @@ trait SeoMetaTags
         return [
             'title' => substr($category->title, 0, 40) . ' - Forum Vinyls',
             'description' => substr($description, 0, 140),
-            'canonical' => route('forum.category.show', $category),
+            'canonical' => route('forum.category.show', $category->id),
             'type' => 'website',
         ];
     }
