@@ -38,6 +38,8 @@ Route::middleware('auth')->group(function () {
     
     // Collections routes
     Route::resource('collections', CollectionController::class);
+    Route::delete('collections/{collection}/vinyl/{collectionVinyl}', [CollectionController::class, 'removeVinyl'])->name('collections.vinyl.remove');
+    Route::patch('collections/{collection}/vinyl/{collectionVinyl}/move', [CollectionController::class, 'moveVinyl'])->name('collections.vinyl.move');
     
     // Vinyls routes
     Route::resource('vinyls', VinylController::class);

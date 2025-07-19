@@ -262,8 +262,19 @@ class VinylController extends Controller
         $discogsId = $request->discogs_id;
         $discogsType = isset($request->discogs_data['type']) ? $request->discogs_data['type'] : 'release';
         
+        // Récupérer les détails complets depuis Discogs pour avoir toutes les informations
+        $completeDiscogsData = null;
+        if ($discogsType === 'master') {
+            $completeDiscogsData = $discogsService->getMaster($discogsId);
+        } else {
+            $completeDiscogsData = $discogsService->getRelease($discogsId);
+        }
+        
+        // Utiliser les données complètes si disponibles, sinon fallback sur les données de recherche
+        $dataToUse = $completeDiscogsData ?: $request->discogs_data;
+        
         // Convertir les données Discogs
-        $vinylData = $discogsService->convertToVinylData($request->discogs_data, $discogsId, $discogsType);
+        $vinylData = $discogsService->convertToVinylData($dataToUse, $discogsId, $discogsType);
 
         // 1. Vérifier si ce vinyle Discogs exact existe déjà (déduplication Discogs uniquement)
         $exactDiscogs = Vinyl::where('discogs_id', $discogsId)

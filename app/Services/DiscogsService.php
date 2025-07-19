@@ -124,9 +124,28 @@ class DiscogsService
     {
         $artists = [];
         
-        if (isset($discogsData['artists'])) {
+        // Essayer différentes sources pour les artistes
+        if (isset($discogsData['artists']) && !empty($discogsData['artists'])) {
             $artists = collect($discogsData['artists'])->pluck('name')->toArray();
+        } elseif (isset($discogsData['artist'])) {
+            // Fallback pour le format de recherche
+            $artists = [$discogsData['artist']];
+        } elseif (isset($discogsData['artists_sort'])) {
+            // Fallback pour artists_sort
+            $artists = [$discogsData['artists_sort']];
         }
+        
+        // Log pour debug les problèmes d'artiste
+        Log::info('Discogs conversion debug', [
+            'discogs_id' => $discogsId,
+            'has_artists' => isset($discogsData['artists']),
+            'has_artist' => isset($discogsData['artist']),
+            'has_artists_sort' => isset($discogsData['artists_sort']),
+            'artists_count' => count($artists),
+            'artists' => $artists,
+            'title' => $discogsData['title'] ?? 'No title',
+            'raw_data_keys' => array_keys($discogsData)
+        ]);
 
         // Essaie de trouver une image de qualité
         $pochette = null;
@@ -163,11 +182,18 @@ class DiscogsService
             }
         }
 
+        $artisteName = !empty($artists) ? implode(', ', $artists) : 'Artiste inconnu';
+        
+        Log::info('Final artist result', [
+            'discogs_id' => $discogsId,
+            'final_artist' => $artisteName
+        ]);
+
         return [
             'vinyl_nom' => $discogsData['title'] ?? 'Titre inconnu',
             'vinyl_titre' => $discogsData['title'] ?? 'Titre inconnu',
             'vinyl_format' => 1, // 1 pour Vinyl par défaut, à adapter selon votre système de codes
-            'artiste' => implode(', ', $artists),
+            'artiste' => $artisteName,
             'pochette' => $pochette,
             'vinyl_alias' => 0,
             'vinyl_nbcollect' => 1,
