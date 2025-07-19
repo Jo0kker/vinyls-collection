@@ -248,10 +248,10 @@
                             <span class="text-gray-900 dark:text-gray-100">{{ thread.title }}</span>
                         </nav>
 
-                        <!-- Bulk Actions Form -->
+                        <!-- Bulk Actions Form (pour modérateurs seulement) -->
                         <form v-if="canManagePosts && posts.data.length > 1" 
                               @submit.prevent="submitBulkAction" 
-                              class="space-y-6">
+                              class="mb-6">
                             <!-- Select All Checkbox -->
                             <div v-if="selectablePosts.length > 0" class="text-right mb-2">
                                 <label class="inline-flex items-center">
@@ -262,9 +262,10 @@
                                     <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Sélectionner tout</span>
                                 </label>
                             </div>
+                        </form>
 
-                            <!-- Posts -->
-                            <div class="space-y-6">
+                        <!-- Posts (toujours visibles) -->
+                        <div class="space-y-6">
                                 <div v-for="post in posts.data" :key="post.id"
                                      :class="[
                                          'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm',
@@ -338,7 +339,7 @@
                                                 </div>
                                                 
                                                 <!-- Checkbox pour sélection bulk -->
-                                                <div v-if="post.sequence !== 1 && canDelete(post)" class="flex items-center gap-2">
+                                                <div v-if="canManagePosts && post.sequence !== 1 && canDelete(post)" class="flex items-center gap-2">
                                                     <input type="checkbox" 
                                                            :value="post.id" 
                                                            v-model="selectedPosts"
@@ -349,14 +350,14 @@
                                             <!-- Contenu du post - prend l'espace disponible -->
                                             <div class="max-w-none flex-grow text-gray-900 dark:text-gray-100">
                                                 <div v-if="post.deleted_at" class="text-gray-500">
-                                                    <div v-html="post.content"></div>
+                                                    <div v-html="getProcessedContent(post)"></div>
                                                     <div class="mt-2">
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
                                                             Supprimé
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div v-else class="prose dark:prose-invert" v-html="post.content"></div>
+                                                <div v-else class="prose dark:prose-invert max-w-none" v-html="getProcessedContent(post)"></div>
                                             </div>
                                             
                                             <!-- Actions du post - toujours en bas -->
@@ -460,14 +461,14 @@
                                         <!-- Contenu du post -->
                                         <div class="mb-4">
                                             <div v-if="post.deleted_at" class="text-gray-500">
-                                                <div class="prose dark:prose-invert max-w-none text-sm" v-html="post.content"></div>
+                                                <div class="prose dark:prose-invert prose-sm max-w-none" v-html="getProcessedContent(post)"></div>
                                                 <div class="mt-2">
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
                                                         Supprimé
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div v-else class="prose dark:prose-invert max-w-none text-sm" v-html="post.content"></div>
+                                            <div v-else class="prose dark:prose-invert prose-sm max-w-none" v-html="getProcessedContent(post)"></div>
                                         </div>
                                         
                                         <!-- Footer avec date et actions -->
@@ -566,51 +567,100 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Bulk Actions Panel -->
-                            <div v-if="selectedPosts.length > 0" 
-                                 class="fixed bottom-0 right-0 m-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg" 
-                                 style="z-index: 1000; min-width: 300px;">
-                                <div class="border-b border-gray-200 dark:border-gray-700 px-4 py-3 text-center">
-                                    <span class="font-medium text-gray-900 dark:text-gray-100">
-                                        Actions sur la sélection ({{ selectedPosts.length }} posts)
-                                    </span>
+                        </div>
+                        
+                        <!-- Bulk Actions Panel (flottant, pour modérateurs seulement) -->
+                        <div v-if="canManagePosts && selectedPosts.length > 0" 
+                             class="fixed bottom-0 right-0 m-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg" 
+                             style="z-index: 1000; min-width: 300px;">
+                            <div class="border-b border-gray-200 dark:border-gray-700 px-4 py-3 text-center">
+                                <span class="font-medium text-gray-900 dark:text-gray-100">
+                                    Actions sur la sélection ({{ selectedPosts.length }} posts)
+                                </span>
+                            </div>
+                            <div class="p-4">
+                                <div class="mb-3">
+                                    <label for="bulk-action" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Action
+                                    </label>
+                                    <select v-model="bulkAction" 
+                                            id="bulk-action"
+                                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                                        <option value="delete">Supprimer</option>
+                                        <option value="restore">Restaurer</option>
+                                    </select>
                                 </div>
-                                <div class="p-4">
-                                    <div class="mb-3">
-                                        <label for="bulk-action" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Action
-                                        </label>
-                                        <select v-model="bulkAction" 
-                                                id="bulk-action"
-                                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
-                                            <option value="delete">Supprimer</option>
-                                            <option value="restore">Restaurer</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div v-if="bulkAction === 'delete'" class="mb-3">
-                                        <label class="inline-flex items-center">
-                                            <input type="checkbox" 
-                                                   v-model="forceDelete"
-                                                   class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Suppression définitive</span>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="text-right">
-                                        <button type="submit" 
-                                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">
-                                            Appliquer
-                                        </button>
-                                    </div>
+                                
+                                <div v-if="bulkAction === 'delete'" class="mb-3">
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" 
+                                               v-model="forceDelete"
+                                               class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Suppression définitive</span>
+                                    </label>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <button @click="submitBulkAction"
+                                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">
+                                        Appliquer
+                                    </button>
                                 </div>
                             </div>
-                        </form>
+                        </div>
 
                         <!-- Pagination -->
-                        <div v-if="posts.links" class="mt-6">
-                            <Pagination :links="posts.links" />
+                        <div v-if="posts && posts.links && posts.links.length > 3" class="mt-6">
+                            <nav class="flex items-center justify-center">
+                                <!-- Mobile pagination -->
+                                <div class="flex sm:hidden items-center gap-2">
+                                    <Link v-if="posts.prev_page_url" 
+                                          :href="posts.prev_page_url" 
+                                          class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                        ← Précédent
+                                    </Link>
+                                    <span class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                        Page {{ posts.current_page }} / {{ posts.last_page }}
+                                    </span>
+                                    <Link v-if="posts.next_page_url" 
+                                          :href="posts.next_page_url" 
+                                          class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                        Suivant →
+                                    </Link>
+                                </div>
+                                
+                                <!-- Desktop pagination -->
+                                <div class="hidden sm:flex rounded-md shadow-sm -space-x-px">
+                                    <Link v-if="posts.prev_page_url" 
+                                          :href="posts.prev_page_url" 
+                                          class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                        ←
+                                    </Link>
+                                    
+                                    <template v-for="(link, index) in posts.links" :key="index">
+                                        <Link v-if="link.url && !link.label.includes('Previous') && !link.label.includes('Next')" 
+                                              :href="link.url" 
+                                              :class="[
+                                                  'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
+                                                  link.active 
+                                                      ? 'bg-blue-600 border-blue-600 text-white' 
+                                                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                                              ]"
+                                              v-html="link.label">
+                                        </Link>
+                                        <span v-else-if="!link.url && !link.label.includes('Previous') && !link.label.includes('Next')" 
+                                              class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-gray-50 text-sm font-medium text-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400"
+                                              v-html="link.label">
+                                        </span>
+                                    </template>
+                                    
+                                    <Link v-if="posts.next_page_url" 
+                                          :href="posts.next_page_url" 
+                                          class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                        →
+                                    </Link>
+                                </div>
+                            </nav>
                         </div>
 
                         <!-- Reply Form -->
@@ -667,7 +717,6 @@
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- Rename Modal -->
         <div v-if="showRenameModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showRenameModal = false">
@@ -753,15 +802,18 @@ import Pagination from '@/Components/Pagination.vue';
 import TinyMCEEditor from '@/Components/TinyMCEEditor.vue';
 import NotificationContainer from '@/Components/NotificationContainer.vue';
 import { useNotifications } from '@/composables/useNotifications.js';
+import { useForumContent } from '@/composables/useForumContent.js';
 
 const $page = usePage();
 const { warning } = useNotifications();
+const { processForumContent } = useForumContent();
 
 const props = defineProps({
     thread: Object,
     posts: Object,
     categories: Array
 });
+
 
 const replyForm = useForm({
     content: ''
@@ -929,6 +981,11 @@ function getUserRole(author) {
     return { name: 'Membre', color: '#3b82f6' };
 }
 
+// Process post content for legacy messages
+function getProcessedContent(post) {
+    return processForumContent(post.content, post.created_at);
+}
+
 function toggleAllPosts() {
     if (selectAll.value) {
         selectedPosts.value = selectablePosts.value.map(post => post.id);
@@ -1083,3 +1140,24 @@ function closePostMenu(postId) {
 }
 
 </script>
+
+<style>
+/* Force les styles de liste pour le contenu du forum */
+.prose ul {
+    list-style-type: disc !important;
+    padding-left: 1.5rem !important;
+    margin: 1rem 0 !important;
+}
+
+.prose li {
+    margin: 0.5rem 0 !important;
+    display: list-item !important;
+}
+
+.prose ol {
+    list-style-type: decimal !important;
+    padding-left: 1.5rem !important;
+    margin: 1rem 0 !important;
+}
+</style>
+

@@ -26,7 +26,7 @@ const submit = () => {
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="name" value="Nom" />
+                <InputLabel for="name" value="Pseudo" />
 
                 <TextInput
                     id="name"

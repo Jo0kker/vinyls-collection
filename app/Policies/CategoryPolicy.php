@@ -7,15 +7,15 @@ use TeamTeaTime\Forum\Models\Category;
 
 class CategoryPolicy
 {
-    public function view(User $user, Category $category): bool
+    public function view(?User $user, Category $category): bool
     {
-        // Si la catégorie n'est pas privée, tout le monde peut la voir
+        // Si la catégorie n'est pas privée, tout le monde peut la voir (même non connectés)
         if (!$category->is_private) {
             return true;
         }
         
-        // Si la catégorie est privée, seuls les administrateurs peuvent la voir
-        return $user->hasPermissionTo('manage categories');
+        // Si la catégorie est privée, seuls les administrateurs connectés peuvent la voir
+        return $user && $user->hasPermissionTo('manage categories');
     }
 
     public function edit(User $user, Category $category): bool

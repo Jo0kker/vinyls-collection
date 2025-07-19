@@ -25,6 +25,7 @@
         "@melloware/coloris": "^0.24.2",
         "@simonwep/pickr": "^1.9.1",
         "@tailwindcss/postcss": "^4.1.8",
+        "@tailwindcss/typography": "^0.5.16",
         "@tinymce/tinymce-vue": "^6.2.0",
         "alpinejs": "^3.14.9",
         "date-fns": "^4.1.0",
@@ -32,6 +33,7 @@
         "laravel-echo": "^2.1.4",
         "nested-sort": "^5.2.0",
         "sortablejs": "^1.15.6",
+        "vue-advanced-cropper": "^2.8.9",
         "vue-draggable-next": "^2.2.1",
         "vuedraggable": "^4.1.0"
     }

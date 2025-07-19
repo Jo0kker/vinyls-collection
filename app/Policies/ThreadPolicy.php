@@ -7,19 +7,19 @@ use TeamTeaTime\Forum\Models\Thread;
 
 class ThreadPolicy
 {
-    public function view(User $user, Thread $thread): bool
+    public function view(?User $user, Thread $thread): bool
     {
         // Charger la catégorie si elle n'est pas déjà chargée
         if (!$thread->relationLoaded('category')) {
             $thread->load('category');
         }
         
-        // Si la catégorie est privée, seuls les administrateurs peuvent voir le thread
+        // Si la catégorie est privée, seuls les administrateurs connectés peuvent voir le thread
         if ($thread->category && $thread->category->is_private) {
-            return $user->hasPermissionTo('manage categories');
+            return $user && $user->hasPermissionTo('manage categories');
         }
         
-        // Pour les catégories publiques, tout le monde peut voir
+        // Pour les catégories publiques, tout le monde peut voir (même non connectés)
         return true;
     }
 

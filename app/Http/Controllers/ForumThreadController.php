@@ -17,17 +17,33 @@ class ForumThreadController extends Controller
          */
         $thread = Thread::withTrashed()->with('category', 'author')->findOrFail($thread_id);
         
-        $posts = Post::withTrashed()
-            ->where('thread_id', $thread->id)
+        // Les utilisateurs non connectés ne voient que les posts non supprimés
+        // Les modérateurs/admins voient tous les posts (y compris supprimés)
+        $postsQuery = Post::where('thread_id', $thread->id)
             ->with(['author.roles'])
-            ->orderBy('created_at', 'asc')
-            ->paginate(20);
+            ->orderBy('created_at', 'asc');
+            
+        // Si l'utilisateur est modérateur/admin, inclure les posts supprimés
+        if (auth()->check() && auth()->user()->roles()->whereIn('name', ['admin', 'moderator'])->exists()) {
+            $postsQuery = $postsQuery->withTrashed();
+        }
+        
+        $posts = $postsQuery->paginate(20);
+        
+        // Optimisation : récupérer les counts en une seule requête pour tous les auteurs
+        $authorIds = $posts->getCollection()->pluck('author.id')->filter()->unique();
+        $vinylCounts = \DB::table('collection_vinyls')
+            ->join('collections', 'collection_vinyls.collection_id', '=', 'collections.id')
+            ->whereIn('collections.user_id', $authorIds)
+            ->select('collections.user_id', \DB::raw('count(*) as vinyl_count'))
+            ->groupBy('collections.user_id')
+            ->pluck('vinyl_count', 'user_id');
             
         // Transform posts data to include user information
-        $posts->getCollection()->transform(function ($post) {
-            // Add vinyl count for the author
+        $posts->getCollection()->transform(function ($post) use ($vinylCounts) {
+            // Add vinyl count for the author (from cache)
             if ($post->author) {
-                $post->author->vinyl_count = $post->author->vinylCollections()->count();
+                $post->author->vinyl_count = $vinylCounts[$post->author->id] ?? 0;
             }
             
             return $post;

@@ -40,6 +40,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     // Collections routes
@@ -59,7 +60,7 @@ Route::middleware('auth')->group(function () {
     
 });
 
-// Forum routes publiques (consultation)
+// Forum routes (consultation ouverte, sécurité gérée par les policies)
 Route::prefix('forum')->name('forum.')->group(function () {
     Route::get('/', [ForumController::class, 'index'])->name('index');
     Route::get('category/{category_id}', [ForumCategoryController::class, 'show'])->name('category.show');

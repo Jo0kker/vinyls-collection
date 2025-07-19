@@ -30,8 +30,13 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Vérification manuelle case-insensitive pour le name
+        if (User::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->exists()) {
+            return back()->withErrors(['name' => 'Ce pseudo est déjà utilisé (la casse ne compte pas).'])->withInput();
+        }
+
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:'.User::class,
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
