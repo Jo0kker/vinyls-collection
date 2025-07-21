@@ -39,6 +39,43 @@ class ForumPostController extends Controller
         return back();
     }
 
+    public function edit($post_id)
+    {
+        $post = Post::findOrFail($post_id);
+        
+        // Check permissions
+        $user = auth()->user();
+        if (!$user || !$this->canEditPost($user, $post)) {
+            abort(403, 'Unauthorized');
+        }
+
+        return response()->json([
+            'id' => $post->id,
+            'content' => $post->content
+        ]);
+    }
+
+    public function update(Request $request, $post_id)
+    {
+        $post = Post::findOrFail($post_id);
+        
+        // Check permissions
+        $user = auth()->user();
+        if (!$user || !$this->canEditPost($user, $post)) {
+            abort(403, 'Unauthorized');
+        }
+
+        $request->validate([
+            'content' => 'required|string'
+        ]);
+
+        $post->update([
+            'content' => $request->content
+        ]);
+
+        return redirect()->back()->with('success', 'Post modifié avec succès.');
+    }
+
     public function destroy($post_id)
     {
         $post = Post::findOrFail($post_id);
@@ -137,6 +174,17 @@ class ForumPostController extends Controller
     private function canRestorePost($user, $post)
     {
         // Only moderators and admins can restore posts
+        return $user->roles()->whereIn('name', ['admin', 'moderator'])->exists();
+    }
+
+    private function canEditPost($user, $post)
+    {
+        // Author can edit their own post within 24 hours
+        if ($post->author_id === $user->id && $post->created_at->diffInHours(now()) <= 24) {
+            return true;
+        }
+        
+        // Moderators and admins can edit any post
         return $user->roles()->whereIn('name', ['admin', 'moderator'])->exists();
     }
 

@@ -15,15 +15,15 @@ const showingNavigationDropdown = ref(false);
     <div>
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             <nav class="v-navbar shadow py-4 bg-white dark:bg-gray-800">
-                <!-- Primary Navigation Menu -->
+                
                 <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
                     <div class="flex justify-between items-center">
-                        <!-- Logo -->
+                        
                         <Link href="/" class="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             <ApplicationLogo />
                         </Link>
                         
-                        <!-- Mobile menu button -->
+                        
                         <button 
                             @click="showingNavigationDropdown = !showingNavigationDropdown"
                             class="navbar-toggler block md:hidden border rounded-md px-2 py-1" 
@@ -39,7 +39,7 @@ const showingNavigationDropdown = ref(false);
                         :class="{ 'flex flex-col': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                         class="grow justify-between navbar-collapse md:flex"
                     >
-                        <!-- Navigation Links -->
+                        
                         <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0">
                             <li v-if="$page.props.auth.user">
                                 <NavLink
@@ -75,9 +75,9 @@ const showingNavigationDropdown = ref(false);
                             </li>
                         </ul>
 
-                        <!-- User menu -->
+                        
                         <div class="flex items-center gap-4">
-                            <!-- Si utilisateur connecté -->
+                            
                             <div v-if="$page.props.auth.user" class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
@@ -110,7 +110,7 @@ const showingNavigationDropdown = ref(false);
                                 </Dropdown>
                             </div>
                             
-                            <!-- Si utilisateur non connecté -->
+                            
                             <div v-else class="flex items-center space-x-4">
                                 <Link 
                                     :href="route('login')" 
@@ -130,17 +130,17 @@ const showingNavigationDropdown = ref(false);
                 </div>
             </nav>
 
-            <!-- Forum Sub Navigation (seulement sur les pages forum) -->
+            
             <ForumSubNav v-if="route().current('forum.*')" />
 
-            <!-- Page Heading -->
+            
             <header v-if="$slots.header" class="bg-white dark:bg-gray-800 shadow">
                 <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                     <slot name="header" />
                 </div>
             </header>
 
-            <!-- Page Content -->
+            
             <main>
                 <slot />
             </main>

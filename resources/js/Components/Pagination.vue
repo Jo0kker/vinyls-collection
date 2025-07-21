@@ -1,7 +1,7 @@
 <template>
     <nav class="flex items-center justify-between">
         <div class="flex-1 flex justify-between sm:hidden">
-            <!-- Mobile pagination -->
+            
             <Link v-if="links.prev" 
                   :href="links.prev" 
                   class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:text-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300">
@@ -15,7 +15,7 @@
         </div>
         
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <!-- Desktop pagination info -->
+            
             <div v-if="from && to && total">
                 <p class="text-sm text-gray-700 dark:text-gray-300">
                     Affichage de
@@ -28,10 +28,10 @@
                 </p>
             </div>
             
-            <!-- Desktop pagination links -->
+            
             <div>
                 <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <!-- Previous Page Link -->
+                    
                     <Link v-if="links.prev" 
                           :href="links.prev" 
                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
@@ -41,7 +41,7 @@
                         </svg>
                     </Link>
                     
-                    <!-- Pagination Elements -->
+                    
                     <template v-for="(link, index) in paginationLinks" :key="index">
                         <span v-if="link.label === '...'" 
                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300">
@@ -68,7 +68,7 @@
                         </span>
                     </template>
                     
-                    <!-- Next Page Link -->
+                    
                     <Link v-if="links.next" 
                           :href="links.next" 
                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">

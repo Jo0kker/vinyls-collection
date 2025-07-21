@@ -11,7 +11,7 @@
                         {{ thread.title }}
                     </h2>
                     
-                    <!-- Thread status badges -->
+                    
                     <div class="flex flex-wrap gap-2 mt-2">
                         <span v-if="thread.deleted_at" 
                               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
@@ -28,11 +28,11 @@
                     </div>
                 </div>
                 
-                <!-- Admin actions -->
+                
                 <div v-if="canModerateThread" class="flex flex-col md:flex-row items-stretch md:items-center gap-2">
-                    <!-- Desktop Layout -->
+                    
                     <div class="hidden md:flex items-center gap-2">
-                        <!-- Delete/Restore thread actions -->
+                        
                         <template v-if="thread.deleted_at">
                             <button v-if="canRestoreThread" 
                                     @click="restoreThread"
@@ -62,9 +62,9 @@
                             </button>
                         </template>
                         
-                        <!-- Thread moderation actions -->
+                        
                         <div v-if="!thread.deleted_at" class="flex items-center gap-2">
-                            <!-- Lock/Unlock -->
+                            
                             <button v-if="thread.locked" 
                                     @click="unlockThread"
                                     class="inline-flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
@@ -82,7 +82,7 @@
                                 Verrouiller
                             </button>
                             
-                            <!-- Pin/Unpin -->
+                            
                             <button v-if="thread.pinned" 
                                     @click="unpinThread"
                                     class="inline-flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
@@ -100,7 +100,7 @@
                                 Épingler
                             </button>
                             
-                            <!-- Rename -->
+                            
                             <button @click="showRenameModal = true"
                                     class="inline-flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@
                                 Renommer
                             </button>
                             
-                            <!-- Move -->
+                            
                             <button @click="showMoveModal = true"
                                     class="inline-flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,9 +120,9 @@
                         </div>
                     </div>
                     
-                    <!-- Mobile Layout -->
+                    
                     <div class="md:hidden">
-                        <!-- Menu button -->
+                        
                         <button @click="showMobileMenu = !showMobileMenu"
                                 class="w-full flex items-center justify-between px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
                             <span>Actions de modération</span>
@@ -131,9 +131,9 @@
                             </svg>
                         </button>
                         
-                        <!-- Mobile menu -->
+                        
                         <div v-if="showMobileMenu" class="mt-2 grid grid-cols-2 gap-2">
-                            <!-- Delete/Restore thread actions -->
+                            
                             <template v-if="thread.deleted_at">
                                 <button v-if="canRestoreThread" 
                                         @click="restoreThread; showMobileMenu = false"
@@ -162,9 +162,9 @@
                                     <span class="hidden sm:inline">Supprimer</span>
                                 </button>
                                 
-                                <!-- Thread moderation actions -->
+                                
                                 <template v-if="!thread.deleted_at">
-                                    <!-- Lock/Unlock -->
+                                    
                                     <button v-if="thread.locked" 
                                             @click="unlockThread; showMobileMenu = false"
                                             class="flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
@@ -182,7 +182,7 @@
                                         <span class="hidden sm:inline">Verrouiller</span>
                                     </button>
                                     
-                                    <!-- Pin/Unpin -->
+                                    
                                     <button v-if="thread.pinned" 
                                             @click="unpinThread; showMobileMenu = false"
                                             class="flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
@@ -200,7 +200,7 @@
                                         <span class="hidden sm:inline">Épingler</span>
                                     </button>
                                     
-                                    <!-- Rename -->
+                                    
                                     <button @click="showRenameModal = true; showMobileMenu = false"
                                             class="flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,7 +209,7 @@
                                         <span class="hidden sm:inline">Renommer</span>
                                     </button>
                                     
-                                    <!-- Move -->
+                                    
                                     <button @click="showMoveModal = true; showMobileMenu = false"
                                             class="flex items-center justify-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +229,7 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <!-- Breadcrumbs -->
+                        
                         <nav class="mb-6 text-sm">
                             <Link :href="route('forum.index')"
                                   class="text-blue-600 dark:text-blue-400 hover:underline">
@@ -248,11 +248,11 @@
                             <span class="text-gray-900 dark:text-gray-100">{{ thread.title }}</span>
                         </nav>
 
-                        <!-- Bulk Actions Form (pour modérateurs seulement) -->
+                        
                         <form v-if="canManagePosts && posts.data.length > 1" 
                               @submit.prevent="submitBulkAction" 
                               class="mb-6">
-                            <!-- Select All Checkbox -->
+                            
                             <div v-if="selectablePosts.length > 0" class="text-right mb-2">
                                 <label class="inline-flex items-center">
                                     <input type="checkbox" 
@@ -264,20 +264,21 @@
                             </div>
                         </form>
 
-                        <!-- Posts (toujours visibles) -->
+                        
                         <div class="space-y-6">
                                 <div v-for="post in posts.data" :key="post.id"
+                                     :id="`post-${post.sequence}`"
                                      :class="[
                                          'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm',
                                          post.deleted_at ? 'opacity-50' : '',
                                          selectedPosts.includes(post.id) ? 'border-blue-500 dark:border-blue-400' : ''
                                      ]">
-                                    <!-- Desktop Layout -->
+                                    
                                     <div class="hidden md:flex">
-                                        <!-- Avatar et informations utilisateur -->
+                                        
                                         <div class="flex-shrink-0 p-4 bg-gray-50 dark:bg-gray-700 rounded-l-lg">
                                             <div class="text-center w-32">
-                                                <!-- Avatar -->
+                                                
                                                 <div class="mb-3">
                                                     <div v-if="!post.author.avatar" 
                                                          class="w-16 h-16 rounded-full mx-auto bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
@@ -289,7 +290,7 @@
                                                          class="w-16 h-16 rounded-full mx-auto border-2 border-gray-200 dark:border-gray-600">
                                                 </div>
                                                 
-                                                <!-- Nom d'utilisateur -->
+                                                
                                                 <div class="font-semibold text-gray-900 dark:text-white text-sm mb-1">
                                                     <Link :href="`/collectors/${post.author.id}`" 
                                                           class="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
@@ -297,7 +298,7 @@
                                                     </Link>
                                                 </div>
                                                 
-                                                <!-- Rôle -->
+                                                
                                                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
                                                     <span class="px-2 py-1 rounded-full text-white font-medium" 
                                                           :style="{ backgroundColor: getUserRole(post.author).color }">
@@ -305,7 +306,7 @@
                                                     </span>
                                                 </div>
                                                 
-                                                <!-- Nombre de vinyles -->
+                                                
                                                 <div class="text-xs text-gray-600 dark:text-gray-300 mb-2">
                                                     <div class="flex items-center justify-center gap-1">
                                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -316,16 +317,16 @@
                                                     </div>
                                                 </div>
                                                 
-                                                <!-- Date du post -->
+                                                
                                                 <div class="text-xs text-gray-500 dark:text-gray-400">
                                                     {{ formatDate(post.created_at) }}
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <!-- Contenu du post -->
+                                        
                                         <div class="flex-1 p-4 flex flex-col min-h-48">
-                                            <!-- Header avec numéro de post et actions -->
+                                            
                                             <div class="flex justify-between items-start mb-4">
                                                 <div class="flex items-center gap-2">
                                                     <a :href="route('forum.thread.show', { thread_id: thread.id }) + '#post-' + post.sequence" 
@@ -338,7 +339,7 @@
                                                     </span>
                                                 </div>
                                                 
-                                                <!-- Checkbox pour sélection bulk -->
+                                                
                                                 <div v-if="canManagePosts && post.sequence !== 1 && canDelete(post)" class="flex items-center gap-2">
                                                     <input type="checkbox" 
                                                            :value="post.id" 
@@ -347,9 +348,28 @@
                                                 </div>
                                             </div>
                                             
-                                            <!-- Contenu du post - prend l'espace disponible -->
+                                            
                                             <div class="max-w-none flex-grow text-gray-900 dark:text-gray-100">
-                                                <div v-if="post.deleted_at" class="text-gray-500">
+                                                <div v-if="editingPost?.id === post.id" class="space-y-4">
+                                                    <TinyMCEEditor 
+                                                        v-model="editForm.content"
+                                                        :height="200"
+                                                        :disabled="editForm.processing"
+                                                    />
+                                                    <div class="flex gap-2">
+                                                        <button @click="submitEdit" 
+                                                                :disabled="editForm.processing"
+                                                                class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded text-sm">
+                                                            Sauvegarder
+                                                        </button>
+                                                        <button @click="cancelEdit" 
+                                                                :disabled="editForm.processing"
+                                                                class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm">
+                                                            Annuler
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div v-else-if="post.deleted_at" class="text-gray-500">
                                                     <div v-html="getProcessedContent(post)"></div>
                                                     <div class="mt-2">
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">
@@ -360,7 +380,7 @@
                                                 <div v-else class="prose dark:prose-invert max-w-none" v-html="getProcessedContent(post)"></div>
                                             </div>
                                             
-                                            <!-- Actions du post - toujours en bas -->
+                                            
                                             <div class="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 mt-auto">
                                                 <template v-if="!post.deleted_at">
                                                     <a :href="route('forum.thread.show', { thread_id: thread.id }) + '#post-' + post.sequence" 
@@ -371,7 +391,7 @@
                                                         Permalien
                                                     </a>
                                                     
-                                                    <button @click="scrollToReply" 
+                                                    <button @click="replyTo(post)" 
                                                             class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
@@ -421,9 +441,9 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Mobile Layout -->
+                                    
                                     <div class="md:hidden p-4">
-                                        <!-- Header avec avatar et nom -->
+                                        
                                         <div class="flex items-center gap-3 mb-3">
                                             <div v-if="!post.author.avatar" 
                                                  class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
@@ -458,7 +478,7 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Contenu du post -->
+                                        
                                         <div class="mb-4">
                                             <div v-if="post.deleted_at" class="text-gray-500">
                                                 <div class="prose dark:prose-invert prose-sm max-w-none" v-html="getProcessedContent(post)"></div>
@@ -471,7 +491,7 @@
                                             <div v-else class="prose dark:prose-invert prose-sm max-w-none" v-html="getProcessedContent(post)"></div>
                                         </div>
                                         
-                                        <!-- Footer avec date et actions -->
+                                        
                                         <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600 pt-3">
                                             <div>
                                                 <span>{{ formatDate(post.created_at) }}</span>
@@ -480,16 +500,16 @@
                                                 </span>
                                             </div>
                                             
-                                            <!-- Actions mobiles avec dropdown -->
+                                            
                                             <div class="flex items-center gap-3">
-                                                <!-- Checkbox pour sélection bulk -->
+                                                
                                                 <input v-if="canManagePosts && post.sequence !== 1 && canDelete(post)" 
                                                        type="checkbox" 
                                                        :value="post.id" 
                                                        v-model="selectedPosts"
                                                        class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600">
                                                 
-                                                <!-- Menu dropdown actions -->
+                                                
                                                 <div class="relative">
                                                     <button @click.stop="togglePostMenu(post.id)"
                                                             class="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
@@ -498,13 +518,13 @@
                                                         </svg>
                                                     </button>
                                                     
-                                                    <!-- Dropdown menu -->
+                                                    
                                                     <div v-if="openPostMenus[post.id]" 
                                                          @click.stop
                                                          class="absolute right-0 bottom-full mb-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10 min-w-32">
                                                         <div class="py-1">
                                                             <template v-if="!post.deleted_at">
-                                                                <button @click="scrollToReply; closePostMenu(post.id)" 
+                                                                <button @click="replyTo(post); closePostMenu(post.id)" 
                                                                         class="block w-full text-left px-3 py-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-600">
                                                                     <svg class="w-3 h-3 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
@@ -569,7 +589,7 @@
                             </div>
                         </div>
                         
-                        <!-- Bulk Actions Panel (flottant, pour modérateurs seulement) -->
+                        
                         <div v-if="canManagePosts && selectedPosts.length > 0" 
                              class="fixed bottom-0 right-0 m-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg" 
                              style="z-index: 1000; min-width: 300px;">
@@ -609,10 +629,10 @@
                             </div>
                         </div>
 
-                        <!-- Pagination -->
+                        
                         <div v-if="posts && posts.links && posts.links.length > 3" class="mt-6">
                             <nav class="flex items-center justify-center">
-                                <!-- Mobile pagination -->
+                                
                                 <div class="flex sm:hidden items-center gap-2">
                                     <Link v-if="posts.prev_page_url" 
                                           :href="posts.prev_page_url" 
@@ -629,7 +649,7 @@
                                     </Link>
                                 </div>
                                 
-                                <!-- Desktop pagination -->
+                                
                                 <div class="hidden sm:flex rounded-md shadow-sm -space-x-px">
                                     <Link v-if="posts.prev_page_url" 
                                           :href="posts.prev_page_url" 
@@ -663,7 +683,7 @@
                             </nav>
                         </div>
 
-                        <!-- Reply Form -->
+                        
                         <div v-if="canReply" id="reply-form" class="mt-8 border-t dark:border-gray-700 pt-6">
                             <h3 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 Répondre
@@ -682,7 +702,7 @@
                             </form>
                         </div>
                         
-                        <!-- Message informatif quand l'utilisateur ne peut pas répondre -->
+                        
                         <div v-else-if="$page.props.auth.user && !canReply" class="mt-8 border-t dark:border-gray-700 pt-6">
                             <div class="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
                                 <div class="flex items-center">
@@ -698,7 +718,7 @@
                             </div>
                         </div>
                         
-                        <!-- Message pour les utilisateurs non connectés -->
+                        
                         <div v-else-if="!$page.props.auth.user" class="mt-8 border-t dark:border-gray-700 pt-6">
                             <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
                                 <div class="flex items-center">
@@ -718,7 +738,7 @@
                 </div>
             </div>
 
-        <!-- Rename Modal -->
+        
         <div v-if="showRenameModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showRenameModal = false">
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800" @click.stop>
                 <div class="mt-3">
@@ -753,7 +773,7 @@
             </div>
         </div>
 
-        <!-- Move Modal -->
+        
         <div v-if="showMoveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showMoveModal = false">
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800" @click.stop>
                 <div class="mt-3">
@@ -843,6 +863,17 @@ onMounted(() => {
             });
         };
         document.addEventListener('click', closeMenus);
+        
+        // Scroll to post if hash is present
+        if (window.location.hash) {
+            const targetId = window.location.hash.substring(1);
+            const element = document.getElementById(targetId);
+            if (element) {
+                setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        }
         
         return () => {
             window.removeEventListener('resize', handleResize);
@@ -1001,6 +1032,19 @@ function scrollToReply() {
     }
 }
 
+function replyTo(post) {
+    const author = post.author?.name || 'Utilisateur supprimé';
+    const processedContent = processForumContent(post.content, post.created_at);
+    
+    const quote = `<blockquote class="border-l-4 border-blue-500 pl-4 py-2 my-4 bg-gray-50 dark:bg-gray-800 rounded-r-lg">
+        <div class="text-sm text-blue-600 dark:text-blue-400 font-semibold mb-2">Citation de ${author} :</div>
+        <div class="text-gray-700 dark:text-gray-300">${processedContent}</div>
+    </blockquote><br>`;
+    
+    replyForm.content = quote;
+    scrollToReply();
+}
+
 function submitReply() {
     replyForm.post(route('forum.post.store', { thread_id: props.thread.id }), {
         onSuccess: () => {
@@ -1040,9 +1084,28 @@ function submitBulkAction() {
     }
 }
 
+const editingPost = ref(null);
+const editForm = useForm({
+    content: ''
+});
+
 function editPost(post) {
-    // TODO: Implémenter la modification de post
-    console.log('Edit post:', post.id);
+    editingPost.value = post;
+    editForm.content = post.content;
+}
+
+function cancelEdit() {
+    editingPost.value = null;
+    editForm.reset();
+}
+
+function submitEdit() {
+    editForm.put(route('forum.post.update', { post_id: editingPost.value.id }), {
+        onSuccess: () => {
+            editingPost.value = null;
+            editForm.reset();
+        }
+    });
 }
 
 function deletePost(post) {

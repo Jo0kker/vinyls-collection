@@ -42,7 +42,7 @@ const clearSearch = () => {
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <!-- Barre de recherche -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -75,7 +75,7 @@ const clearSearch = () => {
                     </div>
                 </div>
 
-                <!-- Liste des collectionneurs -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-6">
@@ -102,7 +102,7 @@ const clearSearch = () => {
                                   :href="`/collectors/${user.id}`"
                                   class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                                 
-                                <!-- Avatar -->
+                                
                                 <div class="flex items-center mb-4">
                                     <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
                                         {{ user.name.charAt(0).toUpperCase() }}
@@ -117,12 +117,12 @@ const clearSearch = () => {
                                     </div>
                                 </div>
 
-                                <!-- Bio -->
+                                
                                 <p v-if="user.bio" class="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-3">
                                     {{ user.bio }}
                                 </p>
 
-                                <!-- Stats -->
+                                
                                 <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                                     <span>{{ user.public_collections_count || 0 }} collection{{ (user.public_collections_count || 0) > 1 ? 's' : '' }}</span>
                                     <span>{{ user.vinyl_collections_count || 0 }} vinyle{{ (user.vinyl_collections_count || 0) > 1 ? 's' : '' }}</span>
@@ -130,7 +130,7 @@ const clearSearch = () => {
                             </Link>
                         </div>
 
-                        <!-- Pagination -->
+                        
                         <div v-if="users.last_page > 1" class="mt-8 flex justify-center">
                             <div class="flex items-center space-x-2">
                                 <Link v-if="users.prev_page_url" 

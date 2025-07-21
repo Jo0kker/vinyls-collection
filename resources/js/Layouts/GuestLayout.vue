@@ -92,7 +92,7 @@ import { Link } from '@inertiajs/vue3';
 
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex relative overflow-hidden">
-        <!-- Bannière d'information nouveau site -->
+        
         <div class="absolute top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-500 to-green-600 border-b border-green-600">
             <div class="max-w-7xl mx-auto py-2 px-3 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-center">
@@ -120,9 +120,9 @@ import { Link } from '@inertiajs/vue3';
                 </div>
             </div>
         </div>
-        <!-- Animated Background Elements -->
+        
         <div class="absolute inset-0 overflow-hidden">
-            <!-- Floating Vinyl Records -->
+            
             <div class="absolute top-10 left-10 floating-vinyl opacity-10 dark:opacity-20">
                 <div class="vinyl-record"></div>
             </div>
@@ -133,15 +133,15 @@ import { Link } from '@inertiajs/vue3';
                 <div class="vinyl-record" style="animation-duration: 10s;"></div>
             </div>
             
-            <!-- Animated Gradient Orbs -->
+            
             <div class="absolute top-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 dark:opacity-20 animate-pulse"></div>
             <div class="absolute bottom-1/4 right-1/3 w-96 h-96 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 dark:opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
         </div>
 
-        <!-- Left Section - Interactive Animation -->
+        
         <div class="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12 z-10 left-section">
             <div class="text-center">
-                <!-- Animated Vinyl -->
+                
                 <div class="mb-8 relative">
                     <div class="floating-vinyl mb-6">
                         <div class="vinyl-record mx-auto glowing-border"></div>
@@ -156,7 +156,7 @@ import { Link } from '@inertiajs/vue3';
                     Rejoignez une communauté passionnée de collectionneurs et mélomanes.
                 </p>
                 
-                <!-- Animated Stats -->
+                
                 <div class="flex justify-center space-x-6">
                     <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl p-6 wave-effect border border-gray-200 dark:border-gray-600 shadow-lg">
                         <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">266k</div>
@@ -174,10 +174,10 @@ import { Link } from '@inertiajs/vue3';
             </div>
         </div>
 
-        <!-- Form Section - Droite -->
+        
         <div class="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10" style="padding-top: 4rem;">
             <div class="w-full max-w-md">
-                <!-- Logo et titre -->
+                
                 <div class="text-center mb-8">
                     <Link href="/" class="flex items-center justify-center gap-3 mb-4 hover:opacity-80 transition-opacity">
                         <VinylIcon class="text-blue-600 dark:text-blue-400" />
@@ -203,12 +203,12 @@ import { Link } from '@inertiajs/vue3';
                     </p>
                 </div>
 
-                <!-- Form Card -->
+                
                 <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
                     <slot />
                 </div>
 
-                <!-- Footer Links -->
+                
                 <div class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
                     <template v-if="$page.component === 'Auth/Login'">
                         Pas encore de compte ? 

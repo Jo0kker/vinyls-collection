@@ -45,7 +45,7 @@ function handleImageError() {
     </div>
 
     <component :is="$page.props.auth.user ? AuthenticatedLayout : 'div'" v-else>
-        <!-- Bannière d'information nouveau site -->
+        
         <div class="bg-gradient-to-r from-green-500 to-green-600 border-b border-green-600">
             <div class="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between flex-wrap">
@@ -71,7 +71,7 @@ function handleImageError() {
             </div>
         </div>
 
-        <!-- Navigation pour utilisateurs non connectés -->
+        
         <nav v-if="!$page.props.auth.user" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
@@ -100,7 +100,7 @@ function handleImageError() {
         </nav>
 
         <div class="relative min-h-screen bg-gray-100 dark:bg-gray-900">
-        <!-- Hero Section -->
+        
         <div class="relative overflow-hidden">
             <div class="absolute inset-0">
                 <img class="h-full w-full object-cover opacity-10" src="/images/vinyl-bg.jpg" alt="Vinyl background" />
@@ -138,7 +138,7 @@ function handleImageError() {
             </div>
         </div>
 
-        <!-- Features Section -->
+        
         <div class="py-12 bg-white dark:bg-gray-800">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="lg:text-center">
@@ -196,7 +196,7 @@ function handleImageError() {
             </div>
         </div>
 
-        <!-- CTA Section -->
+        
         <div class="bg-gradient-to-r from-blue-600 to-blue-800">
             <div class="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
                 <h2 class="text-3xl font-extrabold text-white sm:text-4xl">
@@ -212,7 +212,7 @@ function handleImageError() {
             </div>
         </div>
 
-        <!-- Footer -->
+        
         <footer class="bg-white dark:bg-gray-800">
             <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
                 <div class="mt-8 md:mt-0">

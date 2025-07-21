@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showSpinner: true,
         },
         finish: (event) => {
-            // Hide loading overlay when page is loaded
             const overlay = document.getElementById('loading-overlay');
             if (overlay) {
                 overlay.style.opacity = '0';

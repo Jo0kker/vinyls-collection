@@ -6,7 +6,7 @@
                     Modifier l'avatar
                 </h3>
                 
-                <!-- Étape 1: Sélection du fichier -->
+                
                 <div v-if="step === 1" class="space-y-4">
                     <div class="flex items-center justify-center w-full">
                         <label for="avatar-upload" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-colors">
@@ -40,7 +40,7 @@
                     </div>
                 </div>
 
-                <!-- Étape 2: Redimensionnement/Recadrage -->
+                
                 <div v-if="step === 2" class="space-y-4">
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Ajustez et recadrez votre image pour créer un avatar parfait
@@ -73,7 +73,7 @@
                     </div>
                 </div>
 
-                <!-- Aperçu final -->
+                
                 <div v-if="step === 2" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Aperçu :</h4>
                     <div class="flex items-center gap-4">
@@ -86,7 +86,7 @@
                     </div>
                 </div>
                 
-                <!-- Boutons d'action -->
+                
                 <div class="flex justify-end gap-3 mt-6">
                     <button 
                         @click="closeModal"

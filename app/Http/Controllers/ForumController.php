@@ -51,6 +51,7 @@ class ForumController extends Controller
     public function recent()
     {
         $threads = Thread::with(['author', 'category', 'lastPost.author'])
+            ->whereNull('deleted_at')
             ->orderBy('updated_at', 'desc')
             ->paginate(20);
 
@@ -105,6 +106,7 @@ class ForumController extends Controller
                       // OU threads mis à jour après la dernière lecture
                       ->orWhereColumn('forum_threads.updated_at', '>', 'forum_threads_read.updated_at');
             })
+            ->whereNull('forum_threads.deleted_at')
             ->select('forum_threads.*')
             ->orderBy('forum_threads.updated_at', 'desc')
             ->paginate(20);
@@ -172,6 +174,7 @@ class ForumController extends Controller
     {
         $threads = Thread::with(['author', 'category', 'lastPost.author'])
             ->where('author_id', auth()->id())
+            ->whereNull('deleted_at')
             ->orderBy('updated_at', 'desc')
             ->paginate(20);
 
@@ -218,6 +221,7 @@ class ForumController extends Controller
         if ($query) {
             $threads = Thread::with(['author', 'category', 'lastPost.author'])
                 ->where('title', 'LIKE', "%{$query}%")
+                ->whereNull('deleted_at')
                 ->orderBy('updated_at', 'desc')
                 ->paginate(20);
 

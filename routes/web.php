@@ -74,6 +74,8 @@ Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
     Route::get('category/{category_id}/thread/create', [ForumThreadController::class, 'create'])->name('thread.create');
     Route::post('category/{category_id}/thread', [ForumThreadController::class, 'store'])->name('thread.store');
     Route::post('thread/{thread_id}/post', [ForumPostController::class, 'store'])->name('post.store');
+    Route::get('post/{post_id}/edit', [ForumPostController::class, 'edit'])->name('post.edit');
+    Route::put('post/{post_id}', [ForumPostController::class, 'update'])->name('post.update');
     
     // Routes pour utilisateurs connectés
     Route::get('unread', [ForumController::class, 'unread'])->name('unread');

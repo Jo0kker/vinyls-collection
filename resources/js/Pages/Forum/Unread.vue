@@ -35,7 +35,7 @@
                         <div v-if="threads.data.length > 0">
                             <ThreadList :threads="threads" />
                             
-                            <!-- Pagination -->
+                            
                             <div v-if="threads.links" class="mt-6">
                                 <Pagination :links="threads.links" />
                             </div>

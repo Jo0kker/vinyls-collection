@@ -17,7 +17,7 @@
                                 Rechercher dans les discussions
                             </h3>
                             
-                            <!-- Formulaire de recherche -->
+                            
                             <form @submit.prevent="search" class="mb-6">
                                 <div class="flex gap-2">
                                     <input 
@@ -45,7 +45,7 @@
                             
                             <ThreadList :threads="threads" />
                             
-                            <!-- Pagination -->
+                            
                             <div v-if="threads.links" class="mt-6">
                                 <Pagination :links="threads.links" />
                             </div>

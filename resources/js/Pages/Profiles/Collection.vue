@@ -47,7 +47,7 @@ const formatDate = (date) => {
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <!-- Informations de la collection -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="flex items-start gap-4 mb-6">
@@ -92,7 +92,7 @@ const formatDate = (date) => {
                     </div>
                 </div>
 
-                <!-- Mode d'affichage -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="flex items-center justify-between">
@@ -100,7 +100,7 @@ const formatDate = (date) => {
                                 Vinyles de la collection
                             </h3>
                             
-                            <!-- Sélecteur de mode d'affichage -->
+                            
                             <div class="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
                                 <button @click="viewMode = 'grid'"
                                         :class="[
@@ -143,7 +143,7 @@ const formatDate = (date) => {
                     </div>
                 </div>
 
-                <!-- Liste des vinyles -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <div v-if="!collection.collection_vinyls || collection.collection_vinyls.length === 0" 
@@ -158,7 +158,7 @@ const formatDate = (date) => {
                             </p>
                         </div>
 
-                        <!-- Affichage grille -->
+                        
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-colors">
@@ -190,7 +190,7 @@ const formatDate = (date) => {
                             </div>
                         </div>
 
-                        <!-- Affichage liste -->
+                        
                         <div v-else-if="viewMode === 'list'" class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead>
@@ -238,11 +238,11 @@ const formatDate = (date) => {
                             </table>
                         </div>
 
-                        <!-- Affichage compact - Cards avec image overlay -->
+                        
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                             <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
                                  class="relative aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform shadow-md">
-                                <!-- Image de fond -->
+                                
                                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
                                     <img v-if="collectionVinyl.vinyl?.pochette"
                                          :src="collectionVinyl.vinyl.pochette"
@@ -250,7 +250,7 @@ const formatDate = (date) => {
                                          class="w-full h-full object-cover"
                                          @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'"
                                     />
-                                    <!-- Fallback si pas d'image ou erreur de chargement -->
+                                    
                                     <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }" 
                                          class="w-full h-full items-center justify-center">
                                         <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -260,10 +260,10 @@ const formatDate = (date) => {
                                     </div>
                                 </div>
                                 
-                                <!-- Overlay gradient -->
+                                
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                 
-                                <!-- Texte overlay -->
+                                
                                 <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
                                     <h4 class="font-medium text-sm leading-tight mb-1 line-clamp-2">
                                         {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}

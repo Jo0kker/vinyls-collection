@@ -171,7 +171,7 @@ const addVinylFromDiscogs = (discogsItem) => {
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <!-- Statistiques rapides -->
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6">
@@ -207,9 +207,9 @@ const addVinylFromDiscogs = (discogsItem) => {
                     </div>
                 </div>
 
-                <!-- Layout en 2 colonnes -->
+                
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Colonne gauche: Liste des collections -->
+                    
                     <div class="lg:col-span-1 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-6">
@@ -235,9 +235,9 @@ const addVinylFromDiscogs = (discogsItem) => {
                         </div>
                     </div>
 
-                    <!-- Colonne droite: Détails et vinyles récents -->
+                    
                     <div class="lg:col-span-2 space-y-6">
-                        <!-- Détails de la collection sélectionnée -->
+                        
                         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                             <div class="p-6">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Vinyles Récents</h3>
@@ -270,7 +270,7 @@ const addVinylFromDiscogs = (discogsItem) => {
                             </div>
                         </div>
 
-                        <!-- Actions rapides -->
+                        
                         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                             <div class="p-6">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Actions rapides</h3>
@@ -306,7 +306,7 @@ const addVinylFromDiscogs = (discogsItem) => {
             </div>
         </div>
 
-        <!-- Modal Nouvelle Collection -->
+        
         <div v-if="showCollectionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
                 <div class="mt-3">
@@ -345,7 +345,7 @@ const addVinylFromDiscogs = (discogsItem) => {
             </div>
         </div>
 
-        <!-- Modal Recherche/Parcours -->
+        
         <div v-if="showSearchModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
@@ -369,7 +369,7 @@ const addVinylFromDiscogs = (discogsItem) => {
             </div>
         </div>
 
-        <!-- Modal Ajouter Vinyle (Discogs) -->
+        
         <div v-if="showVinylModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
@@ -380,7 +380,7 @@ const addVinylFromDiscogs = (discogsItem) => {
                         <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[m123456]</code> pour un master
                     </p>
                     
-                    <!-- Sélecteur de collection -->
+                    
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Collection de destination <span class="text-red-500">*</span>
@@ -405,7 +405,7 @@ const addVinylFromDiscogs = (discogsItem) => {
                         </p>
                     </div>
                     
-                    <!-- Notification d'erreur -->
+                    
                     <div v-if="showCollectionError" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                         <strong>Erreur :</strong> Veuillez sélectionner une collection avant d'ajouter un vinyle.
                     </div>

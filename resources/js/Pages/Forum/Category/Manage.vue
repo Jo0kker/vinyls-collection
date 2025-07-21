@@ -21,7 +21,7 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <!-- Categories List -->
+                        
                         <div class="space-y-4">
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                 💡 Glissez-déposez les catégories pour changer leur ordre d'affichage
@@ -44,7 +44,7 @@
                                             {{ category.description }}
                                         </p>
                                         
-                                        <!-- Sub-categories -->
+                                        
                                         <div v-if="category.children && category.children.length > 0" class="ml-6 space-y-2">
                                             <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
                                                 📋 Sous-catégories (glissez-déposez pour réorganiser)
@@ -102,7 +102,7 @@
             </div>
         </div>
 
-        <!-- Create Modal -->
+        
         <div v-if="showCreateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showCreateModal = false">
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800" @click.stop>
                 <div class="mt-3">
@@ -194,7 +194,7 @@
             </div>
         </div>
 
-        <!-- Edit Modal -->
+        
         <div v-if="showEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showEditModal = false">
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800" @click.stop>
                 <div class="mt-3">

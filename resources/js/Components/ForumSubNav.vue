@@ -1,9 +1,9 @@
 <template>
     <div class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Desktop Layout -->
+            
             <div class="hidden md:flex space-x-8 overflow-x-auto">
-                <!-- Forum General -->
+                
                 <Link :href="route('forum.index')" 
                       :class="[
                           'py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
@@ -14,7 +14,7 @@
                     Accueil Forum
                 </Link>
 
-                <!-- Messages récents -->
+                
                 <Link :href="route('forum.recent')" 
                       :class="[
                           'py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
@@ -25,7 +25,7 @@
                     Messages récents
                 </Link>
 
-                <!-- Discussions non lues (si connecté) -->
+                
                 <Link v-if="$page.props.auth.user" 
                       :href="route('forum.unread')" 
                       :class="[
@@ -37,7 +37,7 @@
                     Non lues
                 </Link>
 
-                <!-- Mes discussions (si connecté) -->
+                
                 <Link v-if="$page.props.auth.user" 
                       :href="route('forum.my-threads')" 
                       :class="[
@@ -49,7 +49,7 @@
                     Mes discussions
                 </Link>
 
-                <!-- Recherche -->
+                
                 <Link :href="route('forum.search')" 
                       :class="[
                           'py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
@@ -61,10 +61,10 @@
                 </Link>
             </div>
 
-            <!-- Mobile Layout -->
+            
             <div class="md:hidden py-3">
                 <div class="relative">
-                    <!-- Dropdown Button -->
+                    
                     <button @click.stop="showMobileMenu = !showMobileMenu"
                             class="w-full flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
                         <span>{{ getCurrentPageLabel() }}</span>
@@ -73,7 +73,7 @@
                         </svg>
                     </button>
 
-                    <!-- Dropdown Menu -->
+                    
                     <div v-if="showMobileMenu" class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10"
                          @click.stop>
                         <div class="py-1">

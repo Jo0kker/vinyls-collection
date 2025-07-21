@@ -212,7 +212,7 @@ const confirmMove = () => {
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <!-- Informations de la collection -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -243,11 +243,11 @@ const confirmMove = () => {
                     </div>
                 </div>
 
-                <!-- Recherche et tri -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                            <!-- Barre de recherche -->
+                            
                             <div class="flex-1 max-w-md">
                                 <div class="relative">
                                     <input 
@@ -270,7 +270,7 @@ const confirmMove = () => {
                                 </div>
                             </div>
                             
-                            <!-- Mode d'affichage -->
+                            
                             <div class="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
                                 <button @click="viewMode = 'grid'"
                                         :class="[
@@ -310,7 +310,7 @@ const confirmMove = () => {
                                 </button>
                             </div>
                             
-                            <!-- Options de tri -->
+                            
                             <div class="flex items-center gap-3">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Trier par :</span>
                                 <select v-model="sortBy" 
@@ -334,7 +334,7 @@ const confirmMove = () => {
                             </div>
                         </div>
                         
-                        <!-- Indicateur de filtre actif -->
+                        
                         <div v-if="searchQuery || sortBy !== 'date_ajout' || sortOrder !== 'desc'" class="mt-3 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <span>Filtres actifs :</span>
                             <span v-if="searchQuery" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
@@ -351,7 +351,7 @@ const confirmMove = () => {
                     </div>
                 </div>
 
-                <!-- Liste des vinyles -->
+                
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-4">
@@ -381,7 +381,7 @@ const confirmMove = () => {
                             </div>
                         </div>
 
-                        <!-- Affichage grille -->
+                        
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors relative group">
@@ -406,7 +406,7 @@ const confirmMove = () => {
                                         </div>
                                     </div>
 
-                                    <!-- Boutons d'actions -->
+                                    
                                     <div class="flex flex-col gap-1">
                                         <button @click="openMoveModal(collectionVinyl)"
                                                 class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
@@ -431,7 +431,7 @@ const confirmMove = () => {
                             </div>
                         </div>
 
-                        <!-- Affichage liste -->
+                        
                         <div v-else-if="viewMode === 'list'" class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead>
@@ -498,11 +498,11 @@ const confirmMove = () => {
                             </table>
                         </div>
 
-                        <!-- Affichage compact - Cards avec image overlay -->
+                        
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                             <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
                                  class="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:scale-105 transition-transform shadow-md">
-                                <!-- Image de fond -->
+                                
                                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
                                     <img v-if="collectionVinyl.vinyl?.pochette"
                                          :src="collectionVinyl.vinyl.pochette"
@@ -510,7 +510,7 @@ const confirmMove = () => {
                                          class="w-full h-full object-cover"
                                          @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'"
                                     />
-                                    <!-- Fallback si pas d'image ou erreur de chargement -->
+                                    
                                     <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }" 
                                          class="w-full h-full items-center justify-center">
                                         <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
@@ -520,10 +520,10 @@ const confirmMove = () => {
                                     </div>
                                 </div>
                                 
-                                <!-- Overlay gradient -->
+                                
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                                 
-                                <!-- Texte overlay -->
+                                
                                 <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
                                     <h4 class="font-medium text-sm leading-tight mb-1 line-clamp-2">
                                         {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
@@ -533,7 +533,7 @@ const confirmMove = () => {
                                     </p>
                                 </div>
                                 
-                                <!-- Actions overlay -->
+                                
                                 <div class="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button @click.stop="openMoveModal(collectionVinyl)"
                                             class="p-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-full backdrop-blur-sm transition-colors"
@@ -557,7 +557,7 @@ const confirmMove = () => {
             </div>
         </div>
 
-        <!-- Modal Ajouter Vinyle depuis Discogs -->
+        
         <div v-if="showVinylModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
@@ -628,7 +628,7 @@ const confirmMove = () => {
             </div>
         </div>
 
-        <!-- Modal de confirmation de suppression -->
+        
         <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
                 <div class="mt-3 text-center">
@@ -654,7 +654,7 @@ const confirmMove = () => {
             </div>
         </div>
 
-        <!-- Modal de déplacement -->
+        
         <div v-if="showMoveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
                 <div class="mt-3">

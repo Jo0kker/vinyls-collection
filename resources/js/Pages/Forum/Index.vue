@@ -24,10 +24,10 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900 dark:text-gray-100">
-                        <!-- Forum Categories -->
+                        
                         <div class="space-y-6">
                             <div v-for="category in props.categories" :key="category.id">
-                                <!-- Catégorie parent -->
+                                
                                 <div class="border dark:border-gray-700 rounded-lg overflow-hidden">
                                     <div class="bg-gray-50 dark:bg-gray-700 p-4 border-b dark:border-gray-600">
                                         <div class="flex items-center justify-between">
@@ -50,7 +50,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Sous-catégories -->
+                                    
                                     <div v-if="category.children && category.children.length > 0" class="divide-y dark:divide-gray-600">
                                         <div v-for="subCategory in category.children" :key="subCategory.id" 
                                              class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -80,7 +80,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Message pour catégorie parent sans sous-catégories -->
+                                    
                                     <div v-else class="p-4 text-center text-gray-500 dark:text-gray-400">
                                         <p class="text-sm">Cette catégorie contient des sous-sections.</p>
                                     </div>

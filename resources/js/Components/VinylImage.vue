@@ -7,25 +7,25 @@
              @error="handleImageError"
              @load="handleImageLoad">
         
-        <!-- Image par défaut avec design vinyle -->
+        
         <div v-else :class="placeholderClass">
             <svg :class="iconClass" fill="currentColor" viewBox="0 0 24 24">
-                <!-- Vinyle design -->
+                
                 <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6"/>
                 <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
                 <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
                 <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
                 
-                <!-- Lignes de sillons -->
+                
                 <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="0.3" opacity="0.3"/>
                 <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="0.3" opacity="0.3"/>
                 <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="0.3" opacity="0.3"/>
                 
-                <!-- Reflet -->
+                
                 <path d="M8 8 L16 16" stroke="currentColor" stroke-width="0.5" opacity="0.2"/>
             </svg>
             
-            <!-- Texte optionnel -->
+            
             <div v-if="showPlaceholderText" class="mt-1 text-xs text-center opacity-60">
                 {{ placeholderText }}
             </div>

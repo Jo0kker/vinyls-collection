@@ -15,7 +15,7 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <!-- Breadcrumbs -->
+                        
                         <nav class="mb-6 text-sm">
                             <Link :href="route('forum.index')" 
                                   class="text-blue-600 dark:text-blue-400 hover:underline">
@@ -25,12 +25,12 @@
                             <span class="text-gray-900 dark:text-gray-100">{{ category.title }}</span>
                         </nav>
 
-                        <!-- Category Description -->
+                        
                         <div v-if="category.description" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <p class="text-gray-700 dark:text-gray-300">{{ category.description }}</p>
                         </div>
 
-                        <!-- Create Thread Button -->
+                        
                         <div class="mb-6 flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Discussions
@@ -41,11 +41,11 @@
                             </Link>
                         </div>
 
-                        <!-- Threads List -->
+                        
                         <div class="space-y-3">
                             <div v-for="thread in threads.data" :key="thread.id" 
                                  class="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <!-- Desktop Layout -->
+                                
                                 <div class="hidden md:flex items-start justify-between">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
@@ -53,7 +53,7 @@
                                                   class="text-lg font-medium text-blue-600 dark:text-blue-400 hover:underline">
                                                 {{ thread.title }}
                                             </Link>
-                                            <!-- Indicateurs visuels -->
+                                            
                                             <div class="flex items-center gap-1">
                                                 <span v-if="thread.pinned" 
                                                       class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-full">
@@ -92,7 +92,7 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Mobile Layout -->
+                                
                                 <div class="md:hidden">
                                     <div class="flex items-start justify-between mb-2">
                                         <Link :href="route('forum.thread.show', { thread_id: thread.id })" 
@@ -136,7 +136,7 @@
                             </div>
                         </div>
 
-                        <!-- Pagination -->
+                        
                         <div v-if="threads.links" class="mt-6">
                             <Pagination :links="threads.links" />
                         </div>

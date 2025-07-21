@@ -12,7 +12,7 @@
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <!-- Breadcrumbs -->
+                        
                         <nav class="mb-6 text-sm">
                             <Link :href="route('forum.index')" 
                                   class="text-blue-600 dark:text-blue-400 hover:underline">
@@ -32,7 +32,7 @@
                         </nav>
 
                         <form @submit.prevent="submit" class="space-y-6">
-                            <!-- Title -->
+                            
                             <div>
                                 <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Titre de la discussion
@@ -49,7 +49,7 @@
                                 </div>
                             </div>
 
-                            <!-- Content -->
+                            
                             <div>
                                 <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Contenu
@@ -66,7 +66,7 @@
                                 </div>
                             </div>
 
-                            <!-- Actions -->
+                            
                             <div class="flex items-center justify-end space-x-4">
                                 <Link v-if="category?.id" 
                                       :href="route('forum.category.show', { category_id: category.id })" 

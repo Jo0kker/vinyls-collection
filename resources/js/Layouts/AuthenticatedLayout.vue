@@ -16,15 +16,15 @@ const showingNavigationDropdown = ref(false);
             <nav
                 class="v-navbar shadow py-4 bg-white dark:bg-gray-800"
             >
-                <!-- Primary Navigation Menu -->
+                
                 <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
                     <div class="flex justify-between items-center">
-                        <!-- Logo -->
+                        
                         <Link href="/" class="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             <ApplicationLogo />
                         </Link>
                         
-                        <!-- Mobile menu button -->
+                        
                         <button 
                             @click="showingNavigationDropdown = !showingNavigationDropdown"
                             class="navbar-toggler block md:hidden border rounded-md px-2 py-1" 
@@ -40,7 +40,7 @@ const showingNavigationDropdown = ref(false);
                         :class="{ 'flex flex-col': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                         class="grow justify-between navbar-collapse md:flex"
                     >
-                        <!-- Navigation Links -->
+                        
                         <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0">
                             <li v-if="$page.props.auth.user">
                                 <NavLink
@@ -92,7 +92,7 @@ const showingNavigationDropdown = ref(false);
                             </li>
                         </ul>
 
-                        <!-- User menu - desktop -->
+                        
                         <div v-if="$page.props.auth.user" class="hidden md:flex items-center gap-4">
                             <div class="relative">
                                 <Dropdown align="right" width="48">
@@ -134,7 +134,7 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
-                        <!-- User menu - mobile -->
+                        
                         <div 
                             v-if="$page.props.auth.user"
                             :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
@@ -166,7 +166,7 @@ const showingNavigationDropdown = ref(false);
 
             </nav>
 
-            <!-- Page Heading -->
+            
             <header
                 class="bg-white shadow dark:bg-gray-800"
                 v-if="$slots.header"
@@ -176,7 +176,7 @@ const showingNavigationDropdown = ref(false);
                 </div>
             </header>
 
-            <!-- Page Content -->
+            
             <main>
                 <slot />
             </main>

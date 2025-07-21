@@ -2,7 +2,7 @@
     <div class="space-y-3">
         <div v-for="thread in threads.data" :key="thread.id" 
              class="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <!-- Desktop Layout -->
+            
             <div class="hidden md:flex items-start justify-between">
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
@@ -10,7 +10,7 @@
                               class="text-lg font-medium text-blue-600 dark:text-blue-400 hover:underline">
                             {{ thread.title }}
                         </Link>
-                        <!-- Indicateurs visuels -->
+                        
                         <div class="flex items-center gap-1">
                             <span v-if="thread.pinned" 
                                   class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-full">
@@ -54,7 +54,7 @@
                 </div>
             </div>
             
-            <!-- Mobile Layout -->
+            
             <div class="md:hidden">
                 <div class="flex items-start justify-between mb-2">
                     <Link :href="route('forum.thread.show', { thread_id: thread.id })" 
