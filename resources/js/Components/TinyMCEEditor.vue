@@ -37,15 +37,19 @@ const editorConfig = {
     menubar: false,
     skin: 'oxide-dark',
     content_css: 'dark',
+    language: 'fr_FR',
     plugins: [
         'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
         'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
         'insertdatetime', 'media', 'table', 'help', 'wordcount'
     ],
+    image_advtab: true,
+    image_caption: true,
+    image_description: false,
     toolbar: 'undo redo | blocks | ' +
         'bold italic backcolor | alignleft aligncenter ' +
         'alignright alignjustify | bullist numlist outdent indent | ' +
-        'removeformat | help',
+        'link image | removeformat | help',
     content_style: `
         body { 
             font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; 
