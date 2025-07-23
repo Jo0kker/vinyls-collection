@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
 class ProfileController extends Controller
 {
@@ -60,24 +62,63 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        // Supprimer l'ancien avatar s'il existe (extraire le path de l'URL)
-        if ($user->avatar) {
-            $oldPath = str_replace(Storage::disk('s3')->url(''), '', $user->avatar);
-            if (Storage::disk('s3')->exists($oldPath)) {
-                Storage::disk('s3')->delete($oldPath);
+        try {
+            // Créer le client S3 avec la même config que les commandes
+            $config = [
+                'version' => 'latest',
+                'region' => env('AWS_DEFAULT_REGION'),
+                'credentials' => [
+                    'key' => env('AWS_ACCESS_KEY_ID'),
+                    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+                ],
+            ];
+
+            // Support pour Cloudflare R2 ou autres endpoints
+            if (env('AWS_ENDPOINT')) {
+                $config['endpoint'] = env('AWS_ENDPOINT');
+                $config['use_path_style_endpoint'] = env('AWS_USE_PATH_STYLE_ENDPOINT', false);
             }
+
+            $s3Client = new S3Client($config);
+            $bucket = env('AWS_BUCKET');
+
+            // Supprimer l'ancien avatar s'il existe
+            if ($user->avatar) {
+                $oldPath = str_replace(env('AWS_URL') . '/', '', $user->avatar);
+                try {
+                    $s3Client->deleteObject([
+                        'Bucket' => $bucket,
+                        'Key' => $oldPath,
+                    ]);
+                } catch (AwsException $e) {
+                    // Échec silencieux si l'ancien fichier n'existe pas
+                }
+            }
+
+            // Sauvegarder le nouvel avatar sur S3
+            $avatarPath = 'avatars/' . \Str::uuid() . '.jpg';
+            $result = $s3Client->putObject([
+                'Bucket' => $bucket,
+                'Key' => $avatarPath,
+                'Body' => $request->file('avatar')->getContent(),
+                'ACL' => 'public-read',
+                'ContentType' => 'image/jpeg',
+            ]);
+
+            // Générer l'URL finale
+            $baseUrl = env('AWS_URL');
+            $avatarUrl = rtrim($baseUrl, '/') . '/' . $avatarPath;
+            
+            // Mettre à jour l'utilisateur avec l'URL complète
+            $user->update([
+                'avatar' => $avatarUrl,
+            ]);
+
+            return Redirect::route('profile.edit')->with('success', 'Avatar mis à jour avec succès.')->with('refresh', true);
+
+        } catch (\Exception $e) {
+            return Redirect::route('profile.edit')->withErrors(['avatar' => 'Erreur lors de l\'upload de l\'avatar: ' . $e->getMessage()]);
         }
-
-        // Sauvegarder le nouvel avatar sur S3
-        $avatarPath = 'avatars/' . \Str::uuid() . '.jpg';
-        Storage::disk('s3')->put($avatarPath, $request->file('avatar')->getContent());
-        
-        // Mettre à jour l'utilisateur avec l'URL complète
-        $user->update([
-            'avatar' => Storage::disk('s3')->url($avatarPath),
-        ]);
-
-        return Redirect::route('profile.edit')->with('success', 'Avatar mis à jour avec succès.');
     }
 
     /**

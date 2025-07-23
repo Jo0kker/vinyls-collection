@@ -5,7 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import AvatarUploadModal from '@/Components/AvatarUploadModal.vue';
 import { Link, useForm, usePage, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 defineProps({
     mustVerifyEmail: {
@@ -16,11 +16,12 @@ defineProps({
     },
 });
 
-const user = usePage().props.auth.user;
+const page = usePage();
+const user = computed(() => page.props.auth.user);
 
 const form = useForm({
-    name: user.name,
-    email: user.email,
+    name: user.value.name,
+    email: user.value.email,
 });
 
 // État du modal d'avatar
@@ -36,8 +37,8 @@ function closeAvatarModal() {
 }
 
 function onAvatarUploaded() {
-    // Recharger via Inertia pour mettre à jour les props
-    router.reload({ only: ['auth'] });
+    // Le reload est déjà fait dans le modal AvatarUploadModal
+    // Pas besoin de double reload
 }
 </script>
 

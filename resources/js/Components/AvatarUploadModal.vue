@@ -251,9 +251,11 @@ async function uploadAvatar() {
         // Envoyer via Inertia
         router.post(route('profile.avatar'), formData, {
             forceFormData: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
                 emit('uploaded');
                 closeModal();
+                // Forcer le refresh de la page pour mettre à jour l'avatar partout
+                router.reload({ only: ['auth'] });
             },
             onError: (errors) => {
                 uploadError.value = errors.avatar || 'Erreur lors du téléchargement.';
