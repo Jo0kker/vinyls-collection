@@ -41,6 +41,8 @@ const newCollection = ref({
 
 const searchQuery = ref('');
 const searchResults = ref([]);
+const isSearching = ref(false);
+const searchTimer = ref(null);
 
 // Méthode pour formater les dates
 const formatDate = (date) => {
@@ -144,6 +146,35 @@ const addVinylFromDiscogs = (discogsItem) => {
             console.error('Erreur lors de l\'ajout:', errors);
         }
     });
+};
+
+// Fonction de recherche globale
+const searchGlobal = async () => {
+    if (!searchQuery.value.trim()) {
+        searchResults.value = [];
+        return;
+    }
+
+    // Clear previous timer
+    if (searchTimer.value) {
+        clearTimeout(searchTimer.value);
+    }
+
+    // Debounce search by 300ms
+    searchTimer.value = setTimeout(async () => {
+        isSearching.value = true;
+
+        try {
+            const response = await fetch(`/dashboard/search?q=${encodeURIComponent(searchQuery.value)}`);
+            const data = await response.json();
+            searchResults.value = data.results || [];
+        } catch (error) {
+            console.error('Erreur recherche:', error);
+            searchResults.value = [];
+        } finally {
+            isSearching.value = false;
+        }
+    }, 300);
 };
 </script>
 
@@ -349,15 +380,67 @@ const addVinylFromDiscogs = (discogsItem) => {
         <div v-if="showSearchModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Parcourir votre collection</h3>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Rechercher dans toutes vos collections</h3>
                     <div class="mb-4">
                         <input v-model="searchQuery"
+                               @input="searchGlobal"
                                type="text"
-                               placeholder="Rechercher un vinyle, artiste, collection..."
+                               placeholder="Rechercher un vinyle, artiste, label, année..."
                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                     </div>
                     <div class="mb-6 max-h-96 overflow-y-auto">
-                        <p class="text-gray-500 dark:text-gray-400 text-center py-8">Tapez pour rechercher dans votre collection...</p>
+                        <div v-if="!searchQuery && searchResults.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            Tapez pour rechercher dans toutes vos collections...
+                        </div>
+                        <div v-else-if="isSearching" class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            Recherche en cours...
+                        </div>
+                        <div v-else-if="searchQuery && searchResults.length === 0" class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            Aucun résultat trouvé pour "{{ searchQuery }}"
+                        </div>
+                        <div v-else class="space-y-3">
+                            <Link v-for="result in searchResults" 
+                                 :key="result.id"
+                                 :href="`/collections/${result.collection_id}`"
+                                 class="flex items-center p-4 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                <div class="w-16 h-16 rounded mr-4 overflow-hidden flex-shrink-0">
+                                    <img v-if="result.pochette"
+                                         :src="result.pochette"
+                                         :alt="result.vinyl_nom"
+                                         class="w-full h-full object-cover"
+                                         @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'">
+                                    <div v-else class="w-full h-full bg-purple-100 dark:bg-purple-900 rounded flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900 dark:text-white">{{ result.vinyl_nom || result.vinyl_titre }}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ result.artiste }}</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span v-if="result.annee" class="text-xs text-gray-500 dark:text-gray-500">{{ result.annee }}</span>
+                                        <span v-if="result.annee && result.label" class="text-xs text-gray-400">•</span>
+                                        <span v-if="result.label" class="text-xs text-gray-500 dark:text-gray-500">{{ result.label }}</span>
+                                    </div>
+                                    <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                        Collection: {{ result.collection_nom }}
+                                    </p>
+                                </div>
+                                <div v-if="result.note" class="ml-4">
+                                    <div class="flex items-center">
+                                        <svg v-for="i in 5" :key="i" 
+                                             class="w-4 h-4" 
+                                             :class="i <= result.note ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'"
+                                             fill="currentColor" 
+                                             viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
                     </div>
                     <div class="flex justify-end">
                         <button @click="closeSearchModal"

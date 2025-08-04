@@ -83,14 +83,20 @@ class CollectionController extends Controller
 
         // Appliquer la recherche si un terme est fourni
         if ($search) {
-            $searchTerm = strtolower($search);
+            $searchTerm = $search;
             $query->whereHas('vinyl', function($q) use ($searchTerm) {
-                $q->whereRaw('LOWER(vinyl_nom) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhereRaw('LOWER(artiste) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhereRaw('LOWER(vinyl_titre) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhereRaw('LOWER(label) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhereRaw('LOWER(reference) LIKE ?', ["%{$searchTerm}%"])
-                  ->orWhere('annee', '=', $search);
+                $q->where(function($query) use ($searchTerm) {
+                    $query->whereRaw('vinyl_nom ILIKE ?', ["%{$searchTerm}%"])
+                          ->orWhereRaw('artiste ILIKE ?', ["%{$searchTerm}%"])
+                          ->orWhereRaw('vinyl_titre ILIKE ?', ["%{$searchTerm}%"])
+                          ->orWhereRaw('label ILIKE ?', ["%{$searchTerm}%"])
+                          ->orWhereRaw('reference ILIKE ?', ["%{$searchTerm}%"]);
+                    
+                    // Ajouter la condition sur l'année seulement si c'est numérique
+                    if (is_numeric($searchTerm)) {
+                        $query->orWhere('annee', '=', intval($searchTerm));
+                    }
+                });
             });
         }
 
