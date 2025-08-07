@@ -53,8 +53,19 @@ Route::middleware('auth')->group(function () {
     Route::patch('collections/{collection}/vinyl/{collectionVinyl}/move', [CollectionController::class, 'moveVinyl'])->name('collections.vinyl.move');
     
     // Vinyls routes
-    Route::resource('vinyls', VinylController::class);
+    Route::resource('mes-vinyles', VinylController::class)->names([
+        'index' => 'vinyls.index',
+        'create' => 'vinyls.create',
+        'store' => 'vinyls.store',
+        'show' => 'vinyls.show',
+        'edit' => 'vinyls.edit',
+        'update' => 'vinyls.update',
+        'destroy' => 'vinyls.destroy'
+    ])->parameters([
+        'mes-vinyles' => 'collectionVinyl'
+    ]);
     Route::post('vinyls/from-discogs', [VinylController::class, 'storeFromDiscogs'])->name('vinyls.store-from-discogs');
+    Route::post('vinyls/manual', [VinylController::class, 'storeManual'])->name('vinyls.store-manual');
     
     // API Routes pour Discogs
     Route::prefix('api')->group(function () {

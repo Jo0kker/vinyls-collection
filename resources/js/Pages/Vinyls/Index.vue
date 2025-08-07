@@ -1,13 +1,28 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import DiscogsVinylModal from '@/Components/DiscogsVinylModal.vue';
+import ManualVinylModal from '@/Components/ManualVinylModal.vue';
+import EditVinylModal from '@/Components/EditVinylModal.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     vinyls: {
+        type: Array,
+        default: () => []
+    },
+    allCollections: {
         type: Array,
         default: () => []
     }
 });
+
+// États des modales
+const showVinylModal = ref(false);
+const showManualVinylModal = ref(false);
+const showEditVinylModal = ref(false);
+const vinylToEdit = ref(null);
+
 
 const formatDate = (date) => {
     if (!date) return '';
@@ -16,6 +31,26 @@ const formatDate = (date) => {
         month: 'short',
         year: 'numeric'
     });
+};
+
+// Méthodes pour les modales
+const openVinylModal = () => {
+    showVinylModal.value = true;
+};
+
+const openManualVinylModal = () => {
+    showVinylModal.value = false;
+    showManualVinylModal.value = true;
+};
+
+const openEditModal = (vinyl) => {
+    vinylToEdit.value = vinyl;
+    showEditVinylModal.value = true;
+};
+
+const closeEditModal = () => {
+    showEditVinylModal.value = false;
+    vinylToEdit.value = null;
 };
 </script>
 
@@ -28,10 +63,10 @@ const formatDate = (date) => {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
                     Mes Vinyles
                 </h2>
-                <Link href="/vinyls/create"
+                <button @click="openVinylModal"
                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">
                     Ajouter un vinyle
-                </Link>
+                </button>
             </div>
         </template>
 
@@ -46,10 +81,10 @@ const formatDate = (date) => {
                         <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun vinyle</h3>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Commencez par ajouter votre premier vinyle à votre collection.</p>
                         <div class="mt-6">
-                            <Link href="/vinyls/create"
+                            <button @click="openVinylModal"
                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
                                 Ajouter un vinyle
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -61,9 +96,9 @@ const formatDate = (date) => {
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                                 <div class="flex items-start space-x-4">
                                     <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                                        <img v-if="vinyl.pochette" 
-                                             :src="vinyl.pochette" 
-                                             :alt="vinyl.vinyl_nom"
+                                        <img v-if="vinyl.vinyl?.pochette" 
+                                             :src="vinyl.vinyl.pochette" 
+                                             :alt="vinyl.vinyl?.vinyl_nom"
                                              class="w-full h-full object-cover">
                                         <div v-else class="w-full h-full bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
                                             <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
@@ -75,13 +110,13 @@ const formatDate = (date) => {
                                     
                                     <div class="flex-1 min-w-0">
                                         <h4 class="font-medium text-gray-900 dark:text-white text-sm">
-                                            {{ vinyl.vinyl_nom }}
+                                            {{ vinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
                                         </h4>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            {{ vinyl.artiste }}
+                                            {{ vinyl.vinyl?.artiste || 'Artiste inconnu' }}
                                         </p>
                                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                            Collection: {{ vinyl.collection_nom }}
+                                            Collection: {{ vinyl.collection?.collection_nom || 'Collection inconnue' }}
                                         </p>
                                         <div class="flex items-center mt-2 space-x-4 text-xs text-gray-400">
                                             <span v-if="vinyl.prix_achat">
@@ -95,6 +130,16 @@ const formatDate = (date) => {
                                             </span>
                                         </div>
                                     </div>
+                                    
+                                    <div class="flex space-x-1">
+                                        <button @click="openEditModal(vinyl)"
+                                                class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
+                                                title="Éditer le vinyle">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <div v-if="vinyl.commentaires" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
@@ -106,5 +151,29 @@ const formatDate = (date) => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal Discogs -->
+        <DiscogsVinylModal
+            :show="showVinylModal"
+            :collections="allCollections"
+            @close="showVinylModal = false"
+            @openManualModal="openManualVinylModal"
+        />
+
+        <!-- Modal ajout vinyle manuel -->
+        <ManualVinylModal
+            :show="showManualVinylModal"
+            :collections="allCollections"
+            @close="showManualVinylModal = false"
+        />
+
+        <!-- Modal édition vinyle -->
+        <EditVinylModal
+            v-if="vinylToEdit"
+            :show="showEditVinylModal"
+            :collection-vinyl="vinylToEdit"
+            :collections="allCollections"
+            @close="closeEditModal"
+        />
     </AuthenticatedLayout>
 </template>
