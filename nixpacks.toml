@@ -1,20 +1,13 @@
-[providers]
-# Désactiver la détection automatique de yarn pour éviter les conflits
-node = false
-
 [phases.setup]
-nixPkgs = ["...", "python311Packages.supervisor", "nodejs"]
-
-[phases.install]
-cmds = [
-    # Installer yarn manuellement via npm
-    "npm install -g yarn",
-    # Installer les dépendances avec yarn
-    "yarn install --frozen-lockfile"
-]
+nixPkgs = ["...", "python311Packages.supervisor"]
+aptPkgs = ["nodejs", "npm"]
 
 [phases.build]
 cmds = [
+    # Installer yarn via npm pour éviter le conflit avec nix
+    "npm install -g yarn",
+    # Installer les dépendances
+    "yarn install --frozen-lockfile",
     # Build des assets avec yarn
     "yarn build",
     "mkdir -p /etc/supervisor/conf.d/",
