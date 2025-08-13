@@ -31,11 +31,17 @@ class Vinyl extends Model
         'anneeOriginal',
         'discogs_id',
         'discogs_type',
+        'created_by',
         'discogs_updated_at'
     ];
 
     public function collectionVinyls()
     {
         return $this->hasMany(CollectionVinyl::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

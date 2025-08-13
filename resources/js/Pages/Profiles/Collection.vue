@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VinylImage from '@/Components/VinylImage.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps({
     user: {
@@ -15,8 +15,32 @@ const props = defineProps({
     }
 });
 
-// Mode d'affichage
-const viewMode = ref('grid'); // 'grid', 'list', 'compact'
+// Fonction pour récupérer le mode d'affichage depuis localStorage
+const getStoredViewMode = () => {
+    try {
+        return localStorage.getItem('vinyl-view-mode') || 'grid';
+    } catch {
+        return 'grid';
+    }
+};
+
+// Fonction pour sauvegarder le mode d'affichage dans localStorage
+const setViewMode = (mode) => {
+    try {
+        localStorage.setItem('vinyl-view-mode', mode);
+    } catch {
+        // Ignorer les erreurs localStorage (mode privé, etc.)
+    }
+    viewMode.value = mode;
+};
+
+// Mode d'affichage avec valeur initiale depuis localStorage
+const viewMode = ref(getStoredViewMode());
+
+// Watcher pour sauvegarder automatiquement les changements
+watch(viewMode, (newMode) => {
+    setViewMode(newMode);
+});
 
 const formatDate = (date) => {
     if (!date) return '';
@@ -102,7 +126,7 @@ const formatDate = (date) => {
                             
                             
                             <div class="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
-                                <button @click="viewMode = 'grid'"
+                                <button @click="setViewMode('grid')"
                                         :class="[
                                             'p-2 rounded transition-colors',
                                             viewMode === 'grid' 
@@ -114,7 +138,7 @@ const formatDate = (date) => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                                     </svg>
                                 </button>
-                                <button @click="viewMode = 'list'"
+                                <button @click="setViewMode('list')"
                                         :class="[
                                             'p-2 rounded transition-colors',
                                             viewMode === 'list' 
@@ -126,7 +150,7 @@ const formatDate = (date) => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                                     </svg>
                                 </button>
-                                <button @click="viewMode = 'compact'"
+                                <button @click="setViewMode('compact')"
                                         :class="[
                                             'p-2 rounded transition-colors',
                                             viewMode === 'compact' 
@@ -161,7 +185,7 @@ const formatDate = (date) => {
                         
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
-                                 class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-colors">
+                                 class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-colors group relative">
                                 <div class="flex items-start space-x-4">
                                     <VinylImage 
                                         :src="collectionVinyl.vinyl?.pochette"
@@ -182,6 +206,17 @@ const formatDate = (date) => {
                                             </span>
                                         </div>
                                     </div>
+                                    
+                                    <div class="mt-2">
+                                        <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                              class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors inline-block"
+                                              title="Voir les détails">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </Link>
+                                    </div>
                                 </div>
                                 
                                 <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
@@ -201,6 +236,7 @@ const formatDate = (date) => {
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Année</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Label</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Ajouté le</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -233,6 +269,16 @@ const formatDate = (date) => {
                                         <td class="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
                                             {{ formatDate(collectionVinyl.date_ajout) }}
                                         </td>
+                                        <td class="py-3 px-4">
+                                            <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                                  class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors inline-block"
+                                                  title="Voir les détails">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                </svg>
+                                            </Link>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -240,8 +286,9 @@ const formatDate = (date) => {
 
                         
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
-                                 class="relative aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform shadow-md">
+                            <Link v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                                  :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                  class="relative aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform shadow-md block">
                                 
                                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
                                     <img v-if="collectionVinyl.vinyl?.pochette"
@@ -272,7 +319,7 @@ const formatDate = (date) => {
                                         {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
                                     </p>
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                     </div>
                 </div>

@@ -27,6 +27,24 @@ class VinylController extends Controller
             ->orderBy('date_ajout', 'desc')
             ->get();
 
+        // Ajouter l'information canEdit pour chaque vinyl et charger le créateur
+        $vinyls->transform(function ($collectionVinyl) use ($user) {
+            $vinyl = $collectionVinyl->vinyl;
+            $canEdit = true; // Par défaut peut éditer car c'est son vinyl
+            
+            // Si c'est un vinyle manuel, vérifier que l'utilisateur est le créateur
+            if ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+                $canEdit = $vinyl->created_by === $user->id;
+                // Charger le créateur pour l'afficher dans le toast
+                if ($vinyl->created_by) {
+                    $vinyl->load('creator');
+                }
+            }
+            
+            $collectionVinyl->can_edit = $canEdit;
+            return $collectionVinyl;
+        });
+
         // Récupérer toutes les collections de l'utilisateur pour les modales
         $allCollections = $user->collections()->orderBy('collection_nom')->get();
 
@@ -104,17 +122,150 @@ class VinylController extends Controller
     /**
      * Display the specified vinyl
      */
-    public function show(CollectionVinyl $collectionVinyl)
+    public function show(CollectionVinyl $collectionVinyl, DiscogsService $discogsService)
     {
-        // Vérifier que l'utilisateur est propriétaire
-        if ($collectionVinyl->user_id !== Auth::id()) {
-            abort(403, 'Vous n\'avez pas accès à ce vinyle.');
+        // Charger les relations nécessaires
+        $collectionVinyl->load(['vinyl', 'collection', 'user']);
+        
+        // Vérifier si la collection est publique ou si l'utilisateur est propriétaire
+        $isOwner = Auth::check() && $collectionVinyl->user_id === Auth::id();
+        $isPublicCollection = $collectionVinyl->collection->visibility === 'public';
+        
+        // Permettre l'accès si l'utilisateur est propriétaire OU si la collection est publique
+        if (!$isOwner && !$isPublicCollection) {
+            abort(403, 'Cette collection n\'est pas publique.');
         }
 
-        $collectionVinyl->load(['vinyl', 'collection']);
+        // Vérifier si l'utilisateur peut éditer le vinyle
+        $canEdit = $isOwner;
+        $vinyl = $collectionVinyl->vinyl;
+        if ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+            $canEdit = $isOwner && $vinyl->created_by === Auth::id();
+        }
+        
+        // Si c'est un vinyle Discogs, enrichir avec les données complètes
+        $vinyl = $collectionVinyl->vinyl;
+        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+            try {
+                // Récupérer les détails complets depuis Discogs
+                if ($vinyl->discogs_type === 'master') {
+                    $discogsData = $discogsService->getMaster($vinyl->discogs_id);
+                } else {
+                    $discogsData = $discogsService->getRelease($vinyl->discogs_id);
+                }
+                
+                if ($discogsData) {
+                    // Ajouter les données Discogs enrichies sans écraser les données existantes
+                    $vinyl->discogs_data = [
+                        'tracklist' => $discogsData['tracklist'] ?? [],
+                        'videos' => $discogsData['videos'] ?? [],
+                        'images' => $discogsData['images'] ?? [],
+                        'genres' => $discogsData['genres'] ?? [],
+                        'styles' => $discogsData['styles'] ?? [],
+                        'notes' => $discogsData['notes'] ?? null,
+                        'data_quality' => $discogsData['data_quality'] ?? null,
+                        'country' => $discogsData['country'] ?? null,
+                        'released' => $discogsData['released'] ?? null,
+                        'formats' => $discogsData['formats'] ?? [],
+                        'labels' => $discogsData['labels'] ?? [],
+                        // Pour les masters, ajouter les infos spécifiques
+                        'main_release' => $discogsData['main_release'] ?? null,
+                        'main_release_url' => $discogsData['main_release_url'] ?? null,
+                        'versions_url' => $discogsData['versions_url'] ?? null,
+                    ];
+                }
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne pas faire échouer la page
+                \Log::warning('Impossible de récupérer les détails Discogs pour le vinyle ' . $vinyl->id . ': ' . $e->getMessage());
+                $vinyl->discogs_data = null;
+            }
+        }
 
         return Inertia::render('Vinyls/Show', [
-            'collectionVinyl' => $collectionVinyl
+            'collectionVinyl' => $collectionVinyl,
+            'isOwner' => $isOwner,
+            'canEdit' => $canEdit
+        ]);
+    }
+
+    /**
+     * Display a vinyl's details with all owners
+     */
+    public function showVinyl(Vinyl $vinyl, DiscogsService $discogsService)
+    {
+        // Enrichir avec les données Discogs si nécessaire
+        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+            try {
+                // Récupérer les détails complets depuis Discogs
+                if ($vinyl->discogs_type === 'master') {
+                    $discogsData = $discogsService->getMaster($vinyl->discogs_id);
+                } else {
+                    $discogsData = $discogsService->getRelease($vinyl->discogs_id);
+                }
+                
+                if ($discogsData) {
+                    // Ajouter les données Discogs enrichies sans écraser les données existantes
+                    $vinyl->discogs_data = [
+                        'tracklist' => $discogsData['tracklist'] ?? [],
+                        'videos' => $discogsData['videos'] ?? [],
+                        'images' => $discogsData['images'] ?? [],
+                        'genres' => $discogsData['genres'] ?? [],
+                        'styles' => $discogsData['styles'] ?? [],
+                        'notes' => $discogsData['notes'] ?? null,
+                        'data_quality' => $discogsData['data_quality'] ?? null,
+                        'country' => $discogsData['country'] ?? null,
+                        'released' => $discogsData['released'] ?? null,
+                        'formats' => $discogsData['formats'] ?? [],
+                        'labels' => $discogsData['labels'] ?? [],
+                        // Pour les masters, ajouter les infos spécifiques
+                        'main_release' => $discogsData['main_release'] ?? null,
+                        'main_release_url' => $discogsData['main_release_url'] ?? null,
+                        'versions_url' => $discogsData['versions_url'] ?? null,
+                    ];
+                }
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne pas faire échouer la page
+                \Log::warning('Impossible de récupérer les détails Discogs pour le vinyle ' . $vinyl->id . ': ' . $e->getMessage());
+                $vinyl->discogs_data = null;
+            }
+        }
+
+        // Récupérer tous les possesseurs de ce vinyle avec collections publiques
+        $owners = $vinyl->collectionVinyls()
+            ->with(['user', 'collection'])
+            ->whereHas('collection', function($query) {
+                $query->where('visibility', 'public');
+            })
+            ->whereHas('user', function($query) {
+                $query->where('profile_public', true);
+            })
+            ->get();
+
+        // Charger le créateur si c'est un vinyle manuel
+        if (($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) && $vinyl->created_by) {
+            $vinyl->load('creator');
+        }
+
+        // Si l'utilisateur connecté possède ce vinyle, ajouter ses exemplaires même privés
+        if (Auth::check()) {
+            $userOwnedVinyls = $vinyl->collectionVinyls()
+                ->with(['user', 'collection'])
+                ->where('user_id', Auth::id())
+                ->get();
+                
+            $owners = $owners->merge($userOwnedVinyls)->unique('id');
+        }
+
+        // Récupérer les collections de l'utilisateur connecté
+        $userCollections = [];
+        if (Auth::check()) {
+            $userCollections = Auth::user()->collections()->get(['id', 'collection_nom']);
+        }
+
+        return Inertia::render('Vinyls/VinylShow', [
+            'vinyl' => $vinyl,
+            'owners' => $owners,
+            'userCollections' => $userCollections
         ]);
     }
 
@@ -126,6 +277,12 @@ class VinylController extends Controller
         // Vérifier que l'utilisateur est propriétaire
         if ($collectionVinyl->user_id !== Auth::id()) {
             abort(403, 'Vous n\'avez pas accès à ce vinyle.');
+        }
+
+        // Pour les vinyles manuels, vérifier que l'utilisateur est le créateur
+        $vinyl = $collectionVinyl->vinyl;
+        if (($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) && $vinyl->created_by !== Auth::id()) {
+            abort(403, 'Seul le créateur peut modifier ce vinyle manuel.');
         }
 
         $user = Auth::user();
@@ -150,6 +307,11 @@ class VinylController extends Controller
 
         $vinyl = $collectionVinyl->vinyl;
         $isManualVinyl = $vinyl->discogs_type === 'manual' || is_null($vinyl->discogs_id);
+
+        // Pour les vinyles manuels, vérifier que l'utilisateur est le créateur
+        if ($isManualVinyl && $vinyl->created_by !== Auth::id()) {
+            abort(403, 'Seul le créateur peut modifier ce vinyle manuel.');
+        }
 
         // Validation selon le type de vinyle
         if ($isManualVinyl) {
@@ -320,6 +482,7 @@ class VinylController extends Controller
             'vinyl_alias' => 0,
             'discogs_id' => null, // Pas de Discogs ID pour un vinyle manuel
             'discogs_type' => $request->discogs_type ?: null, // Type choisi par l'utilisateur ou null
+            'created_by' => $user->id, // Enregistrer le créateur du vinyle manuel
         ]);
 
         // Associer le vinyle à la collection
@@ -385,7 +548,17 @@ class VinylController extends Controller
 
         // Extraire les infos Discogs depuis la requête
         $discogsId = $request->discogs_id;
-        $discogsType = isset($request->discogs_data['type']) ? $request->discogs_data['type'] : 'release';
+        
+        // Déterminer le type à partir des données ou de l'ID
+        $discogsType = 'release'; // Par défaut
+        if (isset($request->discogs_data['type'])) {
+            $discogsType = $request->discogs_data['type'];
+        } elseif (preg_match('/^m\d+$/i', $discogsId)) {
+            // Si l'ID commence par 'm', c'est un master (format m123456)
+            $discogsType = 'master';
+            // Retirer le 'm' du début de l'ID
+            $discogsId = substr($discogsId, 1);
+        }
 
         // Récupérer les détails complets depuis Discogs pour avoir toutes les informations
         $completeDiscogsData = null;
@@ -537,5 +710,44 @@ class VinylController extends Controller
         } catch (\Exception $e) {
             return $file->getContent(); // Retourne l'original en cas d'erreur
         }
+    }
+
+    /**
+     * Add an existing vinyl to a user's collection
+     */
+    public function addToCollection(Request $request)
+    {
+        $request->validate([
+            'vinyl_id' => 'required|exists:vinyls,id',
+            'collection_id' => 'required|exists:collections,id'
+        ]);
+
+        $user = Auth::user();
+        $collection = $user->collections()->findOrFail($request->collection_id);
+
+        // Vérifier si le vinyle n'est pas déjà dans cette collection
+        $exists = CollectionVinyl::where('user_id', $user->id)
+            ->where('collection_id', $collection->id)
+            ->where('vinyl_id', $request->vinyl_id)
+            ->exists();
+
+        if ($exists) {
+            return back()->with('error', 'Ce vinyle est déjà dans cette collection.');
+        }
+
+        // Ajouter le vinyle à la collection
+        CollectionVinyl::create([
+            'user_id' => $user->id,
+            'collection_id' => $collection->id,
+            'vinyl_id' => $request->vinyl_id,
+            'date_ajout' => Carbon::now(),
+        ]);
+
+        // Mettre à jour la date de modification de la collection
+        $collection->update([
+            'collection_date_modif' => Carbon::now()
+        ]);
+
+        return back()->with('success', 'Vinyle ajouté à votre collection avec succès.');
     }
 }

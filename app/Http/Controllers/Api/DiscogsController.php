@@ -44,4 +44,18 @@ class DiscogsController extends Controller
 
         return response()->json($release);
     }
+
+    /**
+     * Récupère les détails d'un master
+     */
+    public function getMaster($masterId)
+    {
+        $master = $this->discogsService->getMaster($masterId);
+        
+        if (!$master) {
+            return response()->json(['error' => 'Master not found'], 404);
+        }
+
+        return response()->json($master);
+    }
 }

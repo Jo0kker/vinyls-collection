@@ -73,10 +73,16 @@ class CollectionController extends Controller
             abort(403, 'Vous n\'avez pas accès à cette collection.');
         }
 
-        // Récupérer les paramètres de recherche et tri
+        // Récupérer les paramètres de recherche, tri et pagination
         $search = $request->get('search', '');
         $sortBy = $request->get('sort', 'date_ajout');
         $sortOrder = $request->get('order', 'desc');
+        $perPage = $request->get('per_page', 20); // Par défaut 20 items
+        
+        // Valider que per_page est dans les valeurs autorisées
+        if (!in_array($perPage, [20, 50, 100, 1000])) {
+            $perPage = 20;
+        }
 
         // Construire la requête avec recherche et tri
         $query = $collection->collectionVinyls()->with('vinyl');
@@ -126,10 +132,31 @@ class CollectionController extends Controller
                 break;
         }
 
-        $collectionVinyls = $query->get();
+        // Paginer les résultats
+        $collectionVinylsPaginated = $query->paginate($perPage)->withQueryString();
 
-        // Reconstituer l'objet collection avec les vinyles filtrés/triés
-        $collection->setRelation('collectionVinyls', $collectionVinyls);
+        // Ajouter l'information canEdit pour chaque vinyl et charger le créateur
+        $user = Auth::user();
+        $collectionVinylsPaginated->getCollection()->transform(function ($collectionVinyl) use ($user) {
+            $vinyl = $collectionVinyl->vinyl;
+            $canEdit = true; // Par défaut peut éditer car c'est son vinyl
+            
+            // Si c'est un vinyle manuel, vérifier que l'utilisateur est le créateur
+            if ($vinyl && ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id)) {
+                $canEdit = $vinyl->created_by === $user->id;
+                // Charger le créateur pour l'afficher dans le toast
+                if ($vinyl->created_by) {
+                    $vinyl->load('creator');
+                }
+            }
+            
+            $collectionVinyl->can_edit = $canEdit;
+            return $collectionVinyl;
+        });
+
+        // Créer un objet collection simplifié avec les données paginées
+        $collectionData = $collection->toArray();
+        $collectionData['collection_vinyls'] = $collectionVinylsPaginated->items();
 
         // Récupérer toutes les collections de l'utilisateur pour le dropdown de déplacement
         $userCollections = Auth::user()->collections()
@@ -138,12 +165,23 @@ class CollectionController extends Controller
             ->get(['id', 'collection_nom']);
 
         return Inertia::render('Collections/Show', [
-            'collection' => $collection,
+            'collection' => $collectionData,
+            'pagination' => [
+                'data' => $collectionVinylsPaginated->items(),
+                'current_page' => $collectionVinylsPaginated->currentPage(),
+                'last_page' => $collectionVinylsPaginated->lastPage(),
+                'per_page' => $collectionVinylsPaginated->perPage(),
+                'total' => $collectionVinylsPaginated->total(),
+                'from' => $collectionVinylsPaginated->firstItem(),
+                'to' => $collectionVinylsPaginated->lastItem(),
+                'links' => $collectionVinylsPaginated->links()->elements,
+            ],
             'userCollections' => $userCollections,
             'filters' => [
                 'search' => $search,
                 'sort' => $sortBy,
-                'order' => $sortOrder
+                'order' => $sortOrder,
+                'per_page' => $perPage
             ]
         ]);
     }

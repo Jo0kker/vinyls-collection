@@ -21,8 +21,13 @@ const props = defineProps({
         default: () => ({
             search: '',
             sort: 'date_ajout',
-            order: 'desc'
+            order: 'desc',
+            per_page: 20
         })
+    },
+    pagination: {
+        type: Object,
+        default: () => null
     }
 });
 
@@ -42,9 +47,28 @@ const targetCollectionId = ref('');
 const searchQuery = ref(props.filters.search || '');
 const sortBy = ref(props.filters.sort || 'date_ajout');
 const sortOrder = ref(props.filters.order || 'desc');
+const perPage = ref(props.filters.per_page || 20);
 
-// Mode d'affichage
-const viewMode = ref('grid'); // 'grid', 'list', 'compact'
+// Mode d'affichage avec cache localStorage
+const getStoredViewMode = () => {
+    try {
+        return localStorage.getItem('vinyl-view-mode') || 'grid';
+    } catch {
+        return 'grid';
+    }
+};
+
+const viewMode = ref(getStoredViewMode());
+
+// Sauvegarder le mode d'affichage dans le cache
+const setViewMode = (mode) => {
+    viewMode.value = mode;
+    try {
+        localStorage.setItem('vinyl-view-mode', mode);
+    } catch (error) {
+        console.warn('Impossible de sauvegarder les préférences d\'affichage:', error);
+    }
+};
 
 const formatDate = (date) => {
     if (!date) return '';
@@ -66,7 +90,7 @@ const openManualVinylModal = () => {
 };
 
 // Fonctions de recherche et tri
-const applyFilters = () => {
+const applyFilters = (page = 1) => {
     const params = new URLSearchParams();
 
     if (searchQuery.value) {
@@ -77,6 +101,12 @@ const applyFilters = () => {
     }
     if (sortOrder.value !== 'desc') {
         params.append('order', sortOrder.value);
+    }
+    if (perPage.value != 20) {
+        params.append('per_page', perPage.value);
+    }
+    if (page > 1) {
+        params.append('page', page);
     }
 
     const queryString = params.toString();
@@ -102,6 +132,30 @@ const toggleSortOrder = () => {
 const openEditModal = (collectionVinyl) => {
     vinylToEdit.value = collectionVinyl;
     showEditVinylModal.value = true;
+};
+
+const showEditRestrictionToast = (collectionVinyl) => {
+    const creatorName = collectionVinyl.vinyl?.creator?.name || 'un autre utilisateur';
+    const message = `Ce vinyle manuel ne peut être modifié que par son créateur : ${creatorName}`;
+    
+    // Créer et afficher le toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up';
+    toast.innerHTML = `
+        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+        </svg>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+    
+    // Retirer le toast après 4 secondes
+    setTimeout(() => {
+        toast.classList.add('animate-slide-down');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 4000);
 };
 
 const closeEditModal = () => {
@@ -162,6 +216,26 @@ const confirmMove = () => {
 };
 </script>
 
+<style scoped>
+@keyframes slide-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-down {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+}
+
+.animate-slide-down {
+    animation: slide-down 0.3s ease-in;
+}
+</style>
+
 <template>
     <Head :title="collection.collection_nom" />
 
@@ -200,7 +274,7 @@ const confirmMove = () => {
                             <div>
                                 <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Nombre de vinyles</h3>
                                 <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {{ collection.collection_vinyls?.length || 0 }}
+                                    {{ pagination?.total || collection.collection_vinyls?.length || 0 }}
                                 </p>
                             </div>
                             <div>
@@ -253,7 +327,7 @@ const confirmMove = () => {
 
 
                             <div class="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
-                                <button @click="viewMode = 'grid'"
+                                <button @click="setViewMode('grid')"
                                         :class="[
                                             'p-2 rounded transition-colors',
                                             viewMode === 'grid'
@@ -265,7 +339,7 @@ const confirmMove = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                                     </svg>
                                 </button>
-                                <button @click="viewMode = 'list'"
+                                <button @click="setViewMode('list')"
                                         :class="[
                                             'p-2 rounded transition-colors',
                                             viewMode === 'list'
@@ -277,7 +351,7 @@ const confirmMove = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                                     </svg>
                                 </button>
-                                <button @click="viewMode = 'compact'"
+                                <button @click="setViewMode('compact')"
                                         :class="[
                                             'p-2 rounded transition-colors',
                                             viewMode === 'compact'
@@ -312,6 +386,20 @@ const confirmMove = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
                                     </svg>
                                 </button>
+                                
+                                <!-- Sélecteur d'items par page -->
+                                <div class="flex items-center gap-2 ml-4 border-l pl-4">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Afficher :</span>
+                                    <select v-model="perPage"
+                                            @change="applyFilters(1)"
+                                            class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                        <option :value="20">20</option>
+                                        <option :value="50">50</option>
+                                        <option :value="100">100</option>
+                                        <option :value="1000">1000</option>
+                                    </select>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">par page</span>
+                                </div>
                             </div>
                         </div>
 
@@ -338,7 +426,10 @@ const confirmMove = () => {
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                                 Vinyles de la collection
-                                <span class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                                <span v-if="pagination" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                                    (Affichage {{ pagination.from || 0 }} à {{ pagination.to || 0 }} sur {{ pagination.total }} vinyle{{ pagination.total > 1 ? 's' : '' }})
+                                </span>
+                                <span v-else class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
                                     ({{ collection.collection_vinyls?.length || 0 }} vinyle{{ (collection.collection_vinyls?.length || 0) > 1 ? 's' : '' }})
                                 </span>
                             </h3>
@@ -393,11 +484,28 @@ const confirmMove = () => {
 
 
                                     <div class="flex flex-col gap-1">
-                                        <button @click="openEditModal(collectionVinyl)"
+                                        <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                              class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
+                                              title="Voir les détails">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </Link>
+                                        <button v-if="collectionVinyl.can_edit"
+                                                @click="openEditModal(collectionVinyl)"
                                                 class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
                                                 title="Éditer le vinyle">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                        </button>
+                                        <button v-else
+                                                @click="showEditRestrictionToast(collectionVinyl)"
+                                                class="p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
+                                                title="Seul le créateur peut modifier ce vinyle manuel">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                             </svg>
                                         </button>
                                         <button @click="openMoveModal(collectionVinyl)"
@@ -469,11 +577,28 @@ const confirmMove = () => {
                                         </td>
                                         <td class="py-3 px-4">
                                             <div class="flex gap-1">
-                                                <button @click="openEditModal(collectionVinyl)"
+                                                <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                                      class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
+                                                      title="Voir les détails">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                    </svg>
+                                                </Link>
+                                                <button v-if="collectionVinyl.can_edit"
+                                                        @click="openEditModal(collectionVinyl)"
                                                         class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
                                                         title="Éditer le vinyle">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button v-else
+                                                        @click="showEditRestrictionToast(collectionVinyl)"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
+                                                        title="Seul le créateur peut modifier ce vinyle manuel">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                                     </svg>
                                                 </button>
                                                 <button @click="openMoveModal(collectionVinyl)"
@@ -499,8 +624,9 @@ const confirmMove = () => {
 
 
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
-                                 class="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:scale-105 transition-transform shadow-md">
+                            <Link v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                                  :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                  class="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:scale-105 transition-transform shadow-md block">
 
                                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
                                     <img v-if="collectionVinyl.vinyl?.pochette"
@@ -534,11 +660,20 @@ const confirmMove = () => {
 
 
                                 <div class="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button @click.stop="openEditModal(collectionVinyl)"
+                                    <button v-if="collectionVinyl.can_edit"
+                                            @click.stop="openEditModal(collectionVinyl)"
                                             class="p-1.5 bg-green-600/80 hover:bg-green-600 text-white rounded-full backdrop-blur-sm transition-colors"
                                             title="Éditer le vinyle">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button v-else
+                                            @click.stop="showEditRestrictionToast(collectionVinyl)"
+                                            class="p-1.5 bg-gray-600/80 hover:bg-gray-600 text-white rounded-full backdrop-blur-sm transition-colors cursor-pointer"
+                                            title="Seul le créateur peut modifier ce vinyle manuel">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                         </svg>
                                     </button>
                                     <button @click.stop="openMoveModal(collectionVinyl)"
@@ -556,7 +691,63 @@ const confirmMove = () => {
                                         </svg>
                                     </button>
                                 </div>
+                            </Link>
+                        </div>
+                    </div>
+                    
+                    <!-- Contrôles de pagination -->
+                    <div v-if="pagination && pagination.last_page > 1" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="text-sm text-gray-700 dark:text-gray-300">
+                            Affichage de <span class="font-medium">{{ pagination.from }}</span> à <span class="font-medium">{{ pagination.to }}</span> sur <span class="font-medium">{{ pagination.total }}</span> résultats
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <!-- Bouton page précédente -->
+                            <button @click="applyFilters(pagination.current_page - 1)"
+                                    :disabled="pagination.current_page === 1"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Précédent
+                            </button>
+                            
+                            <!-- Numéros de pages -->
+                            <div class="flex items-center gap-1">
+                                <!-- Première page -->
+                                <button v-if="pagination.current_page > 3"
+                                        @click="applyFilters(1)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    1
+                                </button>
+                                <span v-if="pagination.current_page > 4" class="px-2 text-gray-500">...</span>
+                                
+                                <!-- Pages autour de la page courante -->
+                                <template v-for="page in [pagination.current_page - 2, pagination.current_page - 1, pagination.current_page, pagination.current_page + 1, pagination.current_page + 2]" :key="page">
+                                    <button v-if="page > 0 && page <= pagination.last_page"
+                                            @click="applyFilters(page)"
+                                            :class="[
+                                                'px-3 py-2 border rounded-md text-sm font-medium',
+                                                page === pagination.current_page
+                                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                                                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                                            ]">
+                                        {{ page }}
+                                    </button>
+                                </template>
+                                
+                                <!-- Dernière page -->
+                                <span v-if="pagination.current_page < pagination.last_page - 3" class="px-2 text-gray-500">...</span>
+                                <button v-if="pagination.current_page < pagination.last_page - 2"
+                                        @click="applyFilters(pagination.last_page)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    {{ pagination.last_page }}
+                                </button>
                             </div>
+                            
+                            <!-- Bouton page suivante -->
+                            <button @click="applyFilters(pagination.current_page + 1)"
+                                    :disabled="pagination.current_page === pagination.last_page"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Suivant
+                            </button>
                         </div>
                     </div>
                 </div>

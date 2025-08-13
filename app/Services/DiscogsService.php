@@ -36,6 +36,16 @@ class DiscogsService
                     // C'est un master ID, récupérer le master
                     $master = $this->getMaster($id);
                     if ($master) {
+                        // Forcer le type à 'master' pour s'assurer qu'il est bien défini
+                        $master['type'] = 'master';
+                        
+                        // Ajouter un thumb pour l'affichage dans la modal de recherche
+                        if (!isset($master['thumb']) && isset($master['images']) && !empty($master['images'])) {
+                            // Utiliser l'image 150x150 si disponible, sinon l'URI normale
+                            $firstImage = $master['images'][0];
+                            $master['thumb'] = $firstImage['uri150'] ?? $firstImage['uri'] ?? null;
+                        }
+                        
                         return ['results' => [$master]];
                     }
                 }
@@ -106,7 +116,10 @@ class DiscogsService
             ])->get($this->baseUrl . '/masters/' . $masterId);
 
             if ($response->successful()) {
-                return $response->json();
+                $data = $response->json();
+                // Forcer le type à 'master' car l'API Discogs ne le retourne pas toujours
+                $data['type'] = 'master';
+                return $data;
             }
 
             return null;

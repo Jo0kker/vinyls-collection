@@ -34,14 +34,18 @@ watch(() => props.collectionId, (newValue) => {
 const closeModal = () => {
     discogsQuery.value = '';
     discogsResults.value = [];
+    hasSearched.value = false;
     selectedCollectionId.value = props.collectionId;
     emit('close');
 };
+
+const hasSearched = ref(false);
 
 const searchDiscogs = async () => {
     if (!discogsQuery.value.trim()) return;
 
     isSearchingDiscogs.value = true;
+    hasSearched.value = true;
 
     try {
         const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(discogsQuery.value)}`);
@@ -149,7 +153,7 @@ const openManualModal = () => {
                     </div>
                 </div>
                 <div class="mb-6 max-h-96 overflow-y-auto">
-                    <div v-if="discogsResults.length === 0 && !isSearchingDiscogs && !discogsQuery.trim()"
+                    <div v-if="!hasSearched && !isSearchingDiscogs"
                          class="text-gray-500 dark:text-gray-400 text-center py-8">
                         <p>Recherchez votre vinyle sur Discogs pour l'ajouter à votre collection...</p>
                         <p class="mt-2 text-sm">Ou <button @click="openManualModal" class="text-purple-600 hover:text-purple-700 underline">ajoutez un vinyle manuellement</button> s'il n'est pas sur Discogs</p>
@@ -158,7 +162,7 @@ const openManualModal = () => {
                          class="text-gray-500 dark:text-gray-400 text-center py-8">
                         Recherche en cours...
                     </div>
-                    <div v-else-if="discogsResults.length === 0"
+                    <div v-else-if="hasSearched && discogsResults.length === 0"
                          class="text-gray-500 dark:text-gray-400 text-center py-8">
                         Aucun résultat trouvé pour "{{ discogsQuery }}"
                     </div>
