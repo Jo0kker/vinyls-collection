@@ -7,9 +7,9 @@ IS_LARAVEL = "1"
 NIXPACKS_PHP_ROOT_DIR = "/app/public"
 
 [phases.setup]
-# Nixpacks détecte automatiquement PHP et Composer, on ajoute juste ce qui manque
-nixPkgs = ["...", "python311Packages.supervisor", "nodejs_20"]
-# On laisse Nixpacks gérer yarn automatiquement via npm
+# Nixpacks détecte automatiquement PHP, Composer et Node.js
+# On ajoute seulement supervisor
+nixPkgs = ["...", "python311Packages.supervisor"]
 
 [phases.build]
 cmds = [
