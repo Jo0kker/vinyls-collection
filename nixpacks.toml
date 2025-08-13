@@ -1,13 +1,26 @@
+[providers]
+# Désactiver la détection automatique de yarn pour éviter les conflits
+node = false
+
 [phases.setup]
-nixPkgs = ["...", "python311Packages.supervisor"]
+nixPkgs = ["...", "python311Packages.supervisor", "nodejs"]
+
+[phases.install]
+cmds = [
+    # Installer yarn manuellement via npm
+    "npm install -g yarn",
+    # Installer les dépendances avec yarn
+    "yarn install --frozen-lockfile"
+]
 
 [phases.build]
 cmds = [
+    # Build des assets avec yarn
+    "yarn build",
     "mkdir -p /etc/supervisor/conf.d/",
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
     "cp /assets/supervisord.conf /etc/supervisord.conf",
-    "chmod +x /assets/start.sh",
-    "..."
+    "chmod +x /assets/start.sh"
 ]
 
 [start]
