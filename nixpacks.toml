@@ -45,7 +45,7 @@ const newConfig = nginxConfig
     return process.env[condition] ? ifBlock : '';
   })
   .replace(/\$\!\{(.*?)\}/g, (match, varName) => {
-    return process.env[varName] || match;
+    return process.env[varName] || '/usr/share/nginx';
   })
   .replace(/\$\{(.*?)\}/g, (match, varName) => {
     return process.env[varName] || match;
