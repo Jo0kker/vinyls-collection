@@ -174,7 +174,7 @@ events {
 }
 
 http {
-    include    $!{nginx}/conf/mime.types;
+    include    /etc/nginx/mime.types;
     index    index.html index.htm index.php;
 
     default_type application/octet-stream;
@@ -219,8 +219,8 @@ http {
             fastcgi_pass 127.0.0.1:9000;
             fastcgi_buffer_size 8k;
             fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-            include $!{nginx}/conf/fastcgi_params;
-            include $!{nginx}/conf/fastcgi.conf;
+            include /etc/nginx/fastcgi_params;
+            include /etc/nginx/fastcgi.conf;
         }
      
         location ~ /\.(?!well-known).* {
