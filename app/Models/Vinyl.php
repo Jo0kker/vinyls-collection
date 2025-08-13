@@ -16,18 +16,32 @@ class Vinyl extends Model
         'vinyl_format',
         'vinyl_nbcollect',
         'vinyl_alias',
-        'artiste',
-        'pochette',
         'reference',
+        'artiste',
         'label',
         'annee',
+        'pays',
+        'tracks',
+        'specificite',
+        'pochette',
+        'visuels',
+        'refMatrice',
+        'distribution',
+        'edition',
+        'anneeOriginal',
         'discogs_id',
         'discogs_type',
+        'created_by',
         'discogs_updated_at'
     ];
 
     public function collectionVinyls()
     {
         return $this->hasMany(CollectionVinyl::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

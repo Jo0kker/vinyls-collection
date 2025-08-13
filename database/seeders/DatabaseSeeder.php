@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             VinylSeeder::class,     // Créer les vinyles
             CollectionSeeder::class, // Créer les collections et les liens avec les vinyles
             ForumSeeder::class,     // Créer le forum avec catégories, threads et posts
+            LargeCollectionSeeder::class, // Créer de grandes collections pour tester la pagination
         ]);
 
         $this->command->info('🎉 Database seeding completed successfully!');

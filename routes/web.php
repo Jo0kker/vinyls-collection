@@ -33,9 +33,16 @@ Route::get('/collectors', [PublicProfileController::class, 'index'])->name('coll
 Route::get('/collectors/{user}', [PublicProfileController::class, 'show'])->name('collectors.show');
 Route::get('/collectors/{user}/collections/{collection}', [PublicProfileController::class, 'showCollection'])->name('collectors.collection');
 
+// Route pour afficher les détails d'un vinyle (accessible à tous si public)
+Route::get('vinyles/{vinyl}', [VinylController::class, 'showVinyl'])->name('vinyl.show');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::get('/dashboard/search', [DashboardController::class, 'search'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.search');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -48,9 +55,21 @@ Route::middleware('auth')->group(function () {
     Route::delete('collections/{collection}/vinyl/{collectionVinyl}', [CollectionController::class, 'removeVinyl'])->name('collections.vinyl.remove');
     Route::patch('collections/{collection}/vinyl/{collectionVinyl}/move', [CollectionController::class, 'moveVinyl'])->name('collections.vinyl.move');
     
-    // Vinyls routes
-    Route::resource('vinyls', VinylController::class);
+    // Vinyls routes (mes vinyles personnels)
+    Route::resource('mes-vinyles', VinylController::class)->names([
+        'index' => 'vinyls.index',
+        'create' => 'vinyls.create',
+        'store' => 'vinyls.store',
+        'edit' => 'vinyls.edit',
+        'update' => 'vinyls.update',
+        'destroy' => 'vinyls.destroy'
+    ])->parameters([
+        'mes-vinyles' => 'collectionVinyl'
+    ]);
+    
     Route::post('vinyls/from-discogs', [VinylController::class, 'storeFromDiscogs'])->name('vinyls.store-from-discogs');
+    Route::post('vinyls/manual', [VinylController::class, 'storeManual'])->name('vinyls.store-manual');
+    Route::post('vinyls/add-to-collection', [VinylController::class, 'addToCollection'])->name('vinyls.add-to-collection');
     
     // API Routes pour Discogs
     Route::prefix('api')->group(function () {

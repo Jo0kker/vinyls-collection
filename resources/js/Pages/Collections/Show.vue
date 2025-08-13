@@ -1,6 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VinylImage from '@/Components/VinylImage.vue';
+import DiscogsVinylModal from '@/Components/DiscogsVinylModal.vue';
+import ManualVinylModal from '@/Components/ManualVinylModal.vue';
+import EditVinylModal from '@/Components/EditVinylModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -18,30 +21,54 @@ const props = defineProps({
         default: () => ({
             search: '',
             sort: 'date_ajout',
-            order: 'desc'
+            order: 'desc',
+            per_page: 20
         })
+    },
+    pagination: {
+        type: Object,
+        default: () => null
     }
 });
 
-// États de la modal Discogs
+// États des modals
 const showVinylModal = ref(false);
-const discogsQuery = ref('');
-const discogsResults = ref([]);
-const isSearchingDiscogs = ref(false);
+const showManualVinylModal = ref(false);
+const showEditVinylModal = ref(false);
 
 // États pour les actions vinyles
 const showDeleteModal = ref(false);
 const showMoveModal = ref(false);
 const selectedVinyl = ref(null);
+const vinylToEdit = ref(null);
 const targetCollectionId = ref('');
 
 // États des filtres
 const searchQuery = ref(props.filters.search || '');
 const sortBy = ref(props.filters.sort || 'date_ajout');
 const sortOrder = ref(props.filters.order || 'desc');
+const perPage = ref(props.filters.per_page || 20);
 
-// Mode d'affichage
-const viewMode = ref('grid'); // 'grid', 'list', 'compact'
+// Mode d'affichage avec cache localStorage
+const getStoredViewMode = () => {
+    try {
+        return localStorage.getItem('vinyl-view-mode') || 'grid';
+    } catch {
+        return 'grid';
+    }
+};
+
+const viewMode = ref(getStoredViewMode());
+
+// Sauvegarder le mode d'affichage dans le cache
+const setViewMode = (mode) => {
+    viewMode.value = mode;
+    try {
+        localStorage.setItem('vinyl-view-mode', mode);
+    } catch (error) {
+        console.warn('Impossible de sauvegarder les préférences d\'affichage:', error);
+    }
+};
 
 const formatDate = (date) => {
     if (!date) return '';
@@ -52,54 +79,20 @@ const formatDate = (date) => {
     });
 };
 
-// Méthodes pour la modal
+// Méthodes pour les modals
 const openVinylModal = () => {
     showVinylModal.value = true;
 };
 
-const closeVinylModal = () => {
+const openManualVinylModal = () => {
     showVinylModal.value = false;
-    discogsQuery.value = '';
-    discogsResults.value = [];
-};
-
-const searchDiscogs = async () => {
-    if (!discogsQuery.value.trim()) return;
-    
-    isSearchingDiscogs.value = true;
-    
-    try {
-        const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(discogsQuery.value)}`);
-        const data = await response.json();
-        discogsResults.value = data.results || [];
-    } catch (error) {
-        console.error('Erreur recherche Discogs:', error);
-        discogsResults.value = [];
-    } finally {
-        isSearchingDiscogs.value = false;
-    }
-};
-
-const addVinylFromDiscogs = (discogsItem) => {
-    router.post('/vinyls/from-discogs', {
-        discogs_id: discogsItem.id,
-        discogs_data: discogsItem,
-        collection_id: props.collection.id // Pré-rempli avec cette collection
-    }, {
-        onSuccess: () => {
-            closeVinylModal();
-            router.reload();
-        },
-        onError: (errors) => {
-            console.error('Erreur lors de l\'ajout:', errors);
-        }
-    });
+    showManualVinylModal.value = true;
 };
 
 // Fonctions de recherche et tri
-const applyFilters = () => {
+const applyFilters = (page = 1) => {
     const params = new URLSearchParams();
-    
+
     if (searchQuery.value) {
         params.append('search', searchQuery.value);
     }
@@ -109,10 +102,16 @@ const applyFilters = () => {
     if (sortOrder.value !== 'desc') {
         params.append('order', sortOrder.value);
     }
-    
+    if (perPage.value != 20) {
+        params.append('per_page', perPage.value);
+    }
+    if (page > 1) {
+        params.append('page', page);
+    }
+
     const queryString = params.toString();
     const url = `/collections/${props.collection.id}${queryString ? '?' + queryString : ''}`;
-    
+
     router.get(url, {}, {
         preserveState: true,
         preserveScroll: true
@@ -130,6 +129,40 @@ const toggleSortOrder = () => {
 };
 
 // Actions vinyles
+const openEditModal = (collectionVinyl) => {
+    vinylToEdit.value = collectionVinyl;
+    showEditVinylModal.value = true;
+};
+
+const showEditRestrictionToast = (collectionVinyl) => {
+    const creatorName = collectionVinyl.vinyl?.creator?.name || 'un autre utilisateur';
+    const message = `Ce vinyle manuel ne peut être modifié que par son créateur : ${creatorName}`;
+    
+    // Créer et afficher le toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up';
+    toast.innerHTML = `
+        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+        </svg>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+    
+    // Retirer le toast après 4 secondes
+    setTimeout(() => {
+        toast.classList.add('animate-slide-down');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 4000);
+};
+
+const closeEditModal = () => {
+    showEditVinylModal.value = false;
+    vinylToEdit.value = null;
+};
+
 const openDeleteModal = (vinyl) => {
     selectedVinyl.value = vinyl;
     showDeleteModal.value = true;
@@ -183,6 +216,26 @@ const confirmMove = () => {
 };
 </script>
 
+<style scoped>
+@keyframes slide-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-down {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+}
+
+.animate-slide-down {
+    animation: slide-down 0.3s ease-in;
+}
+</style>
+
 <template>
     <Head :title="collection.collection_nom" />
 
@@ -202,24 +255,26 @@ const confirmMove = () => {
                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
                         Modifier
                     </Link>
-                    <button @click="openVinylModal"
-                       class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">
-                        Ajouter un vinyle (Discogs)
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button @click="openVinylModal"
+                               class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">
+                            Ajouter un vinyle
+                        </button>
+                    </div>
                 </div>
             </div>
         </template>
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                
+
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Nombre de vinyles</h3>
                                 <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {{ collection.collection_vinyls?.length || 0 }}
+                                    {{ pagination?.total || collection.collection_vinyls?.length || 0 }}
                                 </p>
                             </div>
                             <div>
@@ -235,7 +290,7 @@ const confirmMove = () => {
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div v-if="collection.collection_commentaires" class="mt-4">
                             <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
                             <p class="text-gray-900 dark:text-white">{{ collection.collection_commentaires }}</p>
@@ -243,24 +298,24 @@ const confirmMove = () => {
                     </div>
                 </div>
 
-                
+
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
                         <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                            
+
                             <div class="flex-1 max-w-md">
                                 <div class="relative">
-                                    <input 
+                                    <input
                                         v-model="searchQuery"
                                         @keyup.enter="applyFilters"
-                                        type="text" 
+                                        type="text"
                                         placeholder="Rechercher un vinyle..."
                                         class="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                     >
                                     <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
-                                    <button v-if="searchQuery" 
+                                    <button v-if="searchQuery"
                                             @click="clearSearch"
                                             class="absolute right-3 top-2.5 h-5 w-5 text-gray-400 hover:text-gray-600">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,14 +324,14 @@ const confirmMove = () => {
                                     </button>
                                 </div>
                             </div>
-                            
-                            
+
+
                             <div class="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
-                                <button @click="viewMode = 'grid'"
+                                <button @click="setViewMode('grid')"
                                         :class="[
                                             'p-2 rounded transition-colors',
-                                            viewMode === 'grid' 
-                                                ? 'bg-purple-600 text-white' 
+                                            viewMode === 'grid'
+                                                ? 'bg-purple-600 text-white'
                                                 : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                         ]"
                                         title="Affichage en grille">
@@ -284,11 +339,11 @@ const confirmMove = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                                     </svg>
                                 </button>
-                                <button @click="viewMode = 'list'"
+                                <button @click="setViewMode('list')"
                                         :class="[
                                             'p-2 rounded transition-colors',
-                                            viewMode === 'list' 
-                                                ? 'bg-purple-600 text-white' 
+                                            viewMode === 'list'
+                                                ? 'bg-purple-600 text-white'
                                                 : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                         ]"
                                         title="Affichage en liste">
@@ -296,11 +351,11 @@ const confirmMove = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                                     </svg>
                                 </button>
-                                <button @click="viewMode = 'compact'"
+                                <button @click="setViewMode('compact')"
                                         :class="[
                                             'p-2 rounded transition-colors',
-                                            viewMode === 'compact' 
-                                                ? 'bg-purple-600 text-white' 
+                                            viewMode === 'compact'
+                                                ? 'bg-purple-600 text-white'
                                                 : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                         ]"
                                         title="Affichage compact">
@@ -309,19 +364,19 @@ const confirmMove = () => {
                                     </svg>
                                 </button>
                             </div>
-                            
-                            
+
+
                             <div class="flex items-center gap-3">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Trier par :</span>
-                                <select v-model="sortBy" 
+                                <select v-model="sortBy"
                                         @change="applyFilters"
                                         class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
                                     <option value="date_ajout">Date d'ajout</option>
                                     <option value="nom">Nom de l'album</option>
                                     <option value="artiste">Artiste</option>
                                 </select>
-                                
-                                <button @click="toggleSortOrder" 
+
+                                <button @click="toggleSortOrder"
                                         class="p-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-purple-500"
                                         :title="sortOrder === 'asc' ? 'Trier par ordre décroissant' : 'Trier par ordre croissant'">
                                     <svg v-if="sortOrder === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,10 +386,24 @@ const confirmMove = () => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
                                     </svg>
                                 </button>
+                                
+                                <!-- Sélecteur d'items par page -->
+                                <div class="flex items-center gap-2 ml-4 border-l pl-4">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Afficher :</span>
+                                    <select v-model="perPage"
+                                            @change="applyFilters(1)"
+                                            class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                        <option :value="20">20</option>
+                                        <option :value="50">50</option>
+                                        <option :value="100">100</option>
+                                        <option :value="1000">1000</option>
+                                    </select>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">par page</span>
+                                </div>
                             </div>
                         </div>
-                        
-                        
+
+
                         <div v-if="searchQuery || sortBy !== 'date_ajout' || sortOrder !== 'desc'" class="mt-3 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <span>Filtres actifs :</span>
                             <span v-if="searchQuery" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
@@ -351,19 +420,22 @@ const confirmMove = () => {
                     </div>
                 </div>
 
-                
+
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                                 Vinyles de la collection
-                                <span class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                                <span v-if="pagination" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                                    (Affichage {{ pagination.from || 0 }} à {{ pagination.to || 0 }} sur {{ pagination.total }} vinyle{{ pagination.total > 1 ? 's' : '' }})
+                                </span>
+                                <span v-else class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
                                     ({{ collection.collection_vinyls?.length || 0 }} vinyle{{ (collection.collection_vinyls?.length || 0) > 1 ? 's' : '' }})
                                 </span>
                             </h3>
                         </div>
-                        
-                        <div v-if="!collection.collection_vinyls || collection.collection_vinyls.length === 0" 
+
+                        <div v-if="!collection.collection_vinyls || collection.collection_vinyls.length === 0"
                              class="text-center py-8">
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -373,25 +445,29 @@ const confirmMove = () => {
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Cette collection ne contient pas encore de vinyles.
                             </p>
-                            <div class="mt-6">
+                            <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                                 <button @click="openVinylModal"
                                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
-                                    Ajouter le premier vinyle (Discogs)
+                                    Ajouter depuis Discogs
+                                </button>
+                                <button @click="openManualVinylModal"
+                                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-600 dark:text-white dark:border-gray-600 dark:hover:bg-gray-500">
+                                    Ajouter manuellement
                                 </button>
                             </div>
                         </div>
 
-                        
+
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors relative group">
                                 <div class="flex items-start space-x-4">
-                                    <VinylImage 
+                                    <VinylImage
                                         :src="collectionVinyl.vinyl?.pochette"
                                         :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
                                         size="md"
                                     />
-                                    
+
                                     <div class="flex-1 min-w-0">
                                         <h4 class="font-medium text-gray-900 dark:text-white text-sm">
                                             {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
@@ -406,8 +482,32 @@ const confirmMove = () => {
                                         </div>
                                     </div>
 
-                                    
+
                                     <div class="flex flex-col gap-1">
+                                        <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                              class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
+                                              title="Voir les détails">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </Link>
+                                        <button v-if="collectionVinyl.can_edit"
+                                                @click="openEditModal(collectionVinyl)"
+                                                class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
+                                                title="Éditer le vinyle">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                        </button>
+                                        <button v-else
+                                                @click="showEditRestrictionToast(collectionVinyl)"
+                                                class="p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
+                                                title="Seul le créateur peut modifier ce vinyle manuel">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                            </svg>
+                                        </button>
                                         <button @click="openMoveModal(collectionVinyl)"
                                                 class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
                                                 title="Déplacer vers une autre collection">
@@ -424,14 +524,14 @@ const confirmMove = () => {
                                         </button>
                                     </div>
                                 </div>
-                                
+
                                 <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
                                     {{ collectionVinyl.commentaires }}
                                 </div>
                             </div>
                         </div>
 
-                        
+
                         <div v-else-if="viewMode === 'list'" class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead>
@@ -449,7 +549,7 @@ const confirmMove = () => {
                                     <tr v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
                                         class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td class="py-3 px-4">
-                                            <VinylImage 
+                                            <VinylImage
                                                 :src="collectionVinyl.vinyl?.pochette"
                                                 :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
                                                 size="sm"
@@ -477,6 +577,30 @@ const confirmMove = () => {
                                         </td>
                                         <td class="py-3 px-4">
                                             <div class="flex gap-1">
+                                                <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                                      class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
+                                                      title="Voir les détails">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                    </svg>
+                                                </Link>
+                                                <button v-if="collectionVinyl.can_edit"
+                                                        @click="openEditModal(collectionVinyl)"
+                                                        class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
+                                                        title="Éditer le vinyle">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button v-else
+                                                        @click="showEditRestrictionToast(collectionVinyl)"
+                                                        class="p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
+                                                        title="Seul le créateur peut modifier ce vinyle manuel">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                                    </svg>
+                                                </button>
                                                 <button @click="openMoveModal(collectionVinyl)"
                                                         class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
                                                         title="Déplacer vers une autre collection">
@@ -498,11 +622,12 @@ const confirmMove = () => {
                             </table>
                         </div>
 
-                        
+
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
-                                 class="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:scale-105 transition-transform shadow-md">
-                                
+                            <Link v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                                  :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                  class="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:scale-105 transition-transform shadow-md block">
+
                                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
                                     <img v-if="collectionVinyl.vinyl?.pochette"
                                          :src="collectionVinyl.vinyl.pochette"
@@ -510,8 +635,8 @@ const confirmMove = () => {
                                          class="w-full h-full object-cover"
                                          @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'"
                                     />
-                                    
-                                    <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }" 
+
+                                    <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }"
                                          class="w-full h-full items-center justify-center">
                                         <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                             <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -519,11 +644,11 @@ const confirmMove = () => {
                                         </svg>
                                     </div>
                                 </div>
-                                
-                                
+
+
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                                
-                                
+
+
                                 <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
                                     <h4 class="font-medium text-sm leading-tight mb-1 line-clamp-2">
                                         {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
@@ -532,9 +657,25 @@ const confirmMove = () => {
                                         {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
                                     </p>
                                 </div>
-                                
-                                
+
+
                                 <div class="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button v-if="collectionVinyl.can_edit"
+                                            @click.stop="openEditModal(collectionVinyl)"
+                                            class="p-1.5 bg-green-600/80 hover:bg-green-600 text-white rounded-full backdrop-blur-sm transition-colors"
+                                            title="Éditer le vinyle">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button v-else
+                                            @click.stop="showEditRestrictionToast(collectionVinyl)"
+                                            class="p-1.5 bg-gray-600/80 hover:bg-gray-600 text-white rounded-full backdrop-blur-sm transition-colors cursor-pointer"
+                                            title="Seul le créateur peut modifier ce vinyle manuel">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                        </svg>
+                                    </button>
                                     <button @click.stop="openMoveModal(collectionVinyl)"
                                             class="p-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-full backdrop-blur-sm transition-colors"
                                             title="Déplacer vers une autre collection">
@@ -550,85 +691,80 @@ const confirmMove = () => {
                                         </svg>
                                     </button>
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        
-        <div v-if="showVinylModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-            <div class="relative p-6 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
-                <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                        Ajouter un vinyle à "{{ collection.collection_nom }}"
-                    </h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Recherchez par nom d'artiste, album ou utilisez un code Discogs : 
-                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[r123456]</code> pour un release ou 
-                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[m123456]</code> pour un master
-                    </p>
                     
-                    <div class="mb-4 flex gap-2">
-                        <input v-model="discogsQuery"
-                               @keyup.enter="searchDiscogs"
-                               type="text" 
-                               placeholder="Rechercher un vinyle sur Discogs (artiste, album, code [r123456] ou [m123456]...)"
-                               class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                        <button @click="searchDiscogs"
-                                :disabled="isSearchingDiscogs || !discogsQuery.trim()"
-                                class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50">
-                            {{ isSearchingDiscogs ? 'Recherche...' : 'Rechercher' }}
-                        </button>
-                    </div>
-                    
-                    <div class="mb-6 max-h-96 overflow-y-auto">
-                        <div v-if="discogsResults.length === 0 && !isSearchingDiscogs && !discogsQuery.trim()" 
-                             class="text-gray-500 dark:text-gray-400 text-center py-8">
-                            Recherchez votre vinyle sur Discogs pour l'ajouter à cette collection...
+                    <!-- Contrôles de pagination -->
+                    <div v-if="pagination && pagination.last_page > 1" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="text-sm text-gray-700 dark:text-gray-300">
+                            Affichage de <span class="font-medium">{{ pagination.from }}</span> à <span class="font-medium">{{ pagination.to }}</span> sur <span class="font-medium">{{ pagination.total }}</span> résultats
                         </div>
-                        <div v-else-if="isSearchingDiscogs" 
-                             class="text-gray-500 dark:text-gray-400 text-center py-8">
-                            Recherche en cours...
-                        </div>
-                        <div v-else-if="discogsResults.length === 0" 
-                             class="text-gray-500 dark:text-gray-400 text-center py-8">
-                            Aucun résultat trouvé pour "{{ discogsQuery }}"
-                        </div>
-                        <div v-else class="space-y-3">
-                            <div v-for="result in discogsResults" :key="result.id"
-                                 class="flex items-center p-4 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <div class="mr-4">
-                                    <VinylImage 
-                                        :src="result.thumb"
-                                        :alt="result.title"
-                                        size="md"
-                                    />
-                                </div>
-                                <div class="flex-1">
-                                    <h4 class="font-medium text-gray-900 dark:text-white">{{ result.title }}</h4>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ result.year }} • {{ result.format?.join(', ') }}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-500">{{ result.label?.join(', ') }}</p>
-                                </div>
-                                <button @click="addVinylFromDiscogs(result)"
-                                        class="ml-4 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                                    Ajouter
+                        
+                        <div class="flex items-center gap-2">
+                            <!-- Bouton page précédente -->
+                            <button @click="applyFilters(pagination.current_page - 1)"
+                                    :disabled="pagination.current_page === 1"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Précédent
+                            </button>
+                            
+                            <!-- Numéros de pages -->
+                            <div class="flex items-center gap-1">
+                                <!-- Première page -->
+                                <button v-if="pagination.current_page > 3"
+                                        @click="applyFilters(1)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    1
+                                </button>
+                                <span v-if="pagination.current_page > 4" class="px-2 text-gray-500">...</span>
+                                
+                                <!-- Pages autour de la page courante -->
+                                <template v-for="page in [pagination.current_page - 2, pagination.current_page - 1, pagination.current_page, pagination.current_page + 1, pagination.current_page + 2]" :key="page">
+                                    <button v-if="page > 0 && page <= pagination.last_page"
+                                            @click="applyFilters(page)"
+                                            :class="[
+                                                'px-3 py-2 border rounded-md text-sm font-medium',
+                                                page === pagination.current_page
+                                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                                                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                                            ]">
+                                        {{ page }}
+                                    </button>
+                                </template>
+                                
+                                <!-- Dernière page -->
+                                <span v-if="pagination.current_page < pagination.last_page - 3" class="px-2 text-gray-500">...</span>
+                                <button v-if="pagination.current_page < pagination.last_page - 2"
+                                        @click="applyFilters(pagination.last_page)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    {{ pagination.last_page }}
                                 </button>
                             </div>
+                            
+                            <!-- Bouton page suivante -->
+                            <button @click="applyFilters(pagination.current_page + 1)"
+                                    :disabled="pagination.current_page === pagination.last_page"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Suivant
+                            </button>
                         </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button @click="closeVinylModal"
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                            Fermer
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        
+
+        <!-- Modal Discogs -->
+        <DiscogsVinylModal
+            :show="showVinylModal"
+            :collection-id="collection.id"
+            :collections="[collection]"
+            @close="showVinylModal = false"
+            @openManualModal="openManualVinylModal"
+        />
+
+
         <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
                 <div class="mt-3 text-center">
@@ -636,8 +772,8 @@ const confirmMove = () => {
                         Confirmer la suppression
                     </h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Êtes-vous sûr de vouloir supprimer 
-                        <strong>{{ selectedVinyl?.vinyl?.vinyl_nom }}</strong> 
+                        Êtes-vous sûr de vouloir supprimer
+                        <strong>{{ selectedVinyl?.vinyl?.vinyl_nom }}</strong>
                         de cette collection ?
                     </p>
                     <div class="flex justify-center gap-3">
@@ -654,7 +790,7 @@ const confirmMove = () => {
             </div>
         </div>
 
-        
+
         <div v-if="showMoveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
             <div class="relative p-6 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
                 <div class="mt-3">
@@ -664,17 +800,17 @@ const confirmMove = () => {
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         Déplacer <strong>{{ selectedVinyl?.vinyl?.vinyl_nom }}</strong> vers :
                     </p>
-                    
-                    <select v-model="targetCollectionId" 
+
+                    <select v-model="targetCollectionId"
                             class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 mb-4 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
                         <option value="">Choisir une collection...</option>
-                        <option v-for="userCollection in userCollections" 
-                                :key="userCollection.id" 
+                        <option v-for="userCollection in userCollections"
+                                :key="userCollection.id"
                                 :value="userCollection.id">
                             {{ userCollection.collection_nom }}
                         </option>
                     </select>
-                    
+
                     <div class="flex justify-center gap-3">
                         <button @click="closeMoveModal"
                                 class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500">
@@ -689,5 +825,22 @@ const confirmMove = () => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal ajout vinyle manuel -->
+        <ManualVinylModal
+            :show="showManualVinylModal"
+            :collection-id="collection.id"
+            :collections="[collection]"
+            @close="showManualVinylModal = false"
+        />
+
+        <!-- Modal édition vinyle -->
+        <EditVinylModal
+            v-if="vinylToEdit"
+            :show="showEditVinylModal"
+            :collection-vinyl="vinylToEdit"
+            :collections="userCollections"
+            @close="closeEditModal"
+        />
     </AuthenticatedLayout>
 </template>
