@@ -9,6 +9,7 @@ NIXPACKS_PHP_ROOT_DIR = "/app/public"
 [phases.setup]
 nixPkgs = [
   "...",
+  "nodejs_22",  # Forcer Node.js 22 au lieu de la version 18 détectée
   "python311Packages.supervisor",
   # Solution au conflit LICENSE entre yarn et composer
   # On baisse la priorité de composer pour éviter le conflit
