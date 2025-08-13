@@ -7,10 +7,14 @@ IS_LARAVEL = "1"
 NIXPACKS_PHP_ROOT_DIR = "/app/public"
 
 [phases.setup]
-nixPkgs = ["...", "python311Packages.supervisor"]
+# Nixpacks détecte automatiquement PHP et Composer, on ajoute juste ce qui manque
+nixPkgs = ["...", "python311Packages.supervisor", "nodejs_20"]
+# On laisse Nixpacks gérer yarn automatiquement via npm
 
 [phases.build]
 cmds = [
+    # Installer yarn via npm pour éviter le conflit de packages
+    "npm install -g yarn",
     "mkdir -p /etc/supervisor/conf.d/",
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
     "cp /assets/supervisord.conf /etc/supervisord.conf",
