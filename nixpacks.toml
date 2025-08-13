@@ -1,129 +1,224 @@
-# Nixpacks configuration pour Dokploy
-# Laravel + Inertia Vue SSR + PHP 8.4 + PostgreSQL
+# Nixpacks configuration pour Laravel + Inertia SSR
+# Basé sur la doc Coolify
+
+[variables]
+PORT = "8080"
+IS_LARAVEL = "1"
+NIXPACKS_PHP_ROOT_DIR = "/app/public"
 
 [phases.setup]
-# Installation de PHP 8.4 avec toutes les extensions nécessaires
-nixPkgs = [
-    "php84",
-    "php84Extensions.gd",
-    "php84Extensions.pdo",
-    "php84Extensions.pdo_pgsql",
-    "php84Extensions.mbstring",
-    "php84Extensions.xml",
-    "php84Extensions.bcmath",
-    "php84Extensions.curl",
-    "php84Extensions.zip",
-    "php84Extensions.intl",
-    "php84Extensions.opcache",
-    "php84Extensions.exif",
-    "php84Extensions.fileinfo",
-    "php84Extensions.tokenizer",
-    "php84Extensions.dom",
-    "php84Extensions.pcntl",
-    "php84Extensions.posix",
-    "nodejs_20",
-    "yarn",
-    "nginx"
-]
-
-[phases.install]
-# Installation des dépendances
-dependsOn = ["setup"]
-cmds = [
-    "composer install --optimize-autoloader --no-dev --no-interaction --prefer-dist",
-    "yarn install --frozen-lockfile --production=false"
-]
+nixPkgs = ["...", "python311Packages.supervisor"]
 
 [phases.build]
-# Build et préparation de l'application
-dependsOn = ["install"]
 cmds = [
-    # Build des assets frontend (CSS et JS avec SSR)
-    "yarn build",
-    
-    # Optimisations Laravel pour la production
-    "php artisan config:cache",
-    "php artisan route:cache",
-    "php artisan view:cache",
-    "php artisan event:cache",
-    
-    # Publier les assets des vendors
-    "php artisan vendor:publish --tag=laravel-assets --force",
-    
-    # Créer le lien symbolique storage
-    "php artisan storage:link --force",
-    
-    # Optimiser l'autoloader Composer
-    "composer dump-autoload --optimize",
-    
-    # Nettoyer les dépendances Node non nécessaires en production
-    "rm -rf node_modules",
-    "yarn install --frozen-lockfile --production=true"
-]
-
-[phases.runtime]
-# Configuration Nginx pour servir l'application
-dependsOn = ["build"]
-cmds = [
-    '''
-    cat > /etc/nginx/sites-available/default << 'EOF'
-    server {
-        listen 8080;
-        server_name _;
-        root /app/public;
-        
-        index index.php;
-        
-        charset utf-8;
-        
-        location / {
-            try_files $uri $uri/ /index.php?$query_string;
-        }
-        
-        location = /favicon.ico { access_log off; log_not_found off; }
-        location = /robots.txt  { access_log off; log_not_found off; }
-        
-        error_page 404 /index.php;
-        
-        location ~ \.php$ {
-            fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
-            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-            include fastcgi_params;
-            fastcgi_hide_header X-Powered-By;
-        }
-        
-        location ~ /\.(?!well-known).* {
-            deny all;
-        }
-        
-        client_max_body_size 100M;
-    }
-    EOF
-    ''',
-    "ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default"
+    "mkdir -p /etc/supervisor/conf.d/",
+    "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
+    "cp /assets/supervisord.conf /etc/supervisord.conf",
+    "cp /assets/php-fpm.conf /assets/php-fpm.conf",
+    "chmod +x /assets/start.sh"
 ]
 
 [start]
-# Script de démarrage avec PHP-FPM et Nginx
-cmd = '''
-#!/bin/bash
-set -e
+cmd = '/assets/start.sh'
 
-# Exécuter les migrations au démarrage
-php artisan migrate --force
+[staticAssets]
+"scripts/prestart.mjs" = '''
+import { readFileSync, writeFileSync } from 'fs';
 
-# Démarrer les workers de queue si nécessaire
-# php artisan queue:work --daemon &
+const nginxConfigFile = process.argv[2];
+const outputConfigFile = process.argv[3];
 
-# Démarrer PHP-FPM
-php-fpm8.4 -D
+const nginxConfig = readFileSync(nginxConfigFile, 'utf8');
 
-# Démarrer Nginx au premier plan
-nginx -g 'daemon off;'
+const newConfig = nginxConfig
+  .replace(/\$if\((.*?)\)\s*\(([\s\S]*?)\)\s*else\s*\(([\s\S]*?)\)/g, (match, condition, ifBlock, elseBlock) => {
+    return process.env[condition] ? ifBlock : elseBlock;
+  })
+  .replace(/\$if\((.*?)\)\s*\(([\s\S]*?)\)/g, (match, condition, ifBlock) => {
+    return process.env[condition] ? ifBlock : '';
+  })
+  .replace(/\$\!\{(.*?)\}/g, (match, varName) => {
+    return process.env[varName] || match;
+  })
+  .replace(/\$\{(.*?)\}/g, (match, varName) => {
+    return process.env[varName] || match;
+  });
+
+writeFileSync(outputConfigFile, newConfig);
 '''
 
-[variables]
-# Port fixe pour Dokploy/Traefik
-PORT = "8080"
+"start.sh" = '''
+#!/bin/bash
 
-# Les autres variables seront gérées dans Dokploy directement
+# Transform the nginx configuration
+node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
+
+# Run migrations
+php artisan migrate --force
+
+# Create storage link
+php artisan storage:link --force
+
+# Cache optimization
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Start supervisor
+supervisord -c /etc/supervisord.conf -n
+'''
+
+"supervisord.conf" = '''
+[unix_http_server]
+file=/assets/supervisor.sock
+
+[supervisord]
+logfile=/var/log/supervisord.log
+logfile_maxbytes=50MB
+logfile_backups=10
+loglevel=info
+pidfile=/assets/supervisord.pid
+nodaemon=false
+silent=false
+minfds=1024
+minprocs=200
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=unix:///assets/supervisor.sock
+
+[include]
+files = /etc/supervisor/conf.d/*.conf
+'''
+
+"worker-nginx.conf" = '''
+[program:worker-nginx]
+process_name=%(program_name)s_%(process_num)02d
+command=nginx -c /etc/nginx.conf
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/worker-nginx.log
+stderr_logfile=/var/log/worker-nginx.log
+'''
+
+"worker-phpfpm.conf" = '''
+[program:worker-phpfpm]
+process_name=%(program_name)s_%(process_num)02d
+command=php-fpm -y /assets/php-fpm.conf -F
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/worker-phpfpm.log
+stderr_logfile=/var/log/worker-phpfpm.log
+'''
+
+"worker-laravel.conf" = '''
+[program:worker-laravel]
+process_name=%(program_name)s_%(process_num)02d
+command=bash -c 'exec php /app/artisan queue:work --sleep=3 --tries=3 --max-time=3600'
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=2
+startsecs=0
+stopwaitsecs=3600
+stdout_logfile=/var/log/worker-laravel.log
+stderr_logfile=/var/log/worker-laravel.log
+'''
+
+"worker-inertia-ssr.conf" = '''
+[program:inertia-ssr]
+process_name=%(program_name)s_%(process_num)02d
+command=bash -c 'exec php /app/artisan inertia:start-ssr'
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/worker-inertia-ssr.log
+stdout_logfile=/var/log/worker-inertia-ssr.log
+'''
+
+"php-fpm.conf" = '''
+[www]
+listen = 127.0.0.1:9000
+user = www-data
+group = www-data
+listen.owner = www-data
+listen.group = www-data
+pm = dynamic
+pm.max_children = 50
+pm.min_spare_servers = 4
+pm.max_spare_servers = 32
+pm.start_servers = 18
+clear_env = no
+php_admin_value[post_max_size] = 100M
+php_admin_value[upload_max_filesize] = 100M
+'''
+
+"nginx.template.conf" = '''
+user www-data www-data;
+worker_processes 5;
+daemon off;
+
+worker_rlimit_nofile 8192;
+
+events {
+  worker_connections 4096;
+}
+
+http {
+    include    $!{nginx}/conf/mime.types;
+    index    index.html index.htm index.php;
+
+    default_type application/octet-stream;
+    log_format   main '$remote_addr - $remote_user [$time_local]  $status '
+        '"$request" $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log /var/log/nginx-access.log;
+    error_log /var/log/nginx-error.log;
+    sendfile     on;
+    tcp_nopush   on;
+    server_names_hash_bucket_size 128;
+
+    server {
+        listen ${PORT};
+        listen [::]:${PORT};
+        server_name localhost;
+
+        $if(NIXPACKS_PHP_ROOT_DIR) (
+            root ${NIXPACKS_PHP_ROOT_DIR};
+        ) else (
+            root /app/public;
+        )
+
+        add_header X-Content-Type-Options "nosniff";
+
+        client_max_body_size 100M;
+     
+        index index.php;
+     
+        charset utf-8;
+     
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+     
+        location = /favicon.ico { access_log off; log_not_found off; }
+        location = /robots.txt  { access_log off; log_not_found off; }
+     
+        error_page 404 /index.php;
+     
+        location ~ \.php$ {
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_buffer_size 8k;
+            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+            include $!{nginx}/conf/fastcgi_params;
+            include $!{nginx}/conf/fastcgi.conf;
+        }
+     
+        location ~ /\.(?!well-known).* {
+            deny all;
+        }
+    }
+}
+'''
