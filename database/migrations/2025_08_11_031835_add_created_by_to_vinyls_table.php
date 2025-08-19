@@ -25,16 +25,16 @@ return new class extends Migration
             ->get();
 
         foreach ($manualVinyls as $vinyl) {
-            // Récupérer un propriétaire aléatoire de ce vinyle
-            $randomOwner = DB::table('collection_vinyls')
+            // Récupérer le premier propriétaire de ce vinyle
+            $owner = DB::table('collection_vinyls')
                 ->where('vinyl_id', $vinyl->id)
-                ->inRandomOrder()
+                ->orderBy('id')
                 ->first();
 
-            if ($randomOwner) {
+            if ($owner) {
                 DB::table('vinyls')
                     ->where('id', $vinyl->id)
-                    ->update(['created_by' => $randomOwner->user_id]);
+                    ->update(['created_by' => $owner->user_id]);
             }
         }
     }

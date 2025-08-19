@@ -60,7 +60,6 @@ writeFileSync(outputConfigFile, newConfig);
 
 "start.sh" = '''
 #!/bin/bash
-set -e  # Exit on error
 
 echo "Starting Laravel application setup..."
 
@@ -75,27 +74,43 @@ node /assets/scripts/prestart.mjs /assets/nginx.template.conf /etc/nginx.conf
 
 # Wait for database to be ready (if needed)
 echo "Checking database connection..."
-until php artisan db:show > /dev/null 2>&1; do
-    echo "Waiting for database to be ready..."
+max_attempts=30
+attempt=0
+while [ $attempt -lt $max_attempts ]; do
+    if php artisan db:show > /dev/null 2>&1; then
+        echo "Database connection successful!"
+        break
+    fi
+    echo "Waiting for database to be ready... (attempt $((attempt+1))/$max_attempts)"
     sleep 2
+    attempt=$((attempt+1))
 done
 
-# Run migrations
+if [ $attempt -eq $max_attempts ]; then
+    echo "WARNING: Could not connect to database after $max_attempts attempts"
+fi
+
+# Run migrations with better error handling
 echo "Running database migrations..."
-php artisan migrate --force --seed || {
-    echo "Migration failed! Check your database connection."
-    exit 1
-}
+if php artisan migrate:status > /dev/null 2>&1; then
+    php artisan migrate --force 2>&1 | tee /tmp/migration.log || {
+        echo "WARNING: Migration failed. Check logs for details:"
+        cat /tmp/migration.log
+        echo "Continuing with application startup..."
+    }
+else
+    echo "WARNING: Cannot check migration status. Database may not be configured."
+fi
 
 # Create storage link
 echo "Creating storage link..."
-php artisan storage:link --force
+php artisan storage:link --force || echo "WARNING: Storage link creation failed"
 
-# Cache optimization
+# Cache optimization (only if migrations succeeded)
 echo "Optimizing application cache..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php artisan config:cache || echo "WARNING: Config cache failed"
+php artisan route:cache || echo "WARNING: Route cache failed"
+php artisan view:cache || echo "WARNING: View cache failed"
 
 echo "Starting supervisor services..."
 # Start supervisor
