@@ -1,5 +1,22 @@
 <template>
-    <Head title="Forum" />
+    <Head>
+        <title>Forum - Discussions Vinyles | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" content="Forum de discussion sur les vinyles, collections, conseils et échanges. Rejoignez la communauté des collectionneurs de vinyles." />
+        <meta name="keywords" content="forum vinyles, discussion vinyles, collection vinyles, communauté collectionneurs" />
+        <meta property="og:title" content="Forum - Discussions Vinyles | {{ $page.props.app?.name || 'Vinyls Collection' }}" />
+        <meta property="og:description" content="Forum de discussion sur les vinyles, collections, conseils et échanges. Rejoignez la communauté des collectionneurs de vinyles." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" :content="route('forum.index')" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Forum - Discussions Vinyles | {{ $page.props.app?.name || 'Vinyls Collection' }}" />
+        <meta name="twitter:description" content="Forum de discussion sur les vinyles, collections, conseils et échanges." />
+        <link rel="canonical" :href="route('forum.index')" />
+    </Head>
+    
+    <ForumStructuredData 
+        type="forum" 
+        :data="{ appName: $page.props.app?.name || 'Vinyls Collection' }" 
+    />
 
     <ForumLayout>
         <template #header>
@@ -96,6 +113,7 @@
 
 <script setup>
 import ForumLayout from '@/Layouts/ForumLayout.vue';
+import ForumStructuredData from '@/Components/Forum/ForumStructuredData.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 

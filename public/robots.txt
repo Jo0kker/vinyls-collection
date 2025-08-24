@@ -1,2 +1,27 @@
 User-agent: *
-Disallow:
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /collections/*/edit
+Disallow: /vinyls/create
+Disallow: /vinyls/*/edit
+Disallow: /forum/thread/create
+Disallow: /forum/search
+Disallow: /login
+Disallow: /register
+Disallow: /password
+Disallow: /verify-email
+Allow: /
+Allow: /forum
+Allow: /forum/thread/*
+Allow: /forum/category/*
+Allow: /profiles/*
+Allow: /vinyl/*
+
+Sitemap: {{config('app.url')}}/sitemap.xml
+
+# Pour les moteurs de recherche spécialisés
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /

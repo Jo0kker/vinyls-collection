@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import YouTubeAudioPlayer from '@/Components/YouTubeAudioPlayer.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 
 const props = defineProps({
     vinyl: {
@@ -117,6 +117,34 @@ const getYouTubeId = (url) => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/]+)/);
     return match ? match[1] : null;
 };
+
+const getVinylStructuredData = (vinyl) => {
+    return JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "MusicAlbum",
+        "name": vinyl.vinyl_nom,
+        "byArtist": {
+            "@type": "MusicGroup",
+            "name": vinyl.artiste
+        },
+        "datePublished": vinyl.annee,
+        "recordLabel": vinyl.label,
+        "genre": vinyl.discogs_data?.genres || [],
+        "image": vinyl.pochette,
+        "offers": {
+            "@type": "Offer",
+            "availability": "https://schema.org/InStock"
+        }
+    });
+};
+
+// Ajouter les données structurées au montage
+onMounted(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = getVinylStructuredData(props.vinyl);
+    document.head.appendChild(script);
+});
 </script>
 
 <style scoped>
@@ -150,14 +178,16 @@ const getYouTubeId = (url) => {
 
 <template>
     <Head>
-        <title>{{ vinyl.vinyl_nom }} - {{ vinyl.artiste }} | Collection de Vinyles</title>
+        <title>{{ vinyl.vinyl_nom }} - {{ vinyl.artiste }} | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
         <meta name="description" :content="`${vinyl.vinyl_nom} par ${vinyl.artiste} (${vinyl.annee || 'Année inconnue'}) - ${getFormatLabel(vinyl.vinyl_format)}. ${vinyl.label ? 'Label: ' + vinyl.label + '. ' : ''}${vinyl.discogs_data?.genres?.join(', ') || ''}`" />
+        <meta name="keywords" :content="`${vinyl.artiste}, ${vinyl.vinyl_nom}, vinyle, ${vinyl.discogs_data?.genres?.join(', ') || ''}`" />
         <meta property="og:title" :content="`${vinyl.vinyl_nom} - ${vinyl.artiste}`" />
         <meta property="og:description" :content="`Album vinyle ${vinyl.vinyl_nom} par ${vinyl.artiste}`" />
         <meta property="og:image" :content="vinyl.pochette" v-if="vinyl.pochette" />
         <meta property="og:type" content="music.album" />
         <meta property="music:musician" :content="vinyl.artiste" />
         <meta property="music:release_date" :content="String(vinyl.annee)" v-if="vinyl.annee" />
+        <link rel="canonical" :href="route('vinyl.show', vinyl.id)" />
     </Head>
 
     <AuthenticatedLayout>

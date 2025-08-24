@@ -20,7 +20,11 @@ const formatDate = (date) => {
 </script>
 
 <template>
-    <Head title="Mes Collections" />
+    <Head>
+        <title>Mes Collections | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" content="Gérez vos collections de vinyles personnalisées." />
+        <meta name="robots" content="noindex, nofollow" />
+    </Head>
 
     <AuthenticatedLayout>
         <template #header>

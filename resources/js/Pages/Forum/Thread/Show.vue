@@ -1,5 +1,25 @@
 <template>
-    <Head :title="thread.title" />
+    <Head>
+        <title>{{ thread.title }} - Forum | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" :content="thread.first_post?.content_plain ? thread.first_post.content_plain.substring(0, 160) : 'Discussion sur ' + thread.title" />
+        <meta name="keywords" :content="thread.title + ', forum vinyles, discussion'" />
+        <meta property="og:title" :content="thread.title + ' - Forum | ' + ($page.props.app?.name || 'Vinyls Collection')" />
+        <meta property="og:description" :content="thread.first_post?.content_plain ? thread.first_post.content_plain.substring(0, 160) : 'Discussion sur ' + thread.title" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" :content="route('forum.thread.show', thread.id)" />
+        <meta property="article:author" :content="thread.author?.name" />
+        <meta property="article:published_time" :content="thread.created_at" />
+        <meta property="article:modified_time" :content="thread.updated_at" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" :content="thread.title" />
+        <meta name="twitter:description" :content="thread.first_post?.content_plain ? thread.first_post.content_plain.substring(0, 160) : 'Discussion sur ' + thread.title" />
+        <link rel="canonical" :href="route('forum.thread.show', thread.id)" />
+    </Head>
+    
+    <ForumStructuredData 
+        type="thread" 
+        :data="thread" 
+    />
 
     <NotificationContainer />
 
@@ -816,6 +836,7 @@
 
 <script setup>
 import ForumLayout from '@/Layouts/ForumLayout.vue';
+import ForumStructuredData from '@/Components/Forum/ForumStructuredData.vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
 import Pagination from '@/Components/Pagination.vue';

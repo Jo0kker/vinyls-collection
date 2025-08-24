@@ -99,7 +99,11 @@ const closeEditModal = () => {
 </style>
 
 <template>
-    <Head title="Mes Vinyles" />
+    <Head>
+        <title>Mes Vinyles - Ma Collection | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" content="Gérez votre collection personnelle de vinyles. Ajoutez, modifiez et organisez vos albums préférés." />
+        <meta name="robots" content="noindex, nofollow" />
+    </Head>
 
     <AuthenticatedLayout>
         <template #header>

@@ -1,5 +1,9 @@
 <template>
-    <Head title="Recherche" />
+    <Head>
+        <title>Recherche dans le forum | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" content="Recherchez des discussions, messages et sujets dans le forum des collectionneurs de vinyles" />
+        <meta name="robots" content="noindex, nofollow" />
+    </Head>
 
     <ForumLayout>
         <template #header>

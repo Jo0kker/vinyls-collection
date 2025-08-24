@@ -3,6 +3,8 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
+// Les données structurées seront créées dynamiquement dans onMounted
+
 const isLoading = ref(true);
 
 defineProps({
@@ -24,6 +26,43 @@ defineProps({
 
 onMounted(() => {
     isLoading.value = false;
+    
+    // Créer les données structurées avec l'URL actuelle
+    const currentUrl = window.location.origin;
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Vinyls Collection",
+        "description": "Plateforme communautaire pour gérer, partager et discuter de votre collection de vinyles",
+        "url": currentUrl,
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": `${currentUrl}/search?q={search_term_string}`,
+            "query-input": "required name=search_term_string"
+        },
+        "sameAs": [],
+        "publisher": {
+            "@type": "Organization",
+            "name": "Vinyls Collection"
+        }
+    };
+    
+    // Ajouter les données structurées JSON-LD
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(structuredData);
+    document.head.appendChild(script);
+    
+    // Mettre à jour les meta tags avec l'URL actuelle si pas définie
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    const canonical = document.querySelector('link[rel="canonical"]');
+    
+    if (ogUrl && !ogUrl.content) {
+        ogUrl.content = currentUrl;
+    }
+    if (canonical && !canonical.href) {
+        canonical.href = currentUrl;
+    }
 });
 
 function handleImageError() {
@@ -38,6 +77,15 @@ function handleImageError() {
     <Head>
         <title>Vinyls Collection - Gérez votre collection de vinyles</title>
         <meta name="description" content="Plateforme communautaire pour gérer, partager et discuter de votre collection de vinyles. Forum actif et outils de gestion complets." />
+        <meta name="keywords" content="collection vinyles, forum vinyles, gestion collection, vinyles communauté, discogs, collectionneurs" />
+        <meta property="og:title" content="Vinyls Collection - Gérez votre collection de vinyles" />
+        <meta property="og:description" content="Rejoignez la communauté des collectionneurs de vinyles. Gérez votre collection, échangez conseils et découvrez de nouveaux albums." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" :content="$page.props.app?.url || ''" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Vinyls Collection - Communauté de collectionneurs" />
+        <meta name="twitter:description" content="La plateforme de référence pour les collectionneurs de vinyles" />
+        <link rel="canonical" :href="$page.props.app?.url || ''" />
     </Head>
 
     <div v-if="isLoading" class="fixed inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">

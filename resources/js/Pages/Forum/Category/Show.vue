@@ -1,5 +1,22 @@
 <template>
-    <Head :title="category.title" />
+    <Head>
+        <title>{{ category.title }} - Forum | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" :content="category.description || 'Catégorie ' + category.title + ' du forum de discussion sur les vinyles'" />
+        <meta name="keywords" :content="category.title + ', forum vinyles, discussion vinyles'" />
+        <meta property="og:title" :content="category.title + ' - Forum | ' + ($page.props.app?.name || 'Vinyls Collection')" />
+        <meta property="og:description" :content="category.description || 'Catégorie ' + category.title + ' du forum de discussion sur les vinyles'" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" :content="route('forum.category.show', category.id)" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" :content="category.title + ' - Forum'" />
+        <meta name="twitter:description" :content="category.description || 'Catégorie ' + category.title" />
+        <link rel="canonical" :href="route('forum.category.show', category.id)" />
+    </Head>
+    
+    <ForumStructuredData 
+        type="category" 
+        :data="category" 
+    />
 
     <ForumLayout>
         <template #header>
@@ -149,6 +166,7 @@
 
 <script setup>
 import ForumLayout from '@/Layouts/ForumLayout.vue';
+import ForumStructuredData from '@/Components/Forum/ForumStructuredData.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import Pagination from '@/Components/Pagination.vue';
 

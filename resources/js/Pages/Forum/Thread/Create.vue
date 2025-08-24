@@ -1,5 +1,9 @@
 <template>
-    <Head title="Nouvelle discussion" />
+    <Head>
+        <title>Nouvelle discussion - Forum | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" content="Créez une nouvelle discussion sur le forum des collectionneurs de vinyles" />
+        <meta name="robots" content="noindex, nofollow" />
+    </Head>
 
     <ForumLayout>
         <template #header>

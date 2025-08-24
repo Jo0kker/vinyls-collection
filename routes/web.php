@@ -126,4 +126,12 @@ Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
     Route::post('category/bulk-manage', [ForumCategoryController::class, 'bulkManage'])->name('category.bulk-manage');
 });
 
+// SEO Routes
+Route::get('/sitemap.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'index'])->name('sitemap.index');
+Route::get('/sitemap/main.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'main'])->name('sitemap.main');
+Route::get('/sitemap/forum.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'forum'])->name('sitemap.forum');
+Route::get('/sitemap/threads.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'threads'])->name('sitemap.threads');
+Route::get('/sitemap/profiles.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'profiles'])->name('sitemap.profiles');
+Route::get('/sitemap/vinyls.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'vinyls'])->name('sitemap.vinyls');
+
 require __DIR__.'/auth.php';

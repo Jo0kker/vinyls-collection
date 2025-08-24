@@ -41,7 +41,7 @@ const showingNavigationDropdown = ref(false);
                         class="grow justify-between navbar-collapse md:flex"
                     >
                         
-                        <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0">
+                        <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0 md:flex-1">
                             <li v-if="$page.props.auth.user">
                                 <NavLink
                                     :href="route('dashboard')"
@@ -74,25 +74,26 @@ const showingNavigationDropdown = ref(false);
                                     Collectionneurs
                                 </NavLink>
                             </li>
-                            <li v-if="!$page.props.auth.user">
-                                <Link
-                                    :href="route('login')"
-                                    class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700 transition duration-150 ease-in-out"
-                                >
-                                    Connexion
-                                </Link>
-                            </li>
-                            <li v-if="!$page.props.auth.user">
-                                <Link
-                                    :href="route('register')"
-                                    class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
-                                >
-                                    Inscription
-                                </Link>
-                            </li>
                         </ul>
 
                         
+                        <!-- Boutons connexion/inscription pour utilisateurs non connectés -->
+                        <div v-if="!$page.props.auth.user" class="hidden md:flex items-center gap-3">
+                            <Link
+                                :href="route('login')"
+                                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            >
+                                Connexion
+                            </Link>
+                            <Link
+                                :href="route('register')"
+                                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                            >
+                                Inscription
+                            </Link>
+                        </div>
+                        
+                        <!-- Menu utilisateur connecté -->
                         <div v-if="$page.props.auth.user" class="hidden md:flex items-center gap-4">
                             <div class="relative">
                                 <Dropdown align="right" width="48">
@@ -160,6 +161,26 @@ const showingNavigationDropdown = ref(false);
                                     Déconnexion
                                 </ResponsiveNavLink>
                             </div>
+                        </div>
+                        
+                        <!-- Menu mobile pour utilisateurs non connectés -->
+                        <div 
+                            v-if="!$page.props.auth.user"
+                            :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
+                            class="md:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-2"
+                        >
+                            <Link
+                                :href="route('login')"
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                            >
+                                Connexion
+                            </Link>
+                            <Link
+                                :href="route('register')"
+                                class="block w-full text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                            >
+                                Inscription
+                            </Link>
                         </div>
                     </div>
                 </div>

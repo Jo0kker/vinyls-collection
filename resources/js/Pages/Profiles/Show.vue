@@ -29,7 +29,15 @@ const formatDate = (date) => {
 </script>
 
 <template>
-    <Head :title="`${user.name} - Profil`" />
+    <Head>
+        <title>{{ user.name }} - Collectionneur | {{ $page.props.app?.name || 'Vinyls Collection' }}</title>
+        <meta name="description" :content="`Découvrez la collection de vinyles de ${user.name}. ${stats.total_vinyls} vinyles dans ${stats.total_collections} collections.`" />
+        <meta name="keywords" :content="`${user.name}, collection vinyles, collectionneur`" />
+        <meta property="og:title" :content="`${user.name} - Collectionneur de vinyles`" />
+        <meta property="og:description" :content="`Découvrez la collection de ${user.name} sur Vinyls Collection`" />
+        <meta property="og:type" content="profile" />
+        <link rel="canonical" :href="route('profiles.show', user.id)" />
+    </Head>
 
     <AuthenticatedLayout>
         <template #header>
