@@ -96,6 +96,7 @@
                                                       class="hover:text-purple-600 dark:hover:text-purple-400">{{ thread.lastPost.author.name }}</Link>
                                             </div>
                                             <Link :href="getLastPageUrl(thread)" 
+                                                  :data="{ scroll: 'last' }"
                                                   class="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
                                                 {{ formatRelativeTime(thread.lastPost.created_at) }}
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,6 +142,7 @@
                                                       class="hover:text-purple-600 dark:hover:text-purple-400">{{ thread.lastPost.author.name }}</Link>
                                             </div>
                                             <Link :href="getLastPageUrl(thread)" 
+                                                  :data="{ scroll: 'last' }"
                                                   class="text-blue-600 dark:text-blue-400 hover:underline">
                                                 {{ formatRelativeTime(thread.lastPost.created_at) }}
                                             </Link>
@@ -214,8 +216,12 @@ function getLastPageUrl(thread) {
     const totalPosts = thread.reply_count + 1; // +1 pour le post initial
     const lastPage = Math.ceil(totalPosts / postsPerPage);
     
-    // Générer l'URL vers la dernière page
+    // Générer l'URL vers la dernière page avec paramètre pour scroll automatique
     const baseUrl = route('forum.thread.show', { thread_id: thread.id });
-    return lastPage > 1 ? `${baseUrl}?page=${lastPage}` : baseUrl;
+    if (lastPage > 1) {
+        return `${baseUrl}?page=${lastPage}&scroll=last`;
+    } else {
+        return `${baseUrl}?scroll=last`;
+    }
 }
 </script>

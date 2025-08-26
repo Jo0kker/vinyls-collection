@@ -23,6 +23,27 @@
 
     <NotificationContainer />
 
+    <!-- Boutons de navigation fixe -->
+    <div class="fixed bottom-4 right-4 flex flex-col gap-2 z-40">
+        <transition name="fade-slide">
+            <button @click="scrollToTop"
+                    v-show="showTopButton"
+                    class="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg p-2 shadow-md transition-all duration-200 hover:shadow-lg"
+                    title="Retour en haut">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                </svg>
+            </button>
+        </transition>
+        <button @click="scrollToBottom"
+                class="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg p-2 shadow-md transition-all duration-200 hover:shadow-lg"
+                title="Aller en bas">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
+            </svg>
+        </button>
+    </div>
+
     <ForumLayout>
         <template #header>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -286,12 +307,13 @@
 
                         
                         <div class="space-y-6">
-                                <div v-for="post in posts.data" :key="post.id"
+                                <div v-for="(post, index) in posts.data" :key="post.id"
                                      :id="`post-${post.sequence}`"
                                      :class="[
                                          'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm',
                                          post.deleted_at ? 'opacity-50' : '',
-                                         selectedPosts.includes(post.id) ? 'border-blue-500 dark:border-blue-400' : ''
+                                         selectedPosts.includes(post.id) ? 'border-blue-500 dark:border-blue-400' : '',
+                                         index === posts.data.length - 1 && posts.current_page === posts.last_page ? 'last-post-marker' : ''
                                      ]">
                                     
                                     <div class="hidden md:flex">
@@ -885,8 +907,42 @@ onMounted(() => {
         };
         document.addEventListener('click', closeMenus);
         
-        // Scroll to post if hash is present
-        if (window.location.hash) {
+        // Gestion du scroll pour les boutons de navigation
+        const handleScroll = () => {
+            showTopButton.value = window.pageYOffset > 200;
+        };
+        window.addEventListener('scroll', handleScroll);
+        
+        // Vérifier si on doit scroll vers le dernier post
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldScrollToLast = window.location.hash === '#last-post' || 
+                                  urlParams.get('scroll') === 'last' ||
+                                  $page.props._inertiaFormData?.scroll === 'last';
+        
+        console.log('Should scroll check:', {
+            hash: window.location.hash,
+            urlParam: urlParams.get('scroll'),
+            inertiaData: $page.props._inertiaFormData,
+            shouldScrollToLast
+        });
+        
+        if (shouldScrollToLast) {
+            // Attendre que le DOM soit complètement chargé
+            const scrollToBottom = () => {
+                console.log('Scrolling to bottom...');
+                window.scrollTo({ 
+                    top: document.documentElement.scrollHeight, 
+                    behavior: 'smooth' 
+                });
+            };
+            
+            // Essayer plusieurs fois pour être sûr que le contenu est chargé
+            setTimeout(scrollToBottom, 100);
+            setTimeout(scrollToBottom, 500);
+            setTimeout(scrollToBottom, 1000);
+        }
+        // Scroll vers un post spécifique si l'ancre est présente
+        else if (window.location.hash && window.location.hash !== '#last-post') {
             const targetId = window.location.hash.substring(1);
             const element = document.getElementById(targetId);
             if (element) {
@@ -916,6 +972,9 @@ const renameForm = useForm({
 const moveForm = useForm({
     category_id: ''
 });
+
+// Scroll buttons state
+const showTopButton = ref(false);
 
 // Computed properties
 const isMobile = computed(() => screenWidth.value < 768);
@@ -1147,6 +1206,15 @@ function forceDeletePost(post) {
     }
 }
 
+// Navigation functions
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToBottom() {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+}
+
 // Thread moderation functions
 function lockThread() {
     if (confirm('Êtes-vous sûr de vouloir verrouiller ce thread ?')) {
@@ -1242,6 +1310,16 @@ function closePostMenu(postId) {
     list-style-type: decimal !important;
     padding-left: 1.5rem !important;
     margin: 1rem 0 !important;
+}
+
+/* Animation pour les boutons */
+.fade-slide-enter-active {
+    transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+    transform: translateY(20px);
+    opacity: 0;
 }
 </style>
 

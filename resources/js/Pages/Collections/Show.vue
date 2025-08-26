@@ -599,74 +599,71 @@ const confirmMove = () => {
 
 
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <Link v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
-                                  :href="route('vinyl.show', collectionVinyl.vinyl.id)"
-                                  class="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:scale-105 transition-transform shadow-md block">
+                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                                 class="relative aspect-square rounded-lg overflow-hidden group hover:scale-105 transition-transform shadow-md">
 
-                                <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
-                                    <img v-if="collectionVinyl.vinyl?.pochette"
-                                         :src="collectionVinyl.vinyl.pochette"
-                                         :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
-                                         class="w-full h-full object-cover"
-                                         @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'"
-                                    />
+                                <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                      class="absolute inset-0 z-0 cursor-pointer">
+                                    <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
+                                        <img v-if="collectionVinyl.vinyl?.pochette"
+                                             :src="collectionVinyl.vinyl.pochette"
+                                             :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
+                                             class="w-full h-full object-cover"
+                                             @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'"
+                                        />
 
-                                    <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }"
-                                         class="w-full h-full items-center justify-center">
-                                        <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-                                            <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                                        </svg>
+                                        <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }"
+                                             class="w-full h-full items-center justify-center">
+                                            <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                                <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                            </svg>
+                                        </div>
                                     </div>
-                                </div>
 
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
+                                        <h4 class="font-medium text-sm leading-tight mb-1 line-clamp-2">
+                                            {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
+                                        </h4>
+                                        <p class="text-xs text-gray-200 truncate">
+                                            {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
+                                        </p>
+                                    </div>
+                                </Link>
 
-
-                                <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                    <h4 class="font-medium text-sm leading-tight mb-1 line-clamp-2">
-                                        {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
-                                    </h4>
-                                    <p class="text-xs text-gray-200 truncate">
-                                        {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
-                                    </p>
-                                </div>
-
-
-                                <div class="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button v-if="collectionVinyl.can_edit"
-                                            @click.stop="openEditModal(collectionVinyl)"
-                                            class="p-1.5 bg-green-600/80 hover:bg-green-600 text-white rounded-full backdrop-blur-sm transition-colors"
-                                            title="Éditer le vinyle">
+                                <div class="absolute top-2 right-2 flex flex-col gap-1 z-10">
+                                    <button @click="openEditModal(collectionVinyl)"
+                                            :class="[
+                                                'p-1.5 text-white rounded-full backdrop-blur-sm transition-all',
+                                                collectionVinyl.can_edit_vinyl 
+                                                    ? 'bg-green-600/80 hover:bg-green-600'
+                                                    : 'bg-yellow-600/80 hover:bg-yellow-600'
+                                            ]"
+                                            :title="collectionVinyl.can_edit_vinyl 
+                                                ? 'Éditer le vinyle et votre exemplaire'
+                                                : 'Éditer uniquement votre exemplaire'">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </button>
-                                    <button v-else
-                                            @click.stop="showEditRestrictionToast(collectionVinyl)"
-                                            class="p-1.5 bg-gray-600/80 hover:bg-gray-600 text-white rounded-full backdrop-blur-sm transition-colors cursor-pointer"
-                                            title="Seul le créateur peut modifier ce vinyle manuel">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                        </svg>
-                                    </button>
-                                    <button @click.stop="openMoveModal(collectionVinyl)"
-                                            class="p-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-full backdrop-blur-sm transition-colors"
+                                    <button @click="openMoveModal(collectionVinyl)"
+                                            class="p-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-full backdrop-blur-sm transition-all"
                                             title="Déplacer vers une autre collection">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                         </svg>
                                     </button>
-                                    <button @click.stop="openDeleteModal(collectionVinyl)"
-                                            class="p-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-full backdrop-blur-sm transition-colors"
+                                    <button @click="openDeleteModal(collectionVinyl)"
+                                            class="p-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-full backdrop-blur-sm transition-all"
                                             title="Supprimer de la collection">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>
                                     </button>
                                 </div>
-                            </Link>
+                            </div>
                         </div>
                     </div>
                     

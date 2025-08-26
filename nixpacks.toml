@@ -65,8 +65,20 @@ echo "Starting Laravel application setup..."
 
 # Fix permissions for Laravel storage
 echo "Setting up permissions..."
+# Ensure storage directories exist
+mkdir -p /app/storage/logs
+mkdir -p /app/storage/framework/cache
+mkdir -p /app/storage/framework/sessions
+mkdir -p /app/storage/framework/views
+mkdir -p /app/storage/app/public
+mkdir -p /app/bootstrap/cache
+
+# Set ownership and permissions
 chown -R www-data:www-data /app/storage /app/bootstrap/cache
 chmod -R 775 /app/storage /app/bootstrap/cache
+
+# Ensure logs directory has proper permissions for writing
+chmod -R 777 /app/storage/logs
 
 # Transform the nginx configuration
 echo "Configuring nginx..."

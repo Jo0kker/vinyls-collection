@@ -86,7 +86,19 @@ class ForumPostController extends Controller
             abort(403, 'Unauthorized');
         }
 
+        $thread = $post->thread;
         $post->delete(); // Soft delete
+
+        // Mettre à jour le last_post_id du thread si nécessaire
+        if ($thread && $thread->last_post_id == $post_id) {
+            $lastActivePost = Post::where('thread_id', $thread->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            $thread->update([
+                'last_post_id' => $lastActivePost ? $lastActivePost->id : null
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Post supprimé avec succès.');
     }
@@ -101,7 +113,21 @@ class ForumPostController extends Controller
             abort(403, 'Unauthorized');
         }
 
+        $thread = $post->thread;
         $post->restore();
+
+        // Mettre à jour le last_post_id du thread si ce post est plus récent
+        if ($thread) {
+            $lastActivePost = Post::where('thread_id', $thread->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            if ($lastActivePost && $lastActivePost->id == $post->id) {
+                $thread->update([
+                    'last_post_id' => $post->id
+                ]);
+            }
+        }
 
         return redirect()->back()->with('success', 'Post restauré avec succès.');
     }
