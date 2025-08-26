@@ -274,25 +274,50 @@ class VinylController extends Controller
      */
     public function edit(CollectionVinyl $collectionVinyl)
     {
-        // Vérifier que l'utilisateur est propriétaire
+        // Vérifier que l'utilisateur est propriétaire de l'exemplaire
         if ($collectionVinyl->user_id !== Auth::id()) {
-            abort(403, 'Vous n\'avez pas accès à ce vinyle.');
-        }
-
-        // Pour les vinyles manuels, vérifier que l'utilisateur est le créateur
-        $vinyl = $collectionVinyl->vinyl;
-        if (($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) && $vinyl->created_by !== Auth::id()) {
-            abort(403, 'Seul le créateur peut modifier ce vinyle manuel.');
+            abort(403, 'Vous n\'avez pas accès à cet exemplaire.');
         }
 
         $user = Auth::user();
         $collections = $user->collections()->orderBy('collection_nom')->get();
         $collectionVinyl->load(['vinyl', 'collection']);
+        
+        // Charger le créateur pour les vinyles manuels
+        $vinyl = $collectionVinyl->vinyl;
+        if (($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) && $vinyl->created_by) {
+            $vinyl->load('creator');
+        }
+        
+        // Déterminer les permissions d'édition
+        $canEditVinyl = $this->canEditVinyl($vinyl);
+        $canEditInstance = true; // L'utilisateur peut toujours éditer son exemplaire
 
         return Inertia::render('Vinyls/Edit', [
             'collectionVinyl' => $collectionVinyl,
-            'collections' => $collections
+            'collections' => $collections,
+            'canEditVinyl' => $canEditVinyl,
+            'canEditInstance' => $canEditInstance,
+            'vinylCreator' => $vinyl->creator ?? null
         ]);
+    }
+    
+    /**
+     * Déterminer si l'utilisateur peut éditer les informations du vinyle
+     */
+    private function canEditVinyl($vinyl): bool
+    {
+        // Personne ne peut éditer un vinyle Discogs (données venant de l'API)
+        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+            return false;
+        }
+        
+        // Pour les vinyles manuels, seul le créateur peut éditer
+        if ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+            return $vinyl->created_by === Auth::id();
+        }
+        
+        return false;
     }
 
     /**
@@ -300,21 +325,17 @@ class VinylController extends Controller
      */
     public function update(Request $request, CollectionVinyl $collectionVinyl)
     {
-        // Vérifier que l'utilisateur est propriétaire
+        // Vérifier que l'utilisateur est propriétaire de l'exemplaire
         if ($collectionVinyl->user_id !== Auth::id()) {
-            abort(403, 'Vous n\'avez pas accès à ce vinyle.');
+            abort(403, 'Vous n\'avez pas accès à cet exemplaire.');
         }
 
         $vinyl = $collectionVinyl->vinyl;
+        $canEditVinyl = $this->canEditVinyl($vinyl);
         $isManualVinyl = $vinyl->discogs_type === 'manual' || is_null($vinyl->discogs_id);
 
-        // Pour les vinyles manuels, vérifier que l'utilisateur est le créateur
-        if ($isManualVinyl && $vinyl->created_by !== Auth::id()) {
-            abort(403, 'Seul le créateur peut modifier ce vinyle manuel.');
-        }
-
-        // Validation selon le type de vinyle
-        if ($isManualVinyl) {
+        // Validation selon les permissions
+        if ($canEditVinyl && $isManualVinyl) {
             // Vinyle manuel : tous les champs modifiables avec validation complète
             $rules = [
                 'collection_id' => 'required|exists:collections,id',
@@ -368,9 +389,9 @@ class VinylController extends Controller
             $pochetteUrl = $request->pochette_url;
         }
 
-        // Mettre à jour le vinyle selon son type
-        if ($isManualVinyl) {
-            // Vinyle manuel : mise à jour complète
+        // Mettre à jour le vinyle seulement si l'utilisateur a les permissions
+        if ($canEditVinyl && $isManualVinyl) {
+            // Vinyle manuel ET l'utilisateur est le créateur : mise à jour complète
             $vinylUpdateData = [
                 'vinyl_nom' => $request->vinyl_nom,
                 'vinyl_titre' => $request->vinyl_titre ?: $request->vinyl_nom,
@@ -389,10 +410,8 @@ class VinylController extends Controller
                 'pochette' => $pochetteUrl,
             ];
             $vinyl->update($vinylUpdateData);
-        } else {
-            // Vinyle Discogs : aucune modification des données du vinyle (y compris l'image)
-            // Seuls les champs pivot peuvent être modifiés
         }
+        // Si pas de permissions pour éditer le vinyle, on ne met à jour que l'exemplaire
 
         // Mettre à jour l'association avec la collection
         $collectionVinyl->update([

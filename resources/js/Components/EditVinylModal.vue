@@ -52,6 +52,12 @@ const isManualVinyl = computed(() => {
            !props.collectionVinyl.vinyl?.discogs_id;
 });
 
+const isDiscogsVinyl = computed(() => !isManualVinyl.value);
+
+// Permissions basées sur les infos du collectionVinyl
+const canEditVinyl = computed(() => props.collectionVinyl.can_edit_vinyl || false);
+const canEditInstance = computed(() => props.collectionVinyl.can_edit_instance !== false); // true par défaut
+
 const isSaving = ref(false);
 const imagePreview = ref(props.collectionVinyl.vinyl?.pochette);
 const imageFile = ref(null);
@@ -149,15 +155,31 @@ const closeModal = () => {
 };
 
 const saveVinyl = () => {
-    if (isManualVinyl.value && (!form.value.vinyl_nom || !form.value.artiste)) {
+    // Validation seulement si on peut éditer le vinyle
+    if (canEditVinyl.value && isManualVinyl.value && (!form.value.vinyl_nom || !form.value.artiste)) {
         alert('Veuillez remplir les champs obligatoires');
         return;
     }
 
-    const dataToSend = {
-        ...form.value,
-        _method: 'PUT'
+    // Préparer les données selon les permissions
+    let dataToSend = {
+        _method: 'PUT',
+        // Toujours envoyer les champs de l'exemplaire
+        collection_id: form.value.collection_id,
+        prix_achat: form.value.prix_achat,
+        annee_achat: form.value.annee_achat,
+        provenance: form.value.provenance,
+        commentaires: form.value.commentaires,
+        note: form.value.note,
     };
+
+    // Ajouter les champs du vinyle seulement si on a les permissions
+    if (canEditVinyl.value) {
+        dataToSend = {
+            ...dataToSend,
+            ...form.value
+        };
+    }
 
     router.post(`/mes-vinyles/${props.collectionVinyl.id}`, dataToSend, {
         forceFormData: true,
@@ -206,14 +228,23 @@ const getFormatLabel = (format) => {
                             <h3 class="text-lg font-medium text-gray-900 dark:text-white">
                                 Éditer le vinyle
                             </h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                <span v-if="isManualVinyl" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                    📝 Vinyle manuel - Tous les champs modifiables
-                                </span>
-                                <span v-else class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                    🎵 Vinyle Discogs - Champs limités
-                                </span>
-                            </p>
+                            <div class="mt-1 space-y-1">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span v-if="isDiscogsVinyl" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                        🎵 Vinyle Discogs - Données non modifiables
+                                    </span>
+                                    <span v-else-if="canEditVinyl" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        ✅ Vinyle manuel - Vous êtes le créateur
+                                    </span>
+                                    <span v-else class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                        ⚠️ Vinyle manuel créé par {{ collectionVinyl.vinyl?.creator?.name || 'un autre utilisateur' }}
+                                    </span>
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    <span v-if="canEditVinyl">Vous pouvez modifier toutes les informations</span>
+                                    <span v-else>Vous pouvez modifier uniquement les informations de votre exemplaire</span>
+                                </p>
+                            </div>
                         </div>
                         <button @click="closeModal" 
                                 class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -227,8 +258,8 @@ const getFormatLabel = (format) => {
                 <!-- Body avec scroll -->
                 <div class="flex-1 overflow-y-auto px-6 py-4">
                     <form @submit.prevent="saveVinyl">
-                        <!-- Image Section pour vinyles manuels -->
-                        <div v-if="isManualVinyl" class="mb-6">
+                        <!-- Image Section pour vinyles manuels avec permissions -->
+                        <div v-if="isManualVinyl && canEditVinyl" class="mb-6">
                             <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Image de pochette</h4>
                             <div class="flex items-start space-x-4">
                                 <div class="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 flex-shrink-0">
@@ -294,10 +325,11 @@ const getFormatLabel = (format) => {
                             </select>
                         </div>
 
-                        <!-- Informations Discogs en lecture seule -->
-                        <div v-if="!isManualVinyl" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                        <!-- Informations en lecture seule (Discogs ou manuel sans permissions) -->
+                        <div v-if="!canEditVinyl" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
                             <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                                Informations Discogs (non modifiables)
+                                <span v-if="isDiscogsVinyl">Informations Discogs (non modifiables)</span>
+                                <span v-else>Informations du vinyle (créé par {{ collectionVinyl.vinyl?.creator?.name || 'un autre utilisateur' }})</span>
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
@@ -323,8 +355,8 @@ const getFormatLabel = (format) => {
                             </div>
                         </div>
 
-                        <!-- Champs modifiables pour vinyles manuels -->
-                        <div v-if="isManualVinyl" class="mb-6">
+                        <!-- Champs modifiables pour vinyles manuels avec permissions -->
+                        <div v-if="isManualVinyl && canEditVinyl" class="mb-6">
                             <h4 class="text-md font-medium text-gray-900 dark:text-white mb-4">Informations du vinyle</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>

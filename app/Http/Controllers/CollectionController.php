@@ -135,22 +135,35 @@ class CollectionController extends Controller
         // Paginer les résultats
         $collectionVinylsPaginated = $query->paginate($perPage)->withQueryString();
 
-        // Ajouter l'information canEdit pour chaque vinyl et charger le créateur
+        // Ajouter les informations de permissions pour chaque vinyl
         $user = Auth::user();
         $collectionVinylsPaginated->getCollection()->transform(function ($collectionVinyl) use ($user) {
             $vinyl = $collectionVinyl->vinyl;
-            $canEdit = true; // Par défaut peut éditer car c'est son vinyl
             
-            // Si c'est un vinyle manuel, vérifier que l'utilisateur est le créateur
-            if ($vinyl && ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id)) {
-                $canEdit = $vinyl->created_by === $user->id;
-                // Charger le créateur pour l'afficher dans le toast
-                if ($vinyl->created_by) {
-                    $vinyl->load('creator');
+            // L'utilisateur peut toujours éditer son exemplaire
+            $collectionVinyl->can_edit_instance = true;
+            
+            // Déterminer si l'utilisateur peut éditer les infos du vinyle
+            $canEditVinyl = false;
+            if ($vinyl) {
+                // Personne ne peut éditer un vinyle Discogs
+                if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+                    $canEditVinyl = false;
+                }
+                // Pour les vinyles manuels, seul le créateur peut éditer
+                elseif ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+                    $canEditVinyl = $vinyl->created_by === $user->id;
+                    // Charger le créateur pour l'afficher si nécessaire
+                    if ($vinyl->created_by && !$canEditVinyl) {
+                        $vinyl->load('creator');
+                    }
                 }
             }
             
-            $collectionVinyl->can_edit = $canEdit;
+            $collectionVinyl->can_edit_vinyl = $canEditVinyl;
+            // Rétro-compatibilité : can_edit = true si on peut éditer l'exemplaire OU le vinyle
+            $collectionVinyl->can_edit = true; // On peut toujours éditer au moins l'exemplaire
+            
             return $collectionVinyl;
         });
 

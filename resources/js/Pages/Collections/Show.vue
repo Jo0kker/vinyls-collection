@@ -134,29 +134,8 @@ const openEditModal = (collectionVinyl) => {
     showEditVinylModal.value = true;
 };
 
-const showEditRestrictionToast = (collectionVinyl) => {
-    const creatorName = collectionVinyl.vinyl?.creator?.name || 'un autre utilisateur';
-    const message = `Ce vinyle manuel ne peut être modifié que par son créateur : ${creatorName}`;
-    
-    // Créer et afficher le toast
-    const toast = document.createElement('div');
-    toast.className = 'fixed bottom-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up';
-    toast.innerHTML = `
-        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-        </svg>
-        <span>${message}</span>
-    `;
-    document.body.appendChild(toast);
-    
-    // Retirer le toast après 4 secondes
-    setTimeout(() => {
-        toast.classList.add('animate-slide-down');
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
-    }, 4000);
-};
+// Cette fonction n'est plus nécessaire car on peut toujours éditer l'exemplaire
+// On pourrait éventuellement afficher un toast informatif sur les permissions limitées
 
 const closeEditModal = () => {
     showEditVinylModal.value = false;
@@ -492,20 +471,18 @@ const confirmMove = () => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                             </svg>
                                         </Link>
-                                        <button v-if="collectionVinyl.can_edit"
-                                                @click="openEditModal(collectionVinyl)"
-                                                class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
-                                                title="Éditer le vinyle">
+                                        <button @click="openEditModal(collectionVinyl)"
+                                                :class="[
+                                                    'p-1.5 rounded-md transition-colors',
+                                                    collectionVinyl.can_edit_vinyl 
+                                                        ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'
+                                                        : 'text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900'
+                                                ]"
+                                                :title="collectionVinyl.can_edit_vinyl 
+                                                    ? 'Éditer le vinyle et votre exemplaire'
+                                                    : 'Éditer uniquement votre exemplaire'">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </button>
-                                        <button v-else
-                                                @click="showEditRestrictionToast(collectionVinyl)"
-                                                class="p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
-                                                title="Seul le créateur peut modifier ce vinyle manuel">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                             </svg>
                                         </button>
                                         <button @click="openMoveModal(collectionVinyl)"
@@ -585,18 +562,16 @@ const confirmMove = () => {
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                     </svg>
                                                 </Link>
-                                                <button v-if="collectionVinyl.can_edit"
-                                                        @click="openEditModal(collectionVinyl)"
-                                                        class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 rounded-md transition-colors"
-                                                        title="Éditer le vinyle">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                    </svg>
-                                                </button>
-                                                <button v-else
-                                                        @click="showEditRestrictionToast(collectionVinyl)"
-                                                        class="p-1.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors cursor-pointer"
-                                                        title="Seul le créateur peut modifier ce vinyle manuel">
+                                                <button @click="openEditModal(collectionVinyl)"
+                                                        :class="[
+                                                            'p-1.5 rounded-md transition-colors',
+                                                            collectionVinyl.can_edit_vinyl 
+                                                                ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'
+                                                                : 'text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900'
+                                                        ]"
+                                                        :title="collectionVinyl.can_edit_vinyl 
+                                                            ? 'Éditer le vinyle et votre exemplaire'
+                                                            : 'Éditer uniquement votre exemplaire'">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                                                     </svg>

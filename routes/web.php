@@ -5,6 +5,7 @@ use App\Http\Controllers\PublicProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\VinylController;
+use App\Http\Controllers\CollectionVinylController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Api\DiscogsController;
 use App\Http\Controllers\ForumController;
@@ -70,6 +71,11 @@ Route::middleware('auth')->group(function () {
     Route::post('vinyls/from-discogs', [VinylController::class, 'storeFromDiscogs'])->name('vinyls.store-from-discogs');
     Route::post('vinyls/manual', [VinylController::class, 'storeManual'])->name('vinyls.store-manual');
     Route::post('vinyls/add-to-collection', [VinylController::class, 'addToCollection'])->name('vinyls.add-to-collection');
+    
+    // Routes pour l'édition des exemplaires (informations spécifiques à l'utilisateur)
+    Route::get('exemplaires/{collectionVinyl}/edit', [CollectionVinylController::class, 'edit'])->name('collection-vinyl.edit');
+    Route::put('exemplaires/{collectionVinyl}', [CollectionVinylController::class, 'update'])->name('collection-vinyl.update');
+    Route::get('api/exemplaires/{collectionVinyl}/editable-fields', [CollectionVinylController::class, 'getEditableFields'])->name('collection-vinyl.editable-fields');
     
     // API Routes pour Discogs
     Route::prefix('api')->group(function () {
