@@ -25,8 +25,7 @@ Route::get('/', function () {
     ]);
 });
 
-// SEO routes
-Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+// SEO routes - robots.txt
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 // Public profiles routes (accessible to everyone)
@@ -133,11 +132,6 @@ Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
 });
 
 // SEO Routes
-Route::get('/sitemap.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'index'])->name('sitemap.index');
-Route::get('/sitemap/main.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'main'])->name('sitemap.main');
-Route::get('/sitemap/forum.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'forum'])->name('sitemap.forum');
-Route::get('/sitemap/threads.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'threads'])->name('sitemap.threads');
-Route::get('/sitemap/profiles.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'profiles'])->name('sitemap.profiles');
-Route::get('/sitemap/vinyls.xml', [\App\Http\Controllers\Forum\SitemapController::class, 'vinyls'])->name('sitemap.vinyls');
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
 require __DIR__.'/auth.php';

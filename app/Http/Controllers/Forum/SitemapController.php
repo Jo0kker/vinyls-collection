@@ -22,19 +22,25 @@ class SitemapController extends Controller
         ];
 
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '\n';
         $content .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '\n';
         
         foreach ($sitemaps as $sitemap) {
-            $content .= '<sitemap>';
-            $content .= '<loc>' . $sitemap . '</loc>';
-            $content .= '<lastmod>' . now()->toAtomString() . '</lastmod>';
-            $content .= '</sitemap>';
+            $content .= '  <sitemap>';
+            $content .= '\n';
+            $content .= '    <loc>' . htmlspecialchars($sitemap, ENT_XML1, 'UTF-8') . '</loc>';
+            $content .= '\n';
+            $content .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>';
+            $content .= '\n';
+            $content .= '  </sitemap>';
+            $content .= '\n';
         }
         
         $content .= '</sitemapindex>';
 
         return response($content, 200)
-            ->header('Content-Type', 'text/xml');
+            ->header('Content-Type', 'application/xml');
     }
 
     public function forum(): Response
@@ -43,38 +49,48 @@ class SitemapController extends Controller
             ->get();
 
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '\n';
         $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '\n';
         
         // Page d'accueil du forum
-        $content .= '<url>';
-        $content .= '<loc>' . route('forum.index') . '</loc>';
-        $content .= '<changefreq>daily</changefreq>';
-        $content .= '<priority>1.0</priority>';
-        $content .= '</url>';
+        $content .= '  <url>';
+        $content .= '\n';
+        $content .= '    <loc>' . htmlspecialchars(route('forum.index'), ENT_XML1, 'UTF-8') . '</loc>';
+        $content .= '\n';
+        $content .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>';
+        $content .= '\n';
+        $content .= '  </url>';
+        $content .= '\n';
         
         // Pages importantes du forum
-        $content .= '<url>';
-        $content .= '<loc>' . route('forum.recent') . '</loc>';
-        $content .= '<changefreq>daily</changefreq>';
-        $content .= '<priority>0.9</priority>';
-        $content .= '</url>';
+        $content .= '  <url>';
+        $content .= '\n';
+        $content .= '    <loc>' . htmlspecialchars(route('forum.recent'), ENT_XML1, 'UTF-8') . '</loc>';
+        $content .= '\n';
+        $content .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>';
+        $content .= '\n';
+        $content .= '  </url>';
+        $content .= '\n';
         
         // Catégories
         foreach ($categories as $category) {
             if ($category->accepts_threads) {
-                $content .= '<url>';
-                $content .= '<loc>' . route('forum.category.show', $category->id) . '</loc>';
-                $content .= '<lastmod>' . $category->updated_at->toAtomString() . '</lastmod>';
-                $content .= '<changefreq>weekly</changefreq>';
-                $content .= '<priority>0.8</priority>';
-                $content .= '</url>';
+                $content .= '  <url>';
+                $content .= '\n';
+                $content .= '    <loc>' . htmlspecialchars(route('forum.category.show', $category->id), ENT_XML1, 'UTF-8') . '</loc>';
+                $content .= '\n';
+                $content .= '    <lastmod>' . $category->updated_at->format('Y-m-d') . '</lastmod>';
+                $content .= '\n';
+                $content .= '  </url>';
+                $content .= '\n';
             }
         }
         
         $content .= '</urlset>';
 
         return response($content, 200)
-            ->header('Content-Type', 'text/xml');
+            ->header('Content-Type', 'application/xml');
     }
 
     public function threads(): Response
@@ -89,47 +105,58 @@ class SitemapController extends Controller
             ->get();
 
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '\n';
         $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '\n';
         
         foreach ($threads as $thread) {
-            $content .= '<url>';
-            $content .= '<loc>' . route('forum.thread.show', $thread->id) . '</loc>';
-            $content .= '<lastmod>' . $thread->updated_at->toAtomString() . '</lastmod>';
-            $content .= '<changefreq>weekly</changefreq>';
-            $content .= '<priority>0.6</priority>';
-            $content .= '</url>';
+            $content .= '  <url>';
+            $content .= '\n';
+            $content .= '    <loc>' . htmlspecialchars(route('forum.thread.show', $thread->id), ENT_XML1, 'UTF-8') . '</loc>';
+            $content .= '\n';
+            $content .= '    <lastmod>' . $thread->updated_at->format('Y-m-d') . '</lastmod>';
+            $content .= '\n';
+            $content .= '  </url>';
+            $content .= '\n';
         }
         
         $content .= '</urlset>';
 
         return response($content, 200)
-            ->header('Content-Type', 'text/xml');
+            ->header('Content-Type', 'application/xml');
     }
 
     public function main(): Response
     {
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '\n';
         $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '\n';
         
         // Page d'accueil
-        $content .= '<url>';
-        $content .= '<loc>' . route('welcome') . '</loc>';
-        $content .= '<changefreq>daily</changefreq>';
-        $content .= '<priority>1.0</priority>';
-        $content .= '<lastmod>' . now()->toAtomString() . '</lastmod>';
-        $content .= '</url>';
+        $content .= '  <url>';
+        $content .= '\n';
+        $content .= '    <loc>' . htmlspecialchars(config('app.url'), ENT_XML1, 'UTF-8') . '</loc>';
+        $content .= '\n';
+        $content .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>';
+        $content .= '\n';
+        $content .= '  </url>';
+        $content .= '\n';
         
         // Page des collectionneurs
-        $content .= '<url>';
-        $content .= '<loc>' . route('profiles.index') . '</loc>';
-        $content .= '<changefreq>weekly</changefreq>';
-        $content .= '<priority>0.8</priority>';
-        $content .= '</url>';
+        $content .= '  <url>';
+        $content .= '\n';
+        $content .= '    <loc>' . htmlspecialchars(route('collectors.index'), ENT_XML1, 'UTF-8') . '</loc>';
+        $content .= '\n';
+        $content .= '    <lastmod>' . now()->format('Y-m-d') . '</lastmod>';
+        $content .= '\n';
+        $content .= '  </url>';
+        $content .= '\n';
         
         $content .= '</urlset>';
 
         return response($content, 200)
-            ->header('Content-Type', 'text/xml');
+            ->header('Content-Type', 'application/xml');
     }
 
     public function profiles(): Response
@@ -140,21 +167,25 @@ class SitemapController extends Controller
             ->get();
 
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '\n';
         $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '\n';
         
         foreach ($users as $user) {
-            $content .= '<url>';
-            $content .= '<loc>' . route('profiles.show', $user->id) . '</loc>';
-            $content .= '<lastmod>' . $user->updated_at->toAtomString() . '</lastmod>';
-            $content .= '<changefreq>monthly</changefreq>';
-            $content .= '<priority>0.5</priority>';
-            $content .= '</url>';
+            $content .= '  <url>';
+            $content .= '\n';
+            $content .= '    <loc>' . htmlspecialchars(route('collectors.show', $user->id), ENT_XML1, 'UTF-8') . '</loc>';
+            $content .= '\n';
+            $content .= '    <lastmod>' . $user->updated_at->format('Y-m-d') . '</lastmod>';
+            $content .= '\n';
+            $content .= '  </url>';
+            $content .= '\n';
         }
         
         $content .= '</urlset>';
 
         return response($content, 200)
-            ->header('Content-Type', 'text/xml');
+            ->header('Content-Type', 'application/xml');
     }
 
     public function vinyls(): Response
@@ -165,20 +196,24 @@ class SitemapController extends Controller
             ->get();
 
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
+        $content .= '\n';
         $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content .= '\n';
         
         foreach ($vinyls as $vinyl) {
-            $content .= '<url>';
-            $content .= '<loc>' . route('vinyl.show', $vinyl->id) . '</loc>';
-            $content .= '<lastmod>' . $vinyl->updated_at->toAtomString() . '</lastmod>';
-            $content .= '<changefreq>monthly</changefreq>';
-            $content .= '<priority>0.6</priority>';
-            $content .= '</url>';
+            $content .= '  <url>';
+            $content .= '\n';
+            $content .= '    <loc>' . htmlspecialchars(route('vinyl.show', $vinyl->id), ENT_XML1, 'UTF-8') . '</loc>';
+            $content .= '\n';
+            $content .= '    <lastmod>' . $vinyl->updated_at->format('Y-m-d') . '</lastmod>';
+            $content .= '\n';
+            $content .= '  </url>';
+            $content .= '\n';
         }
         
         $content .= '</urlset>';
 
         return response($content, 200)
-            ->header('Content-Type', 'text/xml');
+            ->header('Content-Type', 'application/xml');
     }
 }
