@@ -87,11 +87,27 @@ class ForumPostController extends Controller
         }
 
         $thread = $post->thread;
+        
+        // Vérifier si c'est le premier post du thread (sequence = 1)
+        $isFirstPost = $post->sequence === 1;
+        
+        if ($isFirstPost) {
+            // Si c'est le premier post, supprimer tout le thread
+            // Cela supprimera en cascade tous les posts du thread
+            $thread->delete();
+            
+            // Rediriger vers la catégorie du thread
+            return redirect()->route('forum.category.show', $thread->category_id)
+                ->with('success', 'Discussion supprimée avec succès.');
+        }
+        
+        // Sinon, supprimer seulement le post
         $post->delete(); // Soft delete
 
         // Mettre à jour le last_post_id du thread si nécessaire
         if ($thread && $thread->last_post_id == $post_id) {
             $lastActivePost = Post::where('thread_id', $thread->id)
+                ->whereNull('deleted_at')  // Exclure les posts supprimés
                 ->orderBy('created_at', 'desc')
                 ->first();
             
@@ -99,6 +115,9 @@ class ForumPostController extends Controller
                 'last_post_id' => $lastActivePost ? $lastActivePost->id : null
             ]);
         }
+        
+        // Décrémenter le compteur de réponses
+        $thread->decrement('reply_count');
 
         return redirect()->back()->with('success', 'Post supprimé avec succès.');
     }
@@ -119,6 +138,7 @@ class ForumPostController extends Controller
         // Mettre à jour le last_post_id du thread si ce post est plus récent
         if ($thread) {
             $lastActivePost = Post::where('thread_id', $thread->id)
+                ->whereNull('deleted_at')  // Exclure les posts supprimés
                 ->orderBy('created_at', 'desc')
                 ->first();
             

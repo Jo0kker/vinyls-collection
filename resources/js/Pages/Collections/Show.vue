@@ -5,7 +5,7 @@ import DiscogsVinylModal from '@/Components/DiscogsVinylModal.vue';
 import ManualVinylModal from '@/Components/ManualVinylModal.vue';
 import EditVinylModal from '@/Components/EditVinylModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     collection: {
@@ -49,6 +49,100 @@ const sortBy = ref(props.filters.sort || 'date_ajout');
 const sortOrder = ref(props.filters.order || 'desc');
 const perPage = ref(props.filters.per_page || 20);
 
+// Filtres avancés
+const showAdvancedFilters = ref(false);
+const filters = ref({
+    titre: '',
+    artiste: '',
+    annee_min: '',
+    annee_max: '',
+    genre: '',
+    label: '',
+    format: '',
+    pays: '',
+    commentaires: ''
+});
+
+// Collection filtrée
+const filteredVinyls = computed(() => {
+    if (!props.collection.collection_vinyls) return [];
+    
+    let filtered = [...props.collection.collection_vinyls];
+    
+    // Filtrer par titre
+    if (filters.value.titre) {
+        const titleQuery = filters.value.titre.toLowerCase();
+        filtered = filtered.filter(v => 
+            v.vinyl?.vinyl_nom?.toLowerCase().includes(titleQuery)
+        );
+    }
+    
+    // Filtrer par artiste
+    if (filters.value.artiste) {
+        const artistQuery = filters.value.artiste.toLowerCase();
+        filtered = filtered.filter(v => 
+            v.vinyl?.artiste?.toLowerCase().includes(artistQuery)
+        );
+    }
+    
+    // Filtrer par année min
+    if (filters.value.annee_min) {
+        filtered = filtered.filter(v => 
+            v.vinyl?.annee && parseInt(v.vinyl.annee) >= parseInt(filters.value.annee_min)
+        );
+    }
+    
+    // Filtrer par année max
+    if (filters.value.annee_max) {
+        filtered = filtered.filter(v => 
+            v.vinyl?.annee && parseInt(v.vinyl.annee) <= parseInt(filters.value.annee_max)
+        );
+    }
+    
+    // Filtrer par genre
+    if (filters.value.genre) {
+        filtered = filtered.filter(v => v.vinyl?.genre === filters.value.genre);
+    }
+    
+    // Filtrer par label
+    if (filters.value.label) {
+        filtered = filtered.filter(v => v.vinyl?.label === filters.value.label);
+    }
+    
+    // Filtrer par format
+    if (filters.value.format) {
+        filtered = filtered.filter(v => v.vinyl?.format === filters.value.format);
+    }
+    
+    // Filtrer par pays
+    if (filters.value.pays) {
+        filtered = filtered.filter(v => v.vinyl?.pays === filters.value.pays);
+    }
+    
+    // Filtrer par commentaires
+    if (filters.value.commentaires) {
+        const commentQuery = filters.value.commentaires.toLowerCase();
+        filtered = filtered.filter(v => 
+            v.commentaires?.toLowerCase().includes(commentQuery)
+        );
+    }
+    
+    return filtered;
+});
+
+// Options pour les filtres (à générer dynamiquement depuis les données)
+const filterOptions = computed(() => {
+    if (!props.collection.collection_vinyls) return {};
+    
+    const vinyls = props.collection.collection_vinyls;
+    return {
+        genres: [...new Set(vinyls.map(v => v.vinyl?.genre).filter(Boolean))].sort(),
+        labels: [...new Set(vinyls.map(v => v.vinyl?.label).filter(Boolean))].sort(),
+        formats: [...new Set(vinyls.map(v => v.vinyl?.format).filter(Boolean))].sort(),
+        pays: [...new Set(vinyls.map(v => v.vinyl?.pays).filter(Boolean))].sort(),
+    };
+});
+
 // Mode d'affichage avec cache localStorage
 const getStoredViewMode = () => {
     try {
@@ -68,6 +162,236 @@ const setViewMode = (mode) => {
     } catch (error) {
         console.warn('Impossible de sauvegarder les préférences d\'affichage:', error);
     }
+};
+
+// Configuration des colonnes disponibles
+const availableColumns = [
+    { key: 'select', label: 'Sélection', enabled: false },
+    { key: 'pochette', label: 'Pochette', enabled: true },
+    { key: 'titre', label: 'Titre', enabled: true },
+    { key: 'artiste', label: 'Artiste', enabled: true },
+    { key: 'annee', label: 'Année', enabled: true },
+    { key: 'label', label: 'Label', enabled: true },
+    { key: 'format', label: 'Format', enabled: false },
+    { key: 'pays', label: 'Pays', enabled: false },
+    { key: 'genre', label: 'Genre', enabled: false },
+    { key: 'style', label: 'Style', enabled: false },
+    { key: 'commentaires', label: 'Commentaires', enabled: false },
+    { key: 'date_ajout', label: 'Ajouté le', enabled: true },
+    { key: 'actions', label: 'Actions', enabled: true }
+];
+
+// Charger les préférences de colonnes depuis le localStorage
+const getStoredColumns = () => {
+    try {
+        const stored = localStorage.getItem('vinyl-list-columns');
+        if (stored) {
+            const storedColumns = JSON.parse(stored);
+            // Créer une map pour retrouver facilement les colonnes stockées
+            const storedMap = new Map(storedColumns.map(col => [col.key, col]));
+            
+            // Réorganiser selon l'ordre stocké et fusionner avec les nouvelles colonnes
+            const orderedColumns = [];
+            
+            // D'abord ajouter les colonnes dans l'ordre stocké
+            storedColumns.forEach(storedCol => {
+                const availableCol = availableColumns.find(ac => ac.key === storedCol.key);
+                if (availableCol) {
+                    orderedColumns.push({
+                        ...availableCol,
+                        enabled: storedCol.enabled,
+                        order: storedCol.order || orderedColumns.length
+                    });
+                }
+            });
+            
+            // Ajouter les nouvelles colonnes qui n'étaient pas stockées
+            availableColumns.forEach(col => {
+                if (!orderedColumns.find(oc => oc.key === col.key)) {
+                    orderedColumns.push({
+                        ...col,
+                        order: orderedColumns.length
+                    });
+                }
+            });
+            
+            return orderedColumns;
+        }
+    } catch (error) {
+        console.warn('Impossible de charger les préférences de colonnes:', error);
+    }
+    return availableColumns.map((col, index) => ({ ...col, order: index }));
+};
+
+const columns = ref(getStoredColumns());
+const showColumnSettings = ref(false);
+const draggedColumn = ref(null);
+const dragOverColumn = ref(null);
+
+// Sélection multiple
+const selectedVinyls = ref(new Set());
+const showBulkActions = ref(false);
+
+// Vérifier si tous les vinyls sont sélectionnés
+const isAllSelected = computed(() => {
+    return props.collection.collection_vinyls?.length > 0 && 
+           selectedVinyls.value.size === props.collection.collection_vinyls.length;
+});
+
+// Vérifier si certains vinyls sont sélectionnés (pour l'état intermédiaire)
+const isPartiallySelected = computed(() => {
+    return selectedVinyls.value.size > 0 && selectedVinyls.value.size < (props.collection.collection_vinyls?.length || 0);
+});
+
+// Sélectionner/désélectionner tous
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedVinyls.value.clear();
+    } else {
+        selectedVinyls.value.clear();
+        props.collection.collection_vinyls?.forEach(vinyl => {
+            selectedVinyls.value.add(vinyl.id);
+        });
+    }
+    updateBulkActionsVisibility();
+};
+
+// Sélectionner/désélectionner un vinyle
+const toggleSelectVinyl = (vinylId) => {
+    if (selectedVinyls.value.has(vinylId)) {
+        selectedVinyls.value.delete(vinylId);
+    } else {
+        selectedVinyls.value.add(vinylId);
+    }
+    updateBulkActionsVisibility();
+};
+
+// Mettre à jour la visibilité des actions en lot
+const updateBulkActionsVisibility = () => {
+    showBulkActions.value = selectedVinyls.value.size > 0;
+};
+
+// Effacer la sélection
+const clearSelection = () => {
+    selectedVinyls.value.clear();
+    updateBulkActionsVisibility();
+};
+
+// Actions en lot
+const bulkEdit = () => {
+    const selectedIds = Array.from(selectedVinyls.value);
+    const selectedVinylsList = props.collection.collection_vinyls.filter(v => selectedIds.includes(v.id));
+    
+    // Pour l'instant, éditer le premier élément sélectionné
+    // Plus tard, on pourra créer une modal d'édition en lot
+    if (selectedVinylsList.length > 0) {
+        openEditModal(selectedVinylsList[0]);
+    }
+};
+
+const bulkMove = () => {
+    const selectedIds = Array.from(selectedVinyls.value);
+    if (selectedIds.length > 0 && props.userCollections.length > 1) {
+        // Créer une modal de déplacement en lot
+        showBulkMoveModal.value = true;
+    }
+};
+
+const bulkDelete = () => {
+    const selectedIds = Array.from(selectedVinyls.value);
+    if (selectedIds.length > 0) {
+        if (confirm(`Êtes-vous sûr de vouloir supprimer ${selectedIds.length} vinyle(s) de cette collection ?`)) {
+            // Supprimer tous les éléments sélectionnés
+            selectedIds.forEach(vinylId => {
+                router.delete(`/collections/${props.collection.id}/vinyl/${vinylId}`, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        // Retirer de la sélection
+                        selectedVinyls.value.delete(vinylId);
+                    },
+                    onFinish: () => {
+                        updateBulkActionsVisibility();
+                        router.reload({ only: ['collection'] });
+                    }
+                });
+            });
+        }
+    }
+};
+
+// Sauvegarder les préférences de colonnes
+const saveColumnPreferences = () => {
+    try {
+        const columnsToSave = columns.value.map((col, index) => ({
+            key: col.key,
+            enabled: col.enabled,
+            order: index
+        }));
+        localStorage.setItem('vinyl-list-columns', JSON.stringify(columnsToSave));
+    } catch (error) {
+        console.warn('Impossible de sauvegarder les préférences de colonnes:', error);
+    }
+};
+
+// Basculer l'état d'une colonne
+const toggleColumn = (columnKey) => {
+    const column = columns.value.find(col => col.key === columnKey);
+    if (column) {
+        column.enabled = !column.enabled;
+        saveColumnPreferences();
+    }
+};
+
+// Réinitialiser les colonnes par défaut
+const resetColumns = () => {
+    columns.value = availableColumns.map((col, index) => ({ ...col, order: index }));
+    saveColumnPreferences();
+    showColumnSettings.value = false;
+};
+
+// Fonctions de drag and drop
+const handleDragStart = (column) => {
+    draggedColumn.value = column;
+};
+
+const handleDragOver = (e, column) => {
+    e.preventDefault();
+    if (!draggedColumn.value) return;
+    dragOverColumn.value = column;
+};
+
+const handleDragLeave = () => {
+    dragOverColumn.value = null;
+};
+
+const handleDrop = (e, targetColumn) => {
+    e.preventDefault();
+    if (!draggedColumn.value) return;
+    
+    const draggedIndex = columns.value.findIndex(col => col.key === draggedColumn.value.key);
+    const targetIndex = columns.value.findIndex(col => col.key === targetColumn.key);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+        // Retirer l'élément déplacé
+        const [removed] = columns.value.splice(draggedIndex, 1);
+        // L'insérer à la nouvelle position
+        columns.value.splice(targetIndex, 0, removed);
+        
+        // Mettre à jour l'ordre
+        columns.value.forEach((col, index) => {
+            col.order = index;
+        });
+        
+        saveColumnPreferences();
+    }
+    
+    draggedColumn.value = null;
+    dragOverColumn.value = null;
+};
+
+const handleDragEnd = () => {
+    draggedColumn.value = null;
+    dragOverColumn.value = null;
 };
 
 const formatDate = (date) => {
@@ -125,6 +449,45 @@ const clearSearch = () => {
 
 const toggleSortOrder = () => {
     sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+    applyFilters();
+};
+
+// Fonctions pour les filtres avancés
+const applyAdvancedFilters = () => {
+    // Pour l'instant, on filtre côté client
+    // Plus tard, on pourra envoyer ces filtres au serveur
+    applyFilters();
+};
+
+const clearAdvancedFilters = () => {
+    filters.value = {
+        titre: '',
+        artiste: '',
+        annee_min: '',
+        annee_max: '',
+        genre: '',
+        label: '',
+        format: '',
+        pays: '',
+        commentaires: ''
+    };
+    applyAdvancedFilters();
+};
+
+// Fonctions de tri par colonne
+const getSortableColumns = () => {
+    return ['titre', 'artiste', 'annee', 'label', 'format', 'pays', 'genre', 'date_ajout'];
+};
+
+const sortByColumn = (columnKey) => {
+    if (sortBy.value === columnKey) {
+        // Si on clique sur la même colonne, inverser l'ordre
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Nouvelle colonne, commencer par ordre croissant
+        sortBy.value = columnKey;
+        sortOrder.value = 'asc';
+    }
     applyFilters();
 };
 
@@ -366,6 +729,20 @@ const confirmMove = () => {
                                     </svg>
                                 </button>
                                 
+                                <!-- Bouton filtres avancés -->
+                                <button @click="showAdvancedFilters = !showAdvancedFilters"
+                                        :class="[
+                                            'p-2 border rounded-md transition-colors focus:ring-2 focus:ring-purple-500',
+                                            showAdvancedFilters
+                                                ? 'bg-purple-600 text-white border-purple-600'
+                                                : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                        ]"
+                                        title="Filtres avancés">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                                    </svg>
+                                </button>
+                                
                                 <!-- Sélecteur d'items par page -->
                                 <div class="flex items-center gap-2 ml-4 border-l pl-4">
                                     <span class="text-sm text-gray-600 dark:text-gray-400">Afficher :</span>
@@ -399,6 +776,160 @@ const confirmMove = () => {
                     </div>
                 </div>
 
+                <!-- Filtres avancés -->
+                <div v-if="showAdvancedFilters" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres avancés</h3>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ filteredVinyls.length }} / {{ props.collection.collection_vinyls?.length || 0 }} vinyles
+                            </span>
+                        </div>
+                        
+                        <!-- Filtres de recherche textuelle -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Recherche textuelle</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Titre de l'album</label>
+                                    <input v-model="filters.titre"
+                                           type="text"
+                                           placeholder="Rechercher par titre..."
+                                           @input="applyAdvancedFilters"
+                                           class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Artiste</label>
+                                    <input v-model="filters.artiste"
+                                           type="text"
+                                           placeholder="Rechercher par artiste..."
+                                           @input="applyAdvancedFilters"
+                                           class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Commentaires</label>
+                                    <input v-model="filters.commentaires"
+                                           type="text"
+                                           placeholder="Rechercher dans commentaires..."
+                                           @input="applyAdvancedFilters"
+                                           class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Séparateur -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 mb-6"></div>
+
+                        <!-- Filtres par catégories -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filtres par catégories</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <!-- Filtre par genre -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Genre</label>
+                                    <select v-model="filters.genre"
+                                            @change="applyAdvancedFilters"
+                                            class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                        <option value="">Tous les genres</option>
+                                        <option v-for="genre in filterOptions.genres" :key="genre" :value="genre">
+                                            {{ genre }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Filtre par label -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Label</label>
+                                    <select v-model="filters.label"
+                                            @change="applyAdvancedFilters"
+                                            class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                        <option value="">Tous les labels</option>
+                                        <option v-for="label in filterOptions.labels" :key="label" :value="label">
+                                            {{ label }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Filtre par format -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Format</label>
+                                    <select v-model="filters.format"
+                                            @change="applyAdvancedFilters"
+                                            class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                        <option value="">Tous les formats</option>
+                                        <option v-for="format in filterOptions.formats" :key="format" :value="format">
+                                            {{ format }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Filtre par pays -->
+                                <div>
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Pays</label>
+                                    <select v-model="filters.pays"
+                                            @change="applyAdvancedFilters"
+                                            class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                        <option value="">Tous les pays</option>
+                                        <option v-for="pays in filterOptions.pays" :key="pays" :value="pays">
+                                            {{ pays }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Séparateur -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 mb-6"></div>
+
+                        <!-- Filtre par année -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Plage d'années</h4>
+                            <div class="flex items-center gap-4 max-w-md">
+                                <div class="flex-1">
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Année min</label>
+                                    <input v-model="filters.annee_min"
+                                           type="number"
+                                           placeholder="1950"
+                                           min="1900"
+                                           max="2030"
+                                           @input="applyAdvancedFilters"
+                                           class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                </div>
+                                <div class="text-gray-400 mt-4">à</div>
+                                <div class="flex-1">
+                                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Année max</label>
+                                    <input v-model="filters.annee_max"
+                                           type="number"
+                                           placeholder="2024"
+                                           min="1900"
+                                           max="2030"
+                                           @input="applyAdvancedFilters"
+                                           class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions des filtres -->
+                        <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center gap-3">
+                                <button @click="clearAdvancedFilters"
+                                        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                                    Effacer tous les filtres
+                                </button>
+                                <span class="text-xs text-gray-400">|</span>
+                                <button @click="showAdvancedFilters = false"
+                                        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                                    Fermer les filtres
+                                </button>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                Filtrage en temps réel
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -414,7 +945,7 @@ const confirmMove = () => {
                             </h3>
                         </div>
 
-                        <div v-if="!collection.collection_vinyls || collection.collection_vinyls.length === 0"
+                        <div v-if="!filteredVinyls || filteredVinyls.length === 0"
                              class="text-center py-8">
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -438,7 +969,7 @@ const confirmMove = () => {
 
 
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                            <div v-for="collectionVinyl in filteredVinyls" :key="collectionVinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors relative group">
                                 <div class="flex items-start space-x-4">
                                     <VinylImage
@@ -509,51 +1040,238 @@ const confirmMove = () => {
                         </div>
 
 
-                        <div v-else-if="viewMode === 'list'" class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead>
-                                    <tr class="border-b border-gray-200 dark:border-gray-700">
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Pochette</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Titre</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Artiste</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Année</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Label</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Ajouté le</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
-                                        class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                        <td class="py-3 px-4">
-                                            <VinylImage
-                                                :src="collectionVinyl.vinyl?.pochette"
-                                                :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
-                                                size="sm"
-                                            />
-                                        </td>
-                                        <td class="py-3 px-4">
-                                            <div class="font-medium text-gray-900 dark:text-white">
-                                                {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
+                        <div v-else-if="viewMode === 'list'" class="relative">
+                            <!-- Barre d'actions en lot -->
+                            <div v-if="showBulkActions" 
+                                 class="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-sm font-medium text-purple-900 dark:text-purple-100">
+                                            {{ selectedVinyls.size }} élément{{ selectedVinyls.size > 1 ? 's' : '' }} sélectionné{{ selectedVinyls.size > 1 ? 's' : '' }}
+                                        </span>
+                                        <div class="flex items-center space-x-2">
+                                            <button @click="bulkEdit"
+                                                    class="px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors">
+                                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                </svg>
+                                                Éditer
+                                            </button>
+                                            <button @click="bulkMove"
+                                                    class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
+                                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                                </svg>
+                                                Déplacer
+                                            </button>
+                                            <button @click="bulkDelete"
+                                                    class="px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors">
+                                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Supprimer
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button @click="clearSelection"
+                                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Bouton de configuration des colonnes -->
+                            <div class="absolute right-0 -top-12 z-20">
+                                <button @click="showColumnSettings = !showColumnSettings"
+                                        class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                        title="Configurer les colonnes">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </button>
+                                
+                                <!-- Dropdown de configuration des colonnes -->
+                                <div v-if="showColumnSettings" 
+                                     class="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                                    <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Colonnes visibles</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Glissez-déposez pour réorganiser l'ordre</p>
+                                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                                        <div v-for="column in columns" :key="column.key"
+                                             draggable="true"
+                                             @dragstart="handleDragStart(column)"
+                                             @dragover="handleDragOver($event, column)"
+                                             @dragleave="handleDragLeave"
+                                             @drop="handleDrop($event, column)"
+                                             @dragend="handleDragEnd"
+                                             :class="[
+                                                 'flex items-center space-x-2 p-2 rounded border transition-all bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-move',
+                                                 dragOverColumn?.key === column.key 
+                                                     ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' 
+                                                     : '',
+                                                 draggedColumn?.key === column.key 
+                                                     ? 'opacity-50' 
+                                                     : ''
+                                             ]">
+                                            <!-- Poignée de drag -->
+                                            <div class="text-gray-400 hover:text-gray-600">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                                </svg>
                                             </div>
-                                            <div v-if="collectionVinyl.commentaires" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                {{ collectionVinyl.commentaires }}
-                                            </div>
-                                        </td>
-                                        <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
-                                        </td>
-                                        <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.annee || '-' }}
-                                        </td>
-                                        <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.label || '-' }}
-                                        </td>
-                                        <td class="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                                            {{ formatDate(collectionVinyl.date_ajout) }}
-                                        </td>
-                                        <td class="py-3 px-4">
-                                            <div class="flex gap-1">
+                                            
+                                            <!-- Checkbox -->
+                                            <input type="checkbox"
+                                                   :checked="column.enabled"
+                                                   @change="toggleColumn(column.key)"
+                                                   class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                   @click.stop>
+                                            
+                                            <!-- Label -->
+                                            <span class="text-sm flex-1 text-gray-700 dark:text-gray-300">
+                                                {{ column.label }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+                                        <button @click="resetColumns"
+                                                class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                                            Réinitialiser
+                                        </button>
+                                        <button @click="showColumnSettings = false"
+                                                class="text-sm bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">
+                                            Fermer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                                            <th v-for="column in columns.filter(c => c.enabled)" :key="column.key"
+                                                :class="[
+                                                    'py-3 px-4 font-medium text-gray-700 dark:text-gray-300',
+                                                    column.key === 'select' ? 'w-10' : '',
+                                                    getSortableColumns().includes(column.key) ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' : ''
+                                                ]"
+                                                @click="column.key !== 'select' && getSortableColumns().includes(column.key) && sortByColumn(column.key)">
+                                                <!-- Case à cocher "Tout sélectionner" -->
+                                                <div v-if="column.key === 'select'" class="flex items-center">
+                                                    <input type="checkbox"
+                                                           :checked="isAllSelected"
+                                                           :indeterminate="isPartiallySelected"
+                                                           @change="toggleSelectAll"
+                                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                                </div>
+                                                <!-- En-têtes de colonnes avec tri -->
+                                                <div v-else-if="getSortableColumns().includes(column.key)" class="flex items-center justify-between">
+                                                    <span>{{ column.label }}</span>
+                                                    <div class="flex flex-col ml-1">
+                                                        <svg :class="[
+                                                                'w-3 h-3 transition-colors',
+                                                                sortBy === column.key && sortOrder === 'asc' 
+                                                                    ? 'text-purple-600' 
+                                                                    : 'text-gray-400 hover:text-gray-600'
+                                                             ]" 
+                                                             fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                                                        </svg>
+                                                        <svg :class="[
+                                                                'w-3 h-3 -mt-1 transition-colors',
+                                                                sortBy === column.key && sortOrder === 'desc' 
+                                                                    ? 'text-purple-600' 
+                                                                    : 'text-gray-400 hover:text-gray-600'
+                                                             ]" 
+                                                             fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <!-- En-têtes de colonnes non triables -->
+                                                <span v-else>{{ column.label }}</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="collectionVinyl in filteredVinyls" :key="collectionVinyl.id"
+                                            class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                            
+                                            <td v-for="column in columns.filter(c => c.enabled)" :key="column.key" 
+                                                :class="['py-3 px-4', column.key === 'select' ? 'w-10' : '']">
+                                                <!-- Sélection -->
+                                                <div v-if="column.key === 'select'" class="flex items-center">
+                                                    <input type="checkbox"
+                                                           :checked="selectedVinyls.has(collectionVinyl.id)"
+                                                           @change="toggleSelectVinyl(collectionVinyl.id)"
+                                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                                </div>
+                                                
+                                                <!-- Pochette -->
+                                                <VinylImage v-else-if="column.key === 'pochette'"
+                                                    :src="collectionVinyl.vinyl?.pochette"
+                                                    :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
+                                                    size="sm"
+                                                />
+                                                
+                                                <!-- Titre -->
+                                                <div v-else-if="column.key === 'titre'">
+                                                    <div class="font-medium text-gray-900 dark:text-white">
+                                                        {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Artiste -->
+                                                <span v-else-if="column.key === 'artiste'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
+                                                </span>
+                                                
+                                                <!-- Année -->
+                                                <span v-else-if="column.key === 'annee'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.annee || '-' }}
+                                                </span>
+                                                
+                                                <!-- Label -->
+                                                <span v-else-if="column.key === 'label'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.label || '-' }}
+                                                </span>
+                                                
+                                                <!-- Format -->
+                                                <span v-else-if="column.key === 'format'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.format || '-' }}
+                                                </span>
+                                                
+                                                <!-- Pays -->
+                                                <span v-else-if="column.key === 'pays'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.pays || '-' }}
+                                                </span>
+                                                
+                                                <!-- Genre -->
+                                                <span v-else-if="column.key === 'genre'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.genre || '-' }}
+                                                </span>
+                                                
+                                                <!-- Style -->
+                                                <span v-else-if="column.key === 'style'" class="text-gray-700 dark:text-gray-300">
+                                                    {{ collectionVinyl.vinyl?.style || '-' }}
+                                                </span>
+                                                
+                                                <!-- Commentaires -->
+                                                <span v-else-if="column.key === 'commentaires'" class="text-xs text-gray-600 dark:text-gray-400">
+                                                    {{ collectionVinyl.commentaires || '-' }}
+                                                </span>
+                                                
+                                                <!-- Date d'ajout -->
+                                                <span v-else-if="column.key === 'date_ajout'" class="text-gray-500 dark:text-gray-400 text-xs">
+                                                    {{ formatDate(collectionVinyl.date_ajout) }}
+                                                </span>
+                                                
+                                                <!-- Actions -->
+                                                <div v-else-if="column.key === 'actions'">
+                                                    <div class="flex gap-1">
                                                 <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
                                                       class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
                                                       title="Voir les détails">
@@ -590,16 +1308,18 @@ const confirmMove = () => {
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                     </svg>
                                                 </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
 
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                            <div v-for="collectionVinyl in filteredVinyls" :key="collectionVinyl.id"
                                  class="relative aspect-square rounded-lg overflow-hidden group hover:scale-105 transition-transform shadow-md">
 
                                 <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
@@ -633,7 +1353,7 @@ const confirmMove = () => {
                                     </div>
                                 </Link>
 
-                                <div class="absolute top-2 right-2 flex flex-col gap-1 z-10">
+                                <div class="absolute top-2 right-2 flex flex-col gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                     <button @click="openEditModal(collectionVinyl)"
                                             :class="[
                                                 'p-1.5 text-white rounded-full backdrop-blur-sm transition-all',

@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::post('vinyls/from-discogs', [VinylController::class, 'storeFromDiscogs'])->name('vinyls.store-from-discogs');
     Route::post('vinyls/manual', [VinylController::class, 'storeManual'])->name('vinyls.store-manual');
     Route::post('vinyls/add-to-collection', [VinylController::class, 'addToCollection'])->name('vinyls.add-to-collection');
+    Route::post('vinyls/{collectionVinyl}/duplicate', [VinylController::class, 'duplicate'])->name('vinyls.duplicate');
     
     // Routes pour l'édition des exemplaires (informations spécifiques à l'utilisateur)
     Route::get('exemplaires/{collectionVinyl}/edit', [CollectionVinylController::class, 'edit'])->name('collection-vinyl.edit');

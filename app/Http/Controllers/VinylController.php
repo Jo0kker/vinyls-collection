@@ -139,13 +139,13 @@ class VinylController extends Controller
         // Vérifier si l'utilisateur peut éditer le vinyle
         $canEdit = $isOwner;
         $vinyl = $collectionVinyl->vinyl;
-        if ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+        if (!$vinyl->discogs_id) {
             $canEdit = $isOwner && $vinyl->created_by === Auth::id();
         }
         
         // Si c'est un vinyle Discogs, enrichir avec les données complètes
         $vinyl = $collectionVinyl->vinyl;
-        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+        if ($vinyl->discogs_id) {
             try {
                 // Récupérer les détails complets depuis Discogs
                 if ($vinyl->discogs_type === 'master') {
@@ -194,7 +194,7 @@ class VinylController extends Controller
     public function showVinyl(Vinyl $vinyl, DiscogsService $discogsService)
     {
         // Enrichir avec les données Discogs si nécessaire
-        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+        if ($vinyl->discogs_id) {
             try {
                 // Récupérer les détails complets depuis Discogs
                 if ($vinyl->discogs_type === 'master') {
@@ -285,7 +285,7 @@ class VinylController extends Controller
         
         // Charger le créateur pour les vinyles manuels
         $vinyl = $collectionVinyl->vinyl;
-        if (($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) && $vinyl->created_by) {
+        if (!$vinyl->discogs_id && $vinyl->created_by) {
             $vinyl->load('creator');
         }
         
@@ -308,16 +308,12 @@ class VinylController extends Controller
     private function canEditVinyl($vinyl): bool
     {
         // Personne ne peut éditer un vinyle Discogs (données venant de l'API)
-        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+        if ($vinyl->discogs_id) {
             return false;
         }
         
-        // Pour les vinyles manuels, seul le créateur peut éditer
-        if ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
-            return $vinyl->created_by === Auth::id();
-        }
-        
-        return false;
+        // Pour les vinyles manuels (discogs_id = null), seul le créateur peut éditer
+        return $vinyl->created_by === Auth::id();
     }
 
     /**
@@ -332,7 +328,7 @@ class VinylController extends Controller
 
         $vinyl = $collectionVinyl->vinyl;
         $canEditVinyl = $this->canEditVinyl($vinyl);
-        $isManualVinyl = $vinyl->discogs_type === 'manual' || is_null($vinyl->discogs_id);
+        $isManualVinyl = is_null($vinyl->discogs_id);
 
         // Validation selon les permissions
         if ($canEditVinyl && $isManualVinyl) {
@@ -443,7 +439,31 @@ class VinylController extends Controller
         }
 
         $collection = $collectionVinyl->collection;
+        $vinyl = $collectionVinyl->vinyl;
+        
+        // Supprimer l'exemplaire de la collection
         $collectionVinyl->delete();
+
+        // Vérifier si d'autres utilisateurs possèdent ce vinyle
+        $remainingCount = CollectionVinyl::where('vinyl_id', $vinyl->id)->count();
+        
+        if ($remainingCount === 0) {
+            // Personne d'autre ne possède ce vinyle, on peut le supprimer complètement
+            
+            // Supprimer l'image de S3 si elle existe
+            if ($vinyl->pochette && !$vinyl->discogs_id) { // Ne pas supprimer les images Discogs
+                $this->deleteVinylImage($vinyl->pochette);
+            }
+            
+            // Supprimer le vinyle de la base de données
+            $vinyl->delete();
+            
+            \Log::info('Vinyle orphelin supprimé', [
+                'vinyl_id' => $vinyl->id,
+                'vinyl_nom' => $vinyl->vinyl_nom,
+                'image_deleted' => !empty($vinyl->pochette)
+            ]);
+        }
 
         // Mettre à jour la date de modification de la collection
         $collection->update([
@@ -451,6 +471,160 @@ class VinylController extends Controller
         ]);
 
         return back()->with('success', 'Vinyle supprimé avec succès.');
+    }
+
+    /**
+     * Duplicate a vinyl to create a user's own copy
+     */
+    public function duplicate(CollectionVinyl $collectionVinyl)
+    {
+        $user = Auth::user();
+        $originalVinyl = $collectionVinyl->vinyl;
+        
+        // Vérifier que le vinyle est manuel (pas de discogs_id) et que l'utilisateur n'est pas déjà le créateur
+        if ($originalVinyl->discogs_id) {
+            return back()->with('error', 'Les vinyles Discogs ne peuvent pas être dupliqués.');
+        }
+        
+        if ($originalVinyl->created_by === $user->id) {
+            return back()->with('error', 'Vous êtes déjà le créateur de ce vinyle.');
+        }
+        
+        // Dupliquer l'image si elle existe
+        $newPochetteUrl = null;
+        if ($originalVinyl->pochette) {
+            $newPochetteUrl = $this->duplicateVinylImage($originalVinyl->pochette);
+        }
+        
+        // Créer une copie du vinyle avec l'utilisateur actuel comme créateur
+        $newVinyl = Vinyl::create([
+            'vinyl_nom' => $originalVinyl->vinyl_nom,
+            'vinyl_titre' => $originalVinyl->vinyl_titre,
+            'vinyl_format' => $originalVinyl->vinyl_format,
+            'artiste' => $originalVinyl->artiste,
+            'label' => $originalVinyl->label,
+            'reference' => $originalVinyl->reference,
+            'annee' => $originalVinyl->annee,
+            'pays' => $originalVinyl->pays,
+            'pochette' => $newPochetteUrl, // Utiliser la nouvelle URL d'image
+            'tracks' => $originalVinyl->tracks,
+            'specificite' => $originalVinyl->specificite,
+            'refMatrice' => $originalVinyl->refMatrice,
+            'distribution' => $originalVinyl->distribution,
+            'edition' => $originalVinyl->edition,
+            'anneeOriginal' => $originalVinyl->anneeOriginal,
+            'vinyl_nbcollect' => 1,
+            'vinyl_alias' => 0,
+            'discogs_id' => null, // NULL pour les vinyles manuels
+            'discogs_type' => null, // NULL pour les vinyles manuels
+            'created_by' => $user->id,
+        ]);
+        
+        // Vérifier si l'utilisateur possède déjà cet exemplaire
+        if ($collectionVinyl->user_id === $user->id) {
+            // L'utilisateur possède déjà cet exemplaire, on met à jour le vinyl_id
+            $collectionVinyl->update([
+                'vinyl_id' => $newVinyl->id,
+            ]);
+            
+            // Rediriger vers la page d'édition de l'exemplaire existant
+            return redirect()->route('vinyls.edit', $collectionVinyl->id)
+                ->with('success', 'Le vinyle a été remplacé par votre copie personnelle. Vous pouvez maintenant modifier les informations.');
+        } else {
+            // L'utilisateur ne possède pas cet exemplaire (consulte depuis une collection publique)
+            // Créer un nouvel exemplaire dans une de ses collections
+            $defaultCollection = $user->collections()->first();
+            if (!$defaultCollection) {
+                return back()->with('error', 'Vous devez avoir au moins une collection pour dupliquer un vinyle.');
+            }
+            
+            $newCollectionVinyl = CollectionVinyl::create([
+                'user_id' => $user->id,
+                'collection_id' => $defaultCollection->id,
+                'vinyl_id' => $newVinyl->id,
+                'prix_achat' => $collectionVinyl->prix_achat,
+                'annee_achat' => $collectionVinyl->annee_achat,
+                'provenance' => $collectionVinyl->provenance,
+                'commentaires' => $collectionVinyl->commentaires,
+                'note' => $collectionVinyl->note,
+                'date_ajout' => Carbon::now(),
+            ]);
+            
+            // Rediriger vers la page d'édition du nouveau vinyle
+            return redirect()->route('vinyls.edit', $newCollectionVinyl->id)
+                ->with('success', 'Copie du vinyle créée dans votre collection. Vous pouvez maintenant modifier les informations.');
+        }
+    }
+    
+    /**
+     * Delete a vinyl image from S3
+     */
+    private function deleteVinylImage($imageUrl)
+    {
+        try {
+            // Vérifier si c'est une URL S3
+            if (str_contains($imageUrl, 's3.amazonaws.com') || str_contains($imageUrl, 'digitaloceanspaces.com')) {
+                // Extraire le chemin depuis l'URL
+                $path = parse_url($imageUrl, PHP_URL_PATH);
+                $path = ltrim($path, '/');
+                
+                // Supprimer le fichier de S3
+                if (Storage::disk('s3')->exists($path)) {
+                    Storage::disk('s3')->delete($path);
+                    \Log::info('Image supprimée de S3', ['path' => $path]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Duplicate a vinyl image to create a new copy
+     */
+    private function duplicateVinylImage($originalUrl)
+    {
+        try {
+            // Si c'est une URL externe (Discogs ou autre), télécharger l'image
+            if (filter_var($originalUrl, FILTER_VALIDATE_URL)) {
+                $imageContent = @file_get_contents($originalUrl);
+                if (!$imageContent) {
+                    return null;
+                }
+                
+                // Créer un fichier temporaire
+                $tempPath = tempnam(sys_get_temp_dir(), 'vinyl_');
+                file_put_contents($tempPath, $imageContent);
+                
+                // Créer un UploadedFile à partir du contenu
+                $file = new \Illuminate\Http\UploadedFile($tempPath, 'image.jpg', 'image/jpeg', null, true);
+                
+                // Utiliser la méthode existante pour uploader
+                $newUrl = $this->uploadVinylImage($file);
+                
+                // Nettoyer le fichier temporaire
+                @unlink($tempPath);
+                
+                return $newUrl;
+            }
+            
+            // Si c'est déjà une image stockée sur S3, la dupliquer directement
+            if (str_contains($originalUrl, 's3.amazonaws.com') || str_contains($originalUrl, 'digitaloceanspaces.com')) {
+                // Extraire le chemin depuis l'URL
+                $path = parse_url($originalUrl, PHP_URL_PATH);
+                $path = ltrim($path, '/');
+                
+                // Copier le fichier sur S3
+                $newPath = "vinyls/" . \Illuminate\Support\Str::uuid() . ".jpg";
+                Storage::disk('s3')->copy($path, $newPath);
+                
+                return Storage::disk('s3')->url($newPath);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la duplication de l\'image du vinyle: ' . $e->getMessage());
+        }
+        
+        return null;
     }
 
     /**

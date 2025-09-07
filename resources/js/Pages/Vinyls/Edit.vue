@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -27,7 +28,7 @@ const props = defineProps({
 });
 
 const vinyl = props.collectionVinyl.vinyl;
-const isManualVinyl = computed(() => vinyl.discogs_type === 'manual' || !vinyl.discogs_id);
+const isManualVinyl = computed(() => !vinyl.discogs_id);
 const isDiscogsVinyl = computed(() => !isManualVinyl.value);
 const canEditVinylFields = computed(() => props.canEditVinyl);
 const canEditInstanceFields = computed(() => props.canEditInstance);
@@ -99,6 +100,23 @@ const submit = () => {
             // Redirect handled by controller
         }
     });
+};
+
+// Modal de duplication
+const showDuplicateModal = ref(false);
+
+const duplicateVinyl = () => {
+    showDuplicateModal.value = true;
+};
+
+const confirmDuplicate = () => {
+    router.post(route('vinyls.duplicate', props.collectionVinyl.id), {}, {
+        preserveScroll: false,
+        onSuccess: () => {
+            // La redirection vers le nouveau vinyle est gérée par le contrôleur
+        }
+    });
+    showDuplicateModal.value = false;
 };
 
 const getFormatLabel = (format) => {
@@ -240,10 +258,22 @@ const getFormatLabel = (format) => {
 
                                 <!-- Affichage en lecture seule si pas de permissions -->
                                 <div v-if="!canEditVinylFields" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-                                    <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                                        <span v-if="isDiscogsVinyl">Informations Discogs (non modifiables)</span>
-                                        <span v-else>Informations du vinyle (créé par {{ vinylCreator?.name || 'un autre utilisateur' }})</span>
-                                    </h4>
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                                            <span v-if="isDiscogsVinyl">Informations Discogs (non modifiables)</span>
+                                            <span v-else>Informations du vinyle (créé par {{ vinylCreator?.name || 'un autre utilisateur' }})</span>
+                                        </h4>
+                                        <!-- Bouton de duplication pour les vinyles manuels créés par d'autres -->
+                                        <button v-if="isManualVinyl && !canEditVinyl"
+                                                @click="duplicateVinyl"
+                                                type="button"
+                                                class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+                                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                                            </svg>
+                                            Créer ma copie
+                                        </button>
+                                    </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <span class="text-gray-600 dark:text-gray-400">Nom:</span>
@@ -584,5 +614,17 @@ const getFormatLabel = (format) => {
                 </div>
             </div>
         </div>
+        
+        <!-- Modal de confirmation pour la duplication -->
+        <ConfirmationModal
+            :show="showDuplicateModal"
+            title="Créer votre propre copie"
+            :message="`Ce vinyle a été créé par ${vinylCreator?.name || 'un autre utilisateur'} et vous ne pouvez pas modifier ses informations.\n\nEn créant votre propre copie :\n• Vous deviendrez propriétaire de la nouvelle version\n• Vous pourrez modifier toutes les informations (titre, artiste, etc.)\n• L'image sera dupliquée pour être indépendante\n• Votre exemplaire actuel sera remplacé par cette nouvelle version\n\nVoulez-vous continuer ?`"
+            type="warning"
+            confirm-text="Créer ma copie"
+            cancel-text="Annuler"
+            @confirm="confirmDuplicate"
+            @close="showDuplicateModal = false"
+        />
     </AuthenticatedLayout>
 </template>

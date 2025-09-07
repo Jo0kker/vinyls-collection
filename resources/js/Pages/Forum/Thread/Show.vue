@@ -853,6 +853,18 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Modal de confirmation pour la suppression -->
+        <ConfirmationModal
+            :show="showDeleteModal"
+            :title="deleteModalConfig.title"
+            :message="deleteModalConfig.message"
+            :type="deleteModalConfig.type"
+            confirm-text="Supprimer"
+            cancel-text="Annuler"
+            @confirm="confirmDelete"
+            @close="showDeleteModal = false"
+        />
     </ForumLayout>
 </template>
 
@@ -864,6 +876,7 @@ import { ref, computed, onMounted } from 'vue';
 import Pagination from '@/Components/Pagination.vue';
 import TinyMCEEditor from '@/Components/TinyMCEEditor.vue';
 import NotificationContainer from '@/Components/NotificationContainer.vue';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { useNotifications } from '@/composables/useNotifications.js';
 import { useForumContent } from '@/composables/useForumContent.js';
 
@@ -1188,10 +1201,43 @@ function submitEdit() {
     });
 }
 
+// Modal de confirmation
+const showDeleteModal = ref(false);
+const deleteModalConfig = ref({
+    title: '',
+    message: '',
+    type: 'warning',
+    postToDelete: null
+});
+
 function deletePost(post) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) {
-        router.delete(route('forum.post.destroy', { post_id: post.id }));
+    // Vérifier si c'est le premier post (qui supprimera tout le thread)
+    const isFirstPost = post.sequence === 1;
+    
+    if (isFirstPost) {
+        deleteModalConfig.value = {
+            title: 'Supprimer la discussion complète',
+            message: 'Vous êtes sur le point de supprimer le message principal de cette discussion.\n\nCela supprimera TOUTE LA DISCUSSION, y compris toutes les réponses.\n\nCette action est irréversible.',
+            type: 'danger',
+            postToDelete: post
+        };
+    } else {
+        deleteModalConfig.value = {
+            title: 'Supprimer le message',
+            message: 'Êtes-vous sûr de vouloir supprimer ce message ?',
+            type: 'warning',
+            postToDelete: post
+        };
     }
+    
+    showDeleteModal.value = true;
+}
+
+function confirmDelete() {
+    if (deleteModalConfig.value.postToDelete) {
+        router.delete(route('forum.post.destroy', { post_id: deleteModalConfig.value.postToDelete.id }));
+    }
+    showDeleteModal.value = false;
 }
 
 function restorePost(post) {

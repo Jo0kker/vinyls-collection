@@ -9,6 +9,7 @@ use App\Models\Vinyl;
 use App\Models\CollectionVinyl;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class CollectionController extends Controller
@@ -270,7 +271,31 @@ class CollectionController extends Controller
             abort(403, 'Ce vinyle n\'appartient pas à cette collection.');
         }
 
+        $vinyl = $collectionVinyl->vinyl;
+        
+        // Supprimer l'exemplaire de la collection
         $collectionVinyl->delete();
+
+        // Vérifier si d'autres utilisateurs possèdent ce vinyle
+        $remainingCount = CollectionVinyl::where('vinyl_id', $vinyl->id)->count();
+        
+        if ($remainingCount === 0) {
+            // Personne d'autre ne possède ce vinyle, on peut le supprimer complètement
+            
+            // Supprimer l'image de S3 si elle existe et si ce n'est pas un vinyle Discogs
+            if ($vinyl->pochette && !$vinyl->discogs_id) {
+                $this->deleteVinylImage($vinyl->pochette);
+            }
+            
+            // Supprimer le vinyle de la base de données
+            $vinyl->delete();
+            
+            \Log::info('Vinyle orphelin supprimé depuis CollectionController', [
+                'vinyl_id' => $vinyl->id,
+                'vinyl_nom' => $vinyl->vinyl_nom,
+                'collection_id' => $collection->id
+            ]);
+        }
 
         // Mettre à jour la date de modification de la collection
         $collection->update([
@@ -324,5 +349,28 @@ class CollectionController extends Controller
         $targetCollection->update(['collection_date_modif' => Carbon::now()]);
 
         return redirect()->route('collections.show', $collection)->with('success', 'Vinyle déplacé vers "' . $targetCollection->collection_nom . '" avec succès.');
+    }
+    
+    /**
+     * Delete a vinyl image from S3
+     */
+    private function deleteVinylImage($imageUrl)
+    {
+        try {
+            // Vérifier si c'est une URL S3
+            if (str_contains($imageUrl, 's3.amazonaws.com') || str_contains($imageUrl, 'digitaloceanspaces.com')) {
+                // Extraire le chemin depuis l'URL
+                $path = parse_url($imageUrl, PHP_URL_PATH);
+                $path = ltrim($path, '/');
+                
+                // Supprimer le fichier de S3
+                if (Storage::disk('s3')->exists($path)) {
+                    Storage::disk('s3')->delete($path);
+                    \Log::info('Image supprimée de S3 depuis CollectionController', ['path' => $path]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
+        }
     }
 }
