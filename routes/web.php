@@ -52,6 +52,9 @@ Route::middleware('auth')->group(function () {
     
     // Collections routes
     Route::resource('collections', CollectionController::class);
+    Route::get('collections/{collection}/export', [CollectionController::class, 'export'])
+        ->name('collections.export')
+        ->middleware('throttle:export');
     Route::delete('collections/{collection}/vinyl/{collectionVinyl}', [CollectionController::class, 'removeVinyl'])->name('collections.vinyl.remove');
     Route::patch('collections/{collection}/vinyl/{collectionVinyl}/move', [CollectionController::class, 'moveVinyl'])->name('collections.vinyl.move');
     
