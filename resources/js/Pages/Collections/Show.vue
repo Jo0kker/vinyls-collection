@@ -36,6 +36,9 @@ const showVinylModal = ref(false);
 const showManualVinylModal = ref(false);
 const showEditVinylModal = ref(false);
 
+// État pour l'export
+const isExporting = ref(false);
+
 // États pour les actions vinyles
 const showDeleteModal = ref(false);
 const showMoveModal = ref(false);
@@ -556,6 +559,62 @@ const confirmMove = () => {
         });
     }
 };
+
+// État pour les messages d'erreur
+const exportError = ref('');
+
+// Fonction pour gérer l'export Excel
+const handleExport = async () => {
+    if (isExporting.value) return; // Empêcher les double-clics
+
+    isExporting.value = true;
+    exportError.value = '';
+
+    try {
+        // Faire une requête fetch pour vérifier le rate limiting
+        const response = await fetch(`/collections/${props.collection.id}/export`, {
+            method: 'GET',
+            credentials: 'same-origin',
+        });
+
+        if (response.status === 429) {
+            // Trop de requêtes
+            exportError.value = 'Trop d\'exports demandés. Veuillez patienter une minute avant de réessayer.';
+            isExporting.value = false;
+            setTimeout(() => {
+                exportError.value = '';
+            }, 5000);
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de l\'export');
+        }
+
+        // Déclencher le téléchargement
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `collection-${props.collection.collection_nom}-${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        // Réactiver le bouton après un court délai
+        setTimeout(() => {
+            isExporting.value = false;
+        }, 2000);
+    } catch (error) {
+        console.error('Erreur lors de l\'export:', error);
+        exportError.value = 'Une erreur est survenue lors de l\'export.';
+        isExporting.value = false;
+        setTimeout(() => {
+            exportError.value = '';
+        }, 5000);
+    }
+};
 </script>
 
 <style scoped>
@@ -593,6 +652,34 @@ const confirmMove = () => {
                     </h2>
                 </div>
                 <div class="flex items-center gap-4">
+                    <!-- Message d'erreur pour l'export -->
+                    <div v-if="exportError" class="text-red-600 text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <span>{{ exportError }}</span>
+                    </div>
+                    <button @click="handleExport"
+                            :disabled="isExporting"
+                            :class="[
+                                'px-4 py-2 rounded-md transition-all inline-flex items-center gap-2',
+                                isExporting
+                                    ? 'bg-green-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700'
+                            ]"
+                            class="text-white"
+                            title="Exporter la collection en Excel">
+                        <!-- Loader spinner -->
+                        <svg v-if="isExporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <!-- Icône normale -->
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        {{ isExporting ? 'Génération...' : 'Exporter Excel' }}
+                    </button>
                     <Link :href="`/collections/${collection.id}/edit`"
                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
                         Modifier

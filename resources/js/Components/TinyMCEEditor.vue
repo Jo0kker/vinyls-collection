@@ -46,10 +46,11 @@ const editorConfig = {
     image_advtab: true,
     image_caption: true,
     image_description: false,
+    media_live_embeds: true,
     toolbar: 'undo redo | blocks | ' +
         'bold italic backcolor | alignleft aligncenter ' +
         'alignright alignjustify | bullist numlist outdent indent | ' +
-        'link image | removeformat | help',
+        'link image media | removeformat | help',
     content_style: `
         body { 
             font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; 
@@ -65,6 +66,27 @@ const editorConfig = {
     setup: function (editor) {
         editor.on('init', function () {
             editor.getContainer().style.transition = "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out";
+        });
+
+        // Bloquer l'insertion de vidéos Dailymotion
+        editor.on('BeforeSetContent', function(e) {
+            if (e.content && e.content.includes('dailymotion.com')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                editor.windowManager.alert('❌ Dailymotion non supporté\n\nCette plateforme vidéo n\'est pas prise en charge en raison de problèmes d\'autoplay.\n\nVeuillez utiliser YouTube à la place.');
+                return false;
+            }
+        });
+
+        // Nettoyage global des iframes Dailymotion
+        const cleanupInterval = setInterval(() => {
+            const iframes = document.querySelectorAll('iframe[src*="dailymotion.com"]');
+            iframes.forEach(iframe => iframe.remove());
+        }, 1000);
+
+        editor.on('remove', function() {
+            clearInterval(cleanupInterval);
         });
     }
 };

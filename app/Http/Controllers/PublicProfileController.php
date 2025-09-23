@@ -15,8 +15,10 @@ class PublicProfileController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('search', '');
+        $sortBy = $request->get('sort_by', 'vinyl_count'); // Default sort by vinyl count
         
-        $query = User::where('profile_public', true);
+        $query = User::where('profile_public', true)
+                    ->whereNotNull('email_verified_at'); // Only verified users
         
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -26,13 +28,31 @@ class PublicProfileController extends Controller
             });
         }
         
-        $users = $query->withCount(['publicCollections', 'vinylCollections'])
-                      ->orderBy('name')
-                      ->paginate(24);
+        $query->withCount(['publicCollections', 'vinylCollections']);
+        
+        // Apply sorting
+        switch ($sortBy) {
+            case 'name':
+                $query->orderBy('name');
+                break;
+            case 'collection_count':
+                $query->orderByDesc('public_collections_count');
+                break;
+            case 'recent':
+                $query->orderByDesc('created_at');
+                break;
+            case 'vinyl_count':
+            default:
+                $query->orderByDesc('vinyl_collections_count');
+                break;
+        }
+        
+        $users = $query->paginate(24)->appends($request->query());
 
         return Inertia::render('Profiles/Index', [
             'users' => $users,
-            'search' => $search
+            'search' => $search,
+            'sortBy' => $sortBy
         ]);
     }
 

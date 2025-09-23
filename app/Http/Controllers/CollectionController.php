@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use App\Exports\CollectionExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CollectionController extends Controller
 {
@@ -350,7 +352,22 @@ class CollectionController extends Controller
 
         return redirect()->route('collections.show', $collection)->with('success', 'Vinyle déplacé vers "' . $targetCollection->collection_nom . '" avec succès.');
     }
-    
+
+    /**
+     * Export collection to Excel
+     */
+    public function export(Collection $collection)
+    {
+        // Vérifier que l'utilisateur est propriétaire de la collection
+        if ($collection->user_id !== Auth::id()) {
+            abort(403, 'Vous n\'avez pas accès à cette collection.');
+        }
+
+        $fileName = 'collection-' . \Str::slug($collection->collection_nom) . '-' . date('Y-m-d') . '.xlsx';
+
+        return Excel::download(new CollectionExport($collection), $fileName);
+    }
+
     /**
      * Delete a vinyl image from S3
      */

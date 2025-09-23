@@ -25,14 +25,49 @@ export function useForumContent() {
     }
 
     /**
-     * Décode seulement les entités HTML sans toucher aux balises
+     * Décode seulement les entités HTML sans toucher aux balises et traite les liens YouTube
      * @param {string} content - Contenu avec entités HTML
-     * @returns {string} - Contenu avec caractères décodés
+     * @returns {string} - Contenu avec caractères décodés et YouTube embeds
      */
     function decodeHtmlEntities(content) {
         const div = document.createElement('div');
         div.innerHTML = content;
-        return div.innerHTML;
+        let processedContent = div.innerHTML;
+        
+        // Traiter les iframes Dailymotion pour désactiver l'autoplay
+        processedContent = processYouTubeLinks(processedContent);
+        
+        return processedContent;
+    }
+
+    /**
+     * Convertit les liens YouTube en embeds YouTube
+     * @param {string} content - Contenu HTML
+     * @returns {string} - Contenu avec embeds YouTube
+     */
+    function processYouTubeLinks(content) {
+        // Remplacer tout contenu Dailymotion par message d'erreur pour l'historique
+        let processedContent = content;
+
+        // Remplacer les anciens placeholders
+        processedContent = processedContent.replace(
+            /<div[^>]*class="dailymotion-placeholder"[^>]*data-video-url="([^"]*)"[^>]*>[\s\S]*?<\/div>/g,
+            '<div style="padding:20px;background:#ffebee;border:2px solid #f44336;border-radius:8px;color:#c62828;text-align:center;margin:10px 0;"><strong>❌ Dailymotion non supporté</strong><br><small>Cette plateforme vidéo n\'est plus prise en charge.</small></div>'
+        );
+
+        // Remplacer les autres anciens placeholders
+        processedContent = processedContent.replace(
+            /<div[^>]*data-video-url="([^"]*dailymotion\.com[^"]*)"[^>]*>[\s\S]*?<\/div>/g,
+            '<div style="padding:20px;background:#ffebee;border:2px solid #f44336;border-radius:8px;color:#c62828;text-align:center;margin:10px 0;"><strong>❌ Dailymotion non supporté</strong><br><small>Cette plateforme vidéo n\'est plus prise en charge.</small></div>'
+        );
+        
+        // Remplacer toutes les iframes Dailymotion par message d'erreur
+        processedContent = processedContent.replace(
+            /<iframe[^>]*src=["'][^"']*dailymotion\.com[^"']*["'][^>]*><\/iframe>/g,
+            '<div style="padding:20px;background:#ffebee;border:2px solid #f44336;border-radius:8px;color:#c62828;text-align:center;margin:10px 0;"><strong>❌ Dailymotion non supporté</strong><br><small>Cette plateforme vidéo n\'est plus prise en charge.</small></div>'
+        );
+
+        return processedContent;
     }
 
     /**
@@ -96,6 +131,9 @@ export function useForumContent() {
 
         parsed = parsed.replace(/\r?\n/g, '<br>');
 
+        // Traiter les iframes Dailymotion pour désactiver l'autoplay
+        parsed = processYouTubeLinks(parsed);
+
         return parsed;
     }
 
@@ -111,6 +149,7 @@ export function useForumContent() {
 
     return {
         processForumContent,
+        processYouTubeLinks,
         parseLegacyFormat,
         decodeHtmlEntities,
         isLegacyMessage
