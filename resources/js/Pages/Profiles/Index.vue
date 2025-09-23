@@ -11,14 +11,27 @@ const props = defineProps({
     search: {
         type: String,
         default: ''
+    },
+    sortBy: {
+        type: String,
+        default: 'vinyl_count'
     }
 });
 
 const searchQuery = ref(props.search);
+const currentSort = ref(props.sortBy);
+
+const sortOptions = [
+    { value: 'vinyl_count', label: 'Plus de vinyles' },
+    { value: 'collection_count', label: 'Plus de collections' },
+    { value: 'name', label: 'Nom (A-Z)' },
+    { value: 'recent', label: 'Récemment inscrits' }
+];
 
 const performSearch = () => {
     router.get('/collectors', {
-        search: searchQuery.value
+        search: searchQuery.value,
+        sort_by: currentSort.value
     }, {
         preserveState: true
     });
@@ -26,6 +39,10 @@ const performSearch = () => {
 
 const clearSearch = () => {
     searchQuery.value = '';
+    performSearch();
+};
+
+const changeSort = () => {
     performSearch();
 };
 </script>
@@ -45,32 +62,49 @@ const clearSearch = () => {
                 
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                            <div class="flex-1 max-w-md">
-                                <div class="relative">
-                                    <input 
-                                        v-model="searchQuery"
-                                        @keyup.enter="performSearch"
-                                        type="text" 
-                                        placeholder="Rechercher un collectionneur..."
-                                        class="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    >
-                                    <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                    <button v-if="searchQuery" 
-                                            @click="clearSearch"
-                                            class="absolute right-3 top-2.5 h-5 w-5 text-gray-400 hover:text-gray-600">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1">
+                                <div class="flex gap-3">
+                                    <div class="flex-1 relative">
+                                        <input 
+                                            v-model="searchQuery"
+                                            @keyup.enter="performSearch"
+                                            type="text" 
+                                            placeholder="Rechercher un collectionneur..."
+                                            class="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        >
+                                        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
+                                        <button v-if="searchQuery" 
+                                                @click="clearSearch"
+                                                class="absolute right-3 top-2.5 h-5 w-5 text-gray-400 hover:text-gray-600">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <button @click="performSearch"
+                                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                        Rechercher
                                     </button>
                                 </div>
                             </div>
-                            <button @click="performSearch"
-                                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                Rechercher
-                            </button>
+                            
+                            <div class="flex items-center gap-2 md:ml-4">
+                                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Trier par :
+                                </label>
+                                <select 
+                                    v-model="currentSort"
+                                    @change="changeSort"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm min-w-0"
+                                >
+                                    <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+                                        {{ option.label }}
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
