@@ -503,11 +503,6 @@
     "@tailwindcss/oxide" "4.1.8"
     tailwindcss "4.1.8"
 
-"@tinymce/tinymce-vue@^6.2.0":
-  version "6.2.0"
-  resolved "https://registry.npmjs.org/@tinymce/tinymce-vue/-/tinymce-vue-6.2.0.tgz"
-  integrity sha512-HiXKB+M3mJnWO6/8kY0HsP255+8zLZw5JMqHKVUvsXvzYyHW+splXXwYDYOkCYqf39R5nBqQaK2l2WL9rz3y5w==
-
 "@tybys/wasm-util@^0.10.0":
   version "0.10.0"
   resolved "https://registry.yarnpkg.com/@tybys/wasm-util/-/wasm-util-0.10.0.tgz#2fd3cd754b94b378734ce17058d0507c45c88369"
@@ -1411,16 +1406,6 @@ tinyglobby@^0.2.13:
   dependencies:
     fdir "^6.4.4"
     picomatch "^4.0.2"
-
-tinymce-i18n@^25.9.22:
-  version "25.9.22"
-  resolved "https://registry.yarnpkg.com/tinymce-i18n/-/tinymce-i18n-25.9.22.tgz#c5d97c6b73126e7f28d61f1a7613870c99907a69"
-  integrity sha512-hLbGrfNSAJJQ/bZ4xxFxYcxDrCG8UVEU446RpyoMN+4lL7SMU4d2/T+E2tH2U1LAAv7571VHUzGLdRbQN+z7UA==
-
-tinymce@^8.1.2:
-  version "8.1.2"
-  resolved "https://registry.yarnpkg.com/tinymce/-/tinymce-8.1.2.tgz#0598f3703a2977533196161f5bce5256d6872da0"
-  integrity sha512-KITxHEEHRlxC5xOnxA123eAJ67NgsWxNphtItWt9TRu07DiTZrWIqJeIKRX9euE51/l3kJO4WQiqoBXKTJJGsA==
 
 tree-kill@^1.2.2:
   version "1.2.2"

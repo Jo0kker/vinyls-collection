@@ -201,6 +201,10 @@ const saveVinyl = () => {
             ...dataToSend,
             ...form.value
         };
+    } else if (form.value.pochette_file || form.value.pochette_url) {
+        // Permettre l'ajout d'image même pour les vinyles Discogs
+        dataToSend.pochette_file = form.value.pochette_file;
+        dataToSend.pochette_url = form.value.pochette_url;
     }
 
     router.post(`/mes-vinyles/${props.collectionVinyl.id}`, dataToSend, {
@@ -280,9 +284,14 @@ const getFormatLabel = (format) => {
                 <!-- Body avec scroll -->
                 <div class="flex-1 overflow-y-auto px-6 py-4">
                     <form @submit.prevent="saveVinyl">
-                        <!-- Image Section pour vinyles manuels avec permissions -->
-                        <div v-if="isManualVinyl && canEditVinyl" class="mb-6">
-                            <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Image de pochette</h4>
+                        <!-- Image Section pour vinyles manuels avec permissions OU si pas d'image et owner -->
+                        <div v-if="(isManualVinyl && canEditVinyl) || (!collectionVinyl.vinyl?.pochette && canEditInstance)" class="mb-6">
+                            <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">
+                                Image de pochette
+                                <span v-if="isDiscogsVinyl" class="text-sm font-normal text-gray-500 dark:text-gray-400">
+                                    (Ajout d'image personnalisée)
+                                </span>
+                            </h4>
                             <div class="flex items-start space-x-4">
                                 <div class="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 flex-shrink-0">
                                     <img v-if="imagePreview" 
