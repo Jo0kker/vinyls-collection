@@ -19,7 +19,7 @@ nixPkgs = [
 cmds = [
     # Build des assets frontend avec Vite
     "yarn build",
-    
+
     # Configuration supervisor et nginx
     "mkdir -p /etc/supervisor/conf.d/",
     "cp /assets/worker-*.conf /etc/supervisor/conf.d/",
@@ -126,6 +126,9 @@ php artisan route:cache || echo "WARNING: Route cache failed"
 php artisan view:cache || echo "WARNING: View cache failed"
 
 echo "Starting supervisor services..."
+
+chown -R www-data:www-data /app/storage/logs
+
 # Start supervisor
 supervisord -c /etc/supervisord.conf -n
 '''

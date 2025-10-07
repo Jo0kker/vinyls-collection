@@ -17,6 +17,9 @@ const props = defineProps({
     }
 });
 
+// Référence reactive pour les données modifiables
+const vinylsData = ref([...props.vinyls]);
+
 // États des modales
 const showVinylModal = ref(false);
 const showManualVinylModal = ref(false);
@@ -75,6 +78,26 @@ const showEditRestrictionToast = (vinyl) => {
 const closeEditModal = () => {
     showEditVinylModal.value = false;
     vinylToEdit.value = null;
+};
+
+// Gestion de la mise à jour d'image
+const handleImageUpdated = (data) => {
+    // Ajouter timestamp pour éviter le cache du navigateur
+    const imageUrlWithTimestamp = data.newImageUrl + '?t=' + Date.now();
+
+    // Recréer le tableau des vinyles avec la nouvelle image
+    vinylsData.value = vinylsData.value.map(vinyl => {
+        if (vinyl.id === data.collectionVinylId) {
+            return {
+                ...vinyl,
+                vinyl: {
+                    ...vinyl.vinyl,
+                    pochette: imageUrlWithTimestamp
+                }
+            };
+        }
+        return vinyl;
+    });
 };
 </script>
 
@@ -140,7 +163,7 @@ const closeEditModal = () => {
                 <div v-else class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div v-for="vinyl in vinyls" :key="vinyl.id"
+                            <div v-for="vinyl in vinylsData" :key="vinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group">
                                 <div class="flex items-start space-x-4">
                                     <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
@@ -230,6 +253,7 @@ const closeEditModal = () => {
             :collection-vinyl="vinylToEdit"
             :collections="allCollections"
             @close="closeEditModal"
+            @image-updated="handleImageUpdated"
         />
     </AuthenticatedLayout>
 </template>

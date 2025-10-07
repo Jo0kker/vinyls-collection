@@ -49,7 +49,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    
+
+    // Route pour l'upload d'image
+    Route::post('vinyls/{id}/update-image', [VinylController::class, 'updateImage'])->name('vinyls.update-image');
+
     // Collections routes
     Route::resource('collections', CollectionController::class);
     Route::get('collections/{collection}/export', [CollectionController::class, 'export'])
@@ -84,6 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api')->group(function () {
         Route::get('discogs/search', [DiscogsController::class, 'search'])->name('api.discogs.search');
         Route::get('discogs/release/{id}', [DiscogsController::class, 'getRelease'])->name('api.discogs.release');
+        Route::post('check-image-accessibility/{collectionVinyl}', [CollectionController::class, 'checkImageAccessibility'])->name('api.check-image');
     });
     
 });

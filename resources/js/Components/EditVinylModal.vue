@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed, watch, nextTick } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+
+// Debug au chargement du composant
 
 const props = defineProps({
     show: {
@@ -18,7 +20,11 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'image-updated']);
+
+// Récupérer les données de la page Inertia de manière reactive
+const page = usePage();
+
 
 // Données du formulaire
 const form = ref({
@@ -61,10 +67,62 @@ const canEditInstance = computed(() => props.collectionVinyl.can_edit_instance !
 const isSaving = ref(false);
 const imagePreview = ref(props.collectionVinyl.vinyl?.pochette);
 const imageFile = ref(null);
+const imageNotAccessible = ref(false);
+const checkingImageAccessibility = ref(false);
+const skipNextImageReset = ref(false);
+
+// Function to check image accessibility
+const checkImageAccessibility = () => {
+    const imageUrl = props.collectionVinyl.vinyl?.pochette;
+
+    if (!imageUrl || checkingImageAccessibility.value) {
+        return;
+    }
+
+    checkingImageAccessibility.value = true;
+
+    // Créer un nouvel élément image pour tester le chargement
+    const img = new Image();
+
+    // Timeout de 1 seconde
+    const timeout = setTimeout(() => {
+        imageNotAccessible.value = true;
+        checkingImageAccessibility.value = false;
+    }, 1000);
+
+    img.onload = () => {
+        clearTimeout(timeout);
+        imageNotAccessible.value = false;
+        checkingImageAccessibility.value = false;
+    };
+
+    img.onerror = () => {
+        clearTimeout(timeout);
+        imageNotAccessible.value = true;
+        checkingImageAccessibility.value = false;
+    };
+
+    img.src = imageUrl;
+};
+
+// Debug des props
+
+// Déclencher la vérification si le modal est déjà ouvert au chargement
+if (props.show && props.collectionVinyl.vinyl?.pochette) {
+    nextTick(() => {
+        checkImageAccessibility();
+    });
+}
 
 // Réinitialiser les données quand le vinyle change
 watch(() => props.collectionVinyl, (newValue) => {
     if (newValue) {
+        // Ne pas réinitialiser imagePreview si on vient de faire un upload
+        if (skipNextImageReset.value) {
+            skipNextImageReset.value = false;
+            return;
+        }
+
         form.value = {
             collection_id: newValue.collection_id,
             prix_achat: newValue.prix_achat || null,
@@ -91,6 +149,18 @@ watch(() => props.collectionVinyl, (newValue) => {
         };
         imagePreview.value = newValue.vinyl?.pochette;
         imageFile.value = null;
+        imageNotAccessible.value = false;
+    }
+});
+
+// Vérifier l'accessibilité de l'image quand le modal s'ouvre
+watch(() => props.show, async (isShown) => {
+    // TOUJOURS vérifier si on a une image, peu importe qui est l'owner
+    // La décision d'afficher la section d'upload se fera après
+    if (isShown && props.collectionVinyl.vinyl?.pochette) {
+        // Attendre que le DOM soit mis à jour
+        await nextTick();
+        checkImageAccessibility();
     }
 });
 
@@ -120,6 +190,7 @@ const clearImage = () => {
     form.value.pochette_url = '';
     imagePreview.value = null;
     imageFile.value = null;
+    imageNotAccessible.value = false;
     const fileInput = document.querySelector('#edit-image-upload');
     if (fileInput) fileInput.value = '';
 };
@@ -176,6 +247,58 @@ const confirmDuplicate = () => {
     showDuplicateModal.value = false;
 };
 
+const saveImage = () => {
+    if (!form.value.pochette_file && !form.value.pochette_url) {
+        alert('Veuillez sélectionner une image');
+        return;
+    }
+
+    isSaving.value = true;
+
+    // Utiliser Inertia avec preserveState pour garder le modal ouvert
+    router.post(route('vinyls.update-image', props.collectionVinyl.id), {
+        pochette_file: form.value.pochette_file,
+        pochette_url: form.value.pochette_url,
+    }, {
+        forceFormData: true,
+        preserveState: true,  // Garder le modal ouvert
+        preserveScroll: true,
+        onSuccess: (page) => {
+            // Récupérer la réponse depuis les flash messages
+            const flash = page.props.flash || {};
+
+            if (flash.success && flash.new_image_url) {
+                // Activer le flag pour empêcher le watcher de réinitialiser imagePreview
+                skipNextImageReset.value = true;
+
+                // Mettre à jour l'image preview dans la modal
+                imagePreview.value = flash.new_image_url;
+
+                // Réinitialiser les champs d'upload
+                form.value.pochette_file = null;
+                form.value.pochette_url = '';
+                imageFile.value = null;
+                const fileInput = document.querySelector('#edit-image-upload');
+                if (fileInput) fileInput.value = '';
+
+                // L'image est maintenant accessible
+                imageNotAccessible.value = false;
+
+                // Émettre l'événement pour que la page parent mette à jour l'image dans la liste
+                emit('image-updated', {
+                    collectionVinylId: props.collectionVinyl.id,
+                    newImageUrl: flash.new_image_url
+                });
+            }
+
+            isSaving.value = false;
+        },
+        onError: () => {
+            isSaving.value = false;
+        },
+    });
+};
+
 const saveVinyl = () => {
     // Validation seulement si on peut éditer le vinyle
     if (canEditVinyl.value && isManualVinyl.value && (!form.value.vinyl_nom || !form.value.artiste)) {
@@ -201,13 +324,9 @@ const saveVinyl = () => {
             ...dataToSend,
             ...form.value
         };
-    } else if (form.value.pochette_file || form.value.pochette_url) {
-        // Permettre l'ajout d'image même pour les vinyles Discogs
-        dataToSend.pochette_file = form.value.pochette_file;
-        dataToSend.pochette_url = form.value.pochette_url;
     }
 
-    router.post(`/mes-vinyles/${props.collectionVinyl.id}`, dataToSend, {
+    router.put(route('collection-vinyl.update', props.collectionVinyl.id), dataToSend, {
         forceFormData: true,
         preserveState: false,
         preserveScroll: true,
@@ -285,7 +404,7 @@ const getFormatLabel = (format) => {
                 <div class="flex-1 overflow-y-auto px-6 py-4">
                     <form @submit.prevent="saveVinyl">
                         <!-- Image Section pour vinyles manuels avec permissions OU si pas d'image et owner -->
-                        <div v-if="(isManualVinyl && canEditVinyl) || (!collectionVinyl.vinyl?.pochette && canEditInstance)" class="mb-6">
+                        <div v-if="isManualVinyl && ((canEditVinyl) || (!collectionVinyl.vinyl?.pochette && canEditInstance) || (imageNotAccessible && canEditInstance) || (checkingImageAccessibility && canEditInstance))" class="mb-6">
                             <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">
                                 Image de pochette
                                 <span v-if="isDiscogsVinyl" class="text-sm font-normal text-gray-500 dark:text-gray-400">
@@ -294,15 +413,23 @@ const getFormatLabel = (format) => {
                             </h4>
                             <div class="flex items-start space-x-4">
                                 <div class="w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 flex-shrink-0">
-                                    <img v-if="imagePreview" 
-                                         :src="imagePreview" 
+                                    <img v-if="imagePreview && !imageNotAccessible"
+                                         :src="imagePreview"
                                          :alt="form.vinyl_nom"
                                          class="w-full h-full object-cover">
                                     <div v-else class="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                                        <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-                                            <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                                        </svg>
+                                        <div class="text-center">
+                                            <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                                <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                            </svg>
+                                            <p v-if="checkingImageAccessibility" class="text-xs text-blue-500 dark:text-blue-400">
+                                                Vérification en cours...
+                                            </p>
+                                            <p v-else-if="imageNotAccessible" class="text-xs text-red-500 dark:text-red-400">
+                                                Image non accessible
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -331,11 +458,22 @@ const getFormatLabel = (format) => {
                                                class="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                                     </div>
                                     
-                                    <button type="button" 
-                                            @click="clearImage"
-                                            class="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
-                                        Supprimer l'image
-                                    </button>
+                                    <div class="flex space-x-2">
+                                        <button type="button"
+                                                @click="clearImage"
+                                                class="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                                            Supprimer l'image
+                                        </button>
+
+                                        <!-- Bouton sauvegarder l'image directement dans la section image -->
+                                        <button v-if="isManualVinyl && (imageNotAccessible || canEditVinyl)"
+                                                @click="saveImage"
+                                                :disabled="isSaving || (!form.pochette_file && !form.pochette_url)"
+                                                type="button"
+                                                class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50">
+                                            {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder' }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -555,7 +693,10 @@ const getFormatLabel = (format) => {
                             class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                         Annuler
                     </button>
-                    <button @click="saveVinyl"
+
+                    <!-- Bouton sauvegarder tout (seulement si owner ou peut éditer l'exemplaire) -->
+                    <button v-if="canEditVinyl || canEditInstance"
+                            @click="saveVinyl"
                             :disabled="isSaving"
                             class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50">
                         {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder' }}

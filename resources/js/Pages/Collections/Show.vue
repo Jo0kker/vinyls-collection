@@ -4,8 +4,9 @@ import VinylImage from '@/Components/VinylImage.vue';
 import DiscogsVinylModal from '@/Components/DiscogsVinylModal.vue';
 import ManualVinylModal from '@/Components/ManualVinylModal.vue';
 import EditVinylModal from '@/Components/EditVinylModal.vue';
+import ExportCollectionModal from '@/Components/ExportCollectionModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 
 const props = defineProps({
     collection: {
@@ -35,6 +36,7 @@ const props = defineProps({
 const showVinylModal = ref(false);
 const showManualVinylModal = ref(false);
 const showEditVinylModal = ref(false);
+const showExportModal = ref(false);
 
 // État pour l'export
 const isExporting = ref(false);
@@ -52,6 +54,33 @@ const sortBy = ref(props.filters.sort || 'date_ajout');
 const sortOrder = ref(props.filters.order || 'desc');
 const perPage = ref(props.filters.per_page || 20);
 
+// Références reactives pour les données modifiables
+const paginationData = ref(props.pagination?.data ? [...props.pagination.data] : []);
+const collectionVinyls = ref(props.collection?.collection_vinyls ? [...props.collection.collection_vinyls] : []);
+
+// Watcher pour mettre à jour les références quand les props changent
+watch(() => props.pagination?.data, (newData) => {
+    if (newData) {
+        paginationData.value = [...newData];
+    }
+});
+
+watch(() => props.collection?.collection_vinyls, (newVinyls) => {
+    if (newVinyls) {
+        collectionVinyls.value = [...newVinyls];
+    }
+});
+
+// Synchroniser les filtres avec les props
+watch(() => props.filters, (newFilters) => {
+    if (newFilters) {
+        searchQuery.value = newFilters.search || '';
+        sortBy.value = newFilters.sort || 'date_ajout';
+        sortOrder.value = newFilters.order || 'desc';
+        perPage.value = newFilters.per_page || 20;
+    }
+}, { deep: true, immediate: true });
+
 // Filtres avancés
 const showAdvancedFilters = ref(false);
 const filters = ref({
@@ -68,9 +97,9 @@ const filters = ref({
 
 // Collection filtrée
 const filteredVinyls = computed(() => {
-    if (!props.collection.collection_vinyls) return [];
-    
-    let filtered = [...props.collection.collection_vinyls];
+    if (!collectionVinyls.value.length) return paginationData.value;
+
+    let filtered = [...collectionVinyls.value];
     
     // Filtrer par titre
     if (filters.value.titre) {
@@ -455,6 +484,21 @@ const toggleSortOrder = () => {
     applyFilters();
 };
 
+const getSortLabel = (sortByValue) => {
+    const labels = {
+        'date_ajout': 'Date d\'ajout',
+        'updated_at': 'Dernière modification',
+        'artiste': 'Artiste',
+        'vinyl_titre': 'Titre de l\'album',
+        'vinyl_nom': 'Nom',
+        'annee': 'Année de sortie',
+        'annee_achat': 'Année d\'achat',
+        'prix_achat': 'Prix d\'achat',
+        'note': 'Note'
+    };
+    return labels[sortByValue] || sortByValue;
+};
+
 // Fonctions pour les filtres avancés
 const applyAdvancedFilters = () => {
     // Pour l'instant, on filtre côté client
@@ -506,6 +550,45 @@ const openEditModal = (collectionVinyl) => {
 const closeEditModal = () => {
     showEditVinylModal.value = false;
     vinylToEdit.value = null;
+};
+
+const handleImageUpdated = async (data) => {
+    // Ajouter timestamp pour éviter le cache du navigateur
+    const imageUrlWithTimestamp = data.newImageUrl + '?t=' + Date.now();
+
+    // Approche plus radicale : recréer complètement les tableaux
+    if (paginationData.value.length > 0) {
+        paginationData.value = paginationData.value.map(vinyl => {
+            if (vinyl.id === data.collectionVinylId) {
+                return {
+                    ...vinyl,
+                    vinyl: {
+                        ...vinyl.vinyl,
+                        pochette: imageUrlWithTimestamp
+                    }
+                };
+            }
+            return vinyl;
+        });
+    }
+
+    if (collectionVinyls.value.length > 0) {
+        collectionVinyls.value = collectionVinyls.value.map(vinyl => {
+            if (vinyl.id === data.collectionVinylId) {
+                return {
+                    ...vinyl,
+                    vinyl: {
+                        ...vinyl.vinyl,
+                        pochette: imageUrlWithTimestamp
+                    }
+                };
+            }
+            return vinyl;
+        });
+    }
+
+    // Forcer le re-rendu
+    await nextTick();
 };
 
 const openDeleteModal = (vinyl) => {
@@ -642,7 +725,7 @@ const handleExport = async () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <Link href="/collections" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
                         ← Retour aux collections
@@ -651,45 +734,38 @@ const handleExport = async () => {
                         {{ collection.collection_nom }}
                     </h2>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                     <!-- Message d'erreur pour l'export -->
-                    <div v-if="exportError" class="text-red-600 text-sm flex items-center gap-2">
+                    <div v-if="exportError" class="w-full sm:w-auto text-red-600 text-sm flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
                         <span>{{ exportError }}</span>
                     </div>
-                    <button @click="handleExport"
-                            :disabled="isExporting"
-                            :class="[
-                                'px-4 py-2 rounded-md transition-all inline-flex items-center gap-2',
-                                isExporting
-                                    ? 'bg-green-400 cursor-not-allowed'
-                                    : 'bg-green-600 hover:bg-green-700'
-                            ]"
-                            class="text-white"
+                    <button @click="showExportModal = true"
+                            class="flex-1 sm:flex-initial px-3 py-2 sm:px-4 rounded-md transition-all inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base"
                             title="Exporter la collection en Excel">
-                        <!-- Loader spinner -->
-                        <svg v-if="isExporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <!-- Icône normale -->
-                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        {{ isExporting ? 'Génération...' : 'Exporter Excel' }}
+                        <span class="hidden sm:inline">Exporter Excel</span>
+                        <span class="inline sm:hidden">Export</span>
                     </button>
                     <Link :href="`/collections/${collection.id}/edit`"
-                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                       class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-4 rounded-md transition-colors text-sm sm:text-base inline-flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
                         Modifier
                     </Link>
-                    <div class="flex items-center gap-2">
-                        <button @click="openVinylModal"
-                               class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">
-                            Ajouter un vinyle
-                        </button>
-                    </div>
+                    <button @click="openVinylModal"
+                           class="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 sm:px-4 rounded-md transition-colors text-sm sm:text-base inline-flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Ajouter un vinyle</span>
+                        <span class="inline sm:hidden">Ajouter</span>
+                    </button>
                 </div>
             </div>
         </template>
@@ -801,8 +877,13 @@ const handleExport = async () => {
                                         @change="applyFilters"
                                         class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500">
                                     <option value="date_ajout">Date d'ajout</option>
-                                    <option value="nom">Nom de l'album</option>
+                                    <option value="updated_at">Dernière modification</option>
                                     <option value="artiste">Artiste</option>
+                                    <option value="vinyl_titre">Titre de l'album</option>
+                                    <option value="annee">Année de sortie</option>
+                                    <option value="annee_achat">Année d'achat</option>
+                                    <option value="prix_achat">Prix d'achat</option>
+                                    <option value="note">Note</option>
                                 </select>
 
                                 <button @click="toggleSortOrder"
@@ -854,7 +935,7 @@ const handleExport = async () => {
                                 <button @click="clearSearch" class="ml-1 hover:text-purple-600">×</button>
                             </span>
                             <span v-if="sortBy !== 'date_ajout'" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                Tri: {{ sortBy === 'nom' ? 'Nom' : sortBy === 'artiste' ? 'Artiste' : 'Date' }}
+                                Tri: {{ getSortLabel(sortBy) }}
                             </span>
                             <span v-if="sortOrder !== 'desc'" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                 Ordre: {{ sortOrder === 'asc' ? 'Croissant' : 'Décroissant' }}
@@ -1620,6 +1701,15 @@ const handleExport = async () => {
             :collection-vinyl="vinylToEdit"
             :collections="userCollections"
             @close="closeEditModal"
+            @image-updated="handleImageUpdated"
+        />
+
+        <!-- Modal export collection -->
+        <ExportCollectionModal
+            :show="showExportModal"
+            :collection-id="collection.id"
+            :total-vinyls="pagination?.total || collection.collection_vinyls?.length || 0"
+            @close="showExportModal = false"
         />
     </AuthenticatedLayout>
 </template>

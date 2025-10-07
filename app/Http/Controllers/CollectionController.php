@@ -8,6 +8,7 @@ use App\Models\Collection;
 use App\Models\Vinyl;
 use App\Models\CollectionVinyl;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -111,24 +112,28 @@ class CollectionController extends Controller
 
         // Appliquer le tri en utilisant des sous-requêtes pour préserver les relations
         switch ($sortBy) {
-            case 'nom':
-                $query->orderBy(
-                    \DB::table('vinyls')
-                        ->select('vinyl_nom')
-                        ->whereColumn('vinyls.id', 'collection_vinyls.vinyl_id')
-                        ->limit(1),
-                    $sortOrder
-                );
-                break;
+            // Tris sur les champs de vinyls
             case 'artiste':
+            case 'vinyl_titre':
+            case 'vinyl_nom':
+            case 'annee':
                 $query->orderBy(
                     \DB::table('vinyls')
-                        ->select('artiste')
+                        ->select($sortBy)
                         ->whereColumn('vinyls.id', 'collection_vinyls.vinyl_id')
                         ->limit(1),
                     $sortOrder
                 );
                 break;
+
+            // Tris sur les champs de collection_vinyls
+            case 'annee_achat':
+            case 'prix_achat':
+            case 'note':
+            case 'updated_at':
+                $query->orderBy('collection_vinyls.' . $sortBy, $sortOrder);
+                break;
+
             case 'date_ajout':
             default:
                 $query->orderBy('collection_vinyls.date_ajout', $sortOrder);
@@ -166,7 +171,9 @@ class CollectionController extends Controller
             $collectionVinyl->can_edit_vinyl = $canEditVinyl;
             // Rétro-compatibilité : can_edit = true si on peut éditer l'exemplaire OU le vinyle
             $collectionVinyl->can_edit = true; // On peut toujours éditer au moins l'exemplaire
-            
+
+            // On ne vérifie plus l'accessibilité ici pour éviter les problèmes de performance
+
             return $collectionVinyl;
         });
 
@@ -356,16 +363,66 @@ class CollectionController extends Controller
     /**
      * Export collection to Excel
      */
-    public function export(Collection $collection)
+    public function export(Request $request, Collection $collection)
     {
         // Vérifier que l'utilisateur est propriétaire de la collection
         if ($collection->user_id !== Auth::id()) {
             abort(403, 'Vous n\'avez pas accès à cette collection.');
         }
 
-        $fileName = 'collection-' . \Str::slug($collection->collection_nom) . '-' . date('Y-m-d') . '.xlsx';
+        // Récupérer les paramètres d'export
+        $columns = $request->has('columns')
+            ? explode(',', $request->get('columns'))
+            : [];
 
-        return Excel::download(new CollectionExport($collection), $fileName);
+        // Récupérer les filtres
+        $filters = [];
+        if ($request->has('date_ajout_from')) {
+            $filters['date_ajout_from'] = $request->get('date_ajout_from');
+        }
+        if ($request->has('date_ajout_to')) {
+            $filters['date_ajout_to'] = $request->get('date_ajout_to');
+        }
+        if ($request->has('annee_achat_min')) {
+            $filters['annee_achat_min'] = $request->get('annee_achat_min');
+        }
+        if ($request->has('annee_achat_max')) {
+            $filters['annee_achat_max'] = $request->get('annee_achat_max');
+        }
+        if ($request->has('annee_sortie_min')) {
+            $filters['annee_sortie_min'] = $request->get('annee_sortie_min');
+        }
+        if ($request->has('annee_sortie_max')) {
+            $filters['annee_sortie_max'] = $request->get('annee_sortie_max');
+        }
+        if ($request->has('prix_min')) {
+            $filters['prix_min'] = $request->get('prix_min');
+        }
+        if ($request->has('prix_max')) {
+            $filters['prix_max'] = $request->get('prix_max');
+        }
+        if ($request->has('note_min')) {
+            $filters['note_min'] = $request->get('note_min');
+        }
+        if ($request->has('provenance')) {
+            $filters['provenance'] = $request->get('provenance');
+        }
+
+        // Récupérer les options de tri
+        $sortBy = $request->get('sort_by', 'date_ajout');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        // Créer le nom du fichier avec un suffixe si des filtres sont appliqués
+        $fileName = 'collection-' . \Str::slug($collection->collection_nom);
+        if (!empty($filters)) {
+            $fileName .= '-filtre';
+        }
+        $fileName .= '-' . date('Y-m-d') . '.xlsx';
+
+        return Excel::download(
+            new CollectionExport($collection, $columns, $filters, $sortBy, $sortOrder),
+            $fileName
+        );
     }
 
     /**
@@ -388,6 +445,41 @@ class CollectionController extends Controller
             }
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API pour vérifier l'accessibilité d'une image
+     */
+    public function checkImageAccessibility(Request $request, CollectionVinyl $collectionVinyl)
+    {
+        // On ne bloque pas si l'utilisateur n'est pas owner
+        // On vérifie juste l'accessibilité de l'image
+        // La décision d'autoriser le changement se fait côté frontend et lors de l'update
+
+        $collectionVinyl->load('vinyl');
+        $vinyl = $collectionVinyl->vinyl;
+
+        if (!$vinyl || !$vinyl->pochette) {
+            return response()->json(['accessible' => false]);
+        }
+
+        $imageUrl = $vinyl->pochette;
+
+        try {
+            // Timeout réduit à 3 secondes - si ça met plus de temps, c'est considéré comme inaccessible
+            $response = Http::timeout(3)->head($imageUrl);
+            $isAccessible = $response->successful() && str_starts_with($response->header('content-type') ?? '', 'image/');
+
+            return response()->json([
+                'accessible' => $isAccessible,
+                'is_owner' => $collectionVinyl->user_id === Auth::id()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'accessible' => false,
+                'is_owner' => $collectionVinyl->user_id === Auth::id()
+            ]);
         }
     }
 }

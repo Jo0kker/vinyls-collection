@@ -11,6 +11,7 @@ use App\Services\DiscogsService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class VinylController extends Controller
@@ -27,21 +28,36 @@ class VinylController extends Controller
             ->orderBy('date_ajout', 'desc')
             ->get();
 
-        // Ajouter l'information canEdit pour chaque vinyl et charger le créateur
+        // Ajouter les informations de permissions pour chaque vinyl comme dans CollectionController
         $vinyls->transform(function ($collectionVinyl) use ($user) {
             $vinyl = $collectionVinyl->vinyl;
-            $canEdit = true; // Par défaut peut éditer car c'est son vinyl
-            
-            // Si c'est un vinyle manuel, vérifier que l'utilisateur est le créateur
-            if ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
-                $canEdit = $vinyl->created_by === $user->id;
-                // Charger le créateur pour l'afficher dans le toast
-                if ($vinyl->created_by) {
-                    $vinyl->load('creator');
+
+            // L'utilisateur peut toujours éditer son exemplaire
+            $collectionVinyl->can_edit_instance = true;
+
+            // Déterminer si l'utilisateur peut éditer les infos du vinyle
+            $canEditVinyl = false;
+            if ($vinyl) {
+                // Personne ne peut éditer un vinyle Discogs
+                if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+                    $canEditVinyl = false;
+                }
+                // Pour les vinyles manuels, seul le créateur peut éditer
+                elseif ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+                    $canEditVinyl = $vinyl->created_by === $user->id;
+                    // Charger le créateur pour l'afficher si nécessaire
+                    if ($vinyl->created_by && !$canEditVinyl) {
+                        $vinyl->load('creator');
+                    }
                 }
             }
-            
-            $collectionVinyl->can_edit = $canEdit;
+
+            $collectionVinyl->can_edit_vinyl = $canEditVinyl;
+            // Rétro-compatibilité : can_edit = true si on peut éditer l'exemplaire OU le vinyle
+            $collectionVinyl->can_edit = true; // On peut toujours éditer au moins l'exemplaire
+
+            // On ne vérifie plus l'accessibilité ici pour éviter les problèmes de performance
+
             return $collectionVinyl;
         });
 
@@ -126,11 +142,11 @@ class VinylController extends Controller
     {
         // Charger les relations nécessaires
         $collectionVinyl->load(['vinyl', 'collection', 'user']);
-        
+
         // Vérifier si la collection est publique ou si l'utilisateur est propriétaire
         $isOwner = Auth::check() && $collectionVinyl->user_id === Auth::id();
         $isPublicCollection = $collectionVinyl->collection->visibility === 'public';
-        
+
         // Permettre l'accès si l'utilisateur est propriétaire OU si la collection est publique
         if (!$isOwner && !$isPublicCollection) {
             abort(403, 'Cette collection n\'est pas publique.');
@@ -142,7 +158,7 @@ class VinylController extends Controller
         if (!$vinyl->discogs_id) {
             $canEdit = $isOwner && $vinyl->created_by === Auth::id();
         }
-        
+
         // Si c'est un vinyle Discogs, enrichir avec les données complètes
         $vinyl = $collectionVinyl->vinyl;
         if ($vinyl->discogs_id) {
@@ -153,7 +169,7 @@ class VinylController extends Controller
                 } else {
                     $discogsData = $discogsService->getRelease($vinyl->discogs_id);
                 }
-                
+
                 if ($discogsData) {
                     // Ajouter les données Discogs enrichies sans écraser les données existantes
                     $vinyl->discogs_data = [
@@ -202,7 +218,7 @@ class VinylController extends Controller
                 } else {
                     $discogsData = $discogsService->getRelease($vinyl->discogs_id);
                 }
-                
+
                 if ($discogsData) {
                     // Ajouter les données Discogs enrichies sans écraser les données existantes
                     $vinyl->discogs_data = [
@@ -252,7 +268,7 @@ class VinylController extends Controller
                 ->with(['user', 'collection'])
                 ->where('user_id', Auth::id())
                 ->get();
-                
+
             $owners = $owners->merge($userOwnedVinyls)->unique('id');
         }
 
@@ -282,13 +298,13 @@ class VinylController extends Controller
         $user = Auth::user();
         $collections = $user->collections()->orderBy('collection_nom')->get();
         $collectionVinyl->load(['vinyl', 'collection']);
-        
+
         // Charger le créateur pour les vinyles manuels
         $vinyl = $collectionVinyl->vinyl;
         if (!$vinyl->discogs_id && $vinyl->created_by) {
             $vinyl->load('creator');
         }
-        
+
         // Déterminer les permissions d'édition
         $canEditVinyl = $this->canEditVinyl($vinyl);
         $canEditInstance = true; // L'utilisateur peut toujours éditer son exemplaire
@@ -301,7 +317,7 @@ class VinylController extends Controller
             'vinylCreator' => $vinyl->creator ?? null
         ]);
     }
-    
+
     /**
      * Déterminer si l'utilisateur peut éditer les informations du vinyle
      */
@@ -311,7 +327,7 @@ class VinylController extends Controller
         if ($vinyl->discogs_id) {
             return false;
         }
-        
+
         // Pour les vinyles manuels (discogs_id = null), seul le créateur peut éditer
         return $vinyl->created_by === Auth::id();
     }
@@ -440,24 +456,24 @@ class VinylController extends Controller
 
         $collection = $collectionVinyl->collection;
         $vinyl = $collectionVinyl->vinyl;
-        
+
         // Supprimer l'exemplaire de la collection
         $collectionVinyl->delete();
 
         // Vérifier si d'autres utilisateurs possèdent ce vinyle
         $remainingCount = CollectionVinyl::where('vinyl_id', $vinyl->id)->count();
-        
+
         if ($remainingCount === 0) {
             // Personne d'autre ne possède ce vinyle, on peut le supprimer complètement
-            
+
             // Supprimer l'image de S3 si elle existe
             if ($vinyl->pochette && !$vinyl->discogs_id) { // Ne pas supprimer les images Discogs
                 $this->deleteVinylImage($vinyl->pochette);
             }
-            
+
             // Supprimer le vinyle de la base de données
             $vinyl->delete();
-            
+
             \Log::info('Vinyle orphelin supprimé', [
                 'vinyl_id' => $vinyl->id,
                 'vinyl_nom' => $vinyl->vinyl_nom,
@@ -480,22 +496,22 @@ class VinylController extends Controller
     {
         $user = Auth::user();
         $originalVinyl = $collectionVinyl->vinyl;
-        
+
         // Vérifier que le vinyle est manuel (pas de discogs_id) et que l'utilisateur n'est pas déjà le créateur
         if ($originalVinyl->discogs_id) {
             return back()->with('error', 'Les vinyles Discogs ne peuvent pas être dupliqués.');
         }
-        
+
         if ($originalVinyl->created_by === $user->id) {
             return back()->with('error', 'Vous êtes déjà le créateur de ce vinyle.');
         }
-        
+
         // Dupliquer l'image si elle existe
         $newPochetteUrl = null;
         if ($originalVinyl->pochette) {
             $newPochetteUrl = $this->duplicateVinylImage($originalVinyl->pochette);
         }
-        
+
         // Créer une copie du vinyle avec l'utilisateur actuel comme créateur
         $newVinyl = Vinyl::create([
             'vinyl_nom' => $originalVinyl->vinyl_nom,
@@ -519,14 +535,14 @@ class VinylController extends Controller
             'discogs_type' => null, // NULL pour les vinyles manuels
             'created_by' => $user->id,
         ]);
-        
+
         // Vérifier si l'utilisateur possède déjà cet exemplaire
         if ($collectionVinyl->user_id === $user->id) {
             // L'utilisateur possède déjà cet exemplaire, on met à jour le vinyl_id
             $collectionVinyl->update([
                 'vinyl_id' => $newVinyl->id,
             ]);
-            
+
             // Rediriger vers la page d'édition de l'exemplaire existant
             return redirect()->route('vinyls.edit', $collectionVinyl->id)
                 ->with('success', 'Le vinyle a été remplacé par votre copie personnelle. Vous pouvez maintenant modifier les informations.');
@@ -537,7 +553,7 @@ class VinylController extends Controller
             if (!$defaultCollection) {
                 return back()->with('error', 'Vous devez avoir au moins une collection pour dupliquer un vinyle.');
             }
-            
+
             $newCollectionVinyl = CollectionVinyl::create([
                 'user_id' => $user->id,
                 'collection_id' => $defaultCollection->id,
@@ -549,13 +565,13 @@ class VinylController extends Controller
                 'note' => $collectionVinyl->note,
                 'date_ajout' => Carbon::now(),
             ]);
-            
+
             // Rediriger vers la page d'édition du nouveau vinyle
             return redirect()->route('vinyls.edit', $newCollectionVinyl->id)
                 ->with('success', 'Copie du vinyle créée dans votre collection. Vous pouvez maintenant modifier les informations.');
         }
     }
-    
+
     /**
      * Delete a vinyl image from S3
      */
@@ -567,7 +583,7 @@ class VinylController extends Controller
                 // Extraire le chemin depuis l'URL
                 $path = parse_url($imageUrl, PHP_URL_PATH);
                 $path = ltrim($path, '/');
-                
+
                 // Supprimer le fichier de S3
                 if (Storage::disk('s3')->exists($path)) {
                     Storage::disk('s3')->delete($path);
@@ -578,7 +594,7 @@ class VinylController extends Controller
             \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Duplicate a vinyl image to create a new copy
      */
@@ -591,39 +607,39 @@ class VinylController extends Controller
                 if (!$imageContent) {
                     return null;
                 }
-                
+
                 // Créer un fichier temporaire
                 $tempPath = tempnam(sys_get_temp_dir(), 'vinyl_');
                 file_put_contents($tempPath, $imageContent);
-                
+
                 // Créer un UploadedFile à partir du contenu
                 $file = new \Illuminate\Http\UploadedFile($tempPath, 'image.jpg', 'image/jpeg', null, true);
-                
+
                 // Utiliser la méthode existante pour uploader
                 $newUrl = $this->uploadVinylImage($file);
-                
+
                 // Nettoyer le fichier temporaire
                 @unlink($tempPath);
-                
+
                 return $newUrl;
             }
-            
+
             // Si c'est déjà une image stockée sur S3, la dupliquer directement
             if (str_contains($originalUrl, 's3.amazonaws.com') || str_contains($originalUrl, 'digitaloceanspaces.com')) {
                 // Extraire le chemin depuis l'URL
                 $path = parse_url($originalUrl, PHP_URL_PATH);
                 $path = ltrim($path, '/');
-                
+
                 // Copier le fichier sur S3
                 $newPath = "vinyls/" . \Illuminate\Support\Str::uuid() . ".jpg";
                 Storage::disk('s3')->copy($path, $newPath);
-                
+
                 return Storage::disk('s3')->url($newPath);
             }
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la duplication de l\'image du vinyle: ' . $e->getMessage());
         }
-        
+
         return null;
     }
 
@@ -741,7 +757,7 @@ class VinylController extends Controller
 
         // Extraire les infos Discogs depuis la requête
         $discogsId = $request->discogs_id;
-        
+
         // Déterminer le type à partir des données ou de l'ID
         $discogsType = 'release'; // Par défaut
         if (isset($request->discogs_data['type'])) {
@@ -844,10 +860,11 @@ class VinylController extends Controller
                 return Storage::disk('s3')->url($imagePath);
             }
         } catch (\Exception $e) {
-            \Log::error('Erreur upload image vinyle: ' . $e->getMessage());
+            // Pour debug, on retourne l'erreur dans la réponse JSON au lieu du log
+            throw new \Exception('Upload failed: ' . $e->getMessage());
         }
 
-        return null;
+        throw new \Exception('Upload failed: uploaded returned false');
     }
 
     /**
@@ -942,5 +959,172 @@ class VinylController extends Controller
         ]);
 
         return back()->with('success', 'Vinyle ajouté à votre collection avec succès.');
+    }
+
+    /**
+     * Update only the image of a vinyl (accessible to all users if image is not accessible)
+     */
+    public function updateImage(Request $request, $id)
+    {
+        $collectionVinyl = CollectionVinyl::findOrFail($id);
+
+        $vinyl = $collectionVinyl->vinyl;
+
+        // Vérifier si l'image n'est pas accessible
+        $imageAccessible = $this->checkImageAccessibility($vinyl->pochette);
+
+        if ($imageAccessible) {
+            return redirect()->back()->with('error', 'Cette image est accessible, vous ne pouvez pas la modifier.');
+        }
+
+        $request->validate([
+            'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'pochette_url' => 'nullable|url',
+        ]);
+
+        // Mettre à jour l'image
+        if ($request->hasFile('pochette_file')) {
+            // Supprimer l'ancienne image si elle existe
+            $this->deleteVinylImage($vinyl->pochette);
+
+            try {
+                // Utiliser la même méthode que les autres uploads qui marchent
+                $imageUrl = $this->uploadVinylImage($request->file('pochette_file'));
+
+                $vinyl->update(['pochette' => $imageUrl]);
+
+                // Utiliser session()->flash() pour Inertia
+                $newImageUrl = $vinyl->fresh()->pochette;
+                session()->flash('success', true);
+                session()->flash('new_image_url', $newImageUrl);
+                session()->flash('message', 'Image mise à jour avec succès.');
+
+                return redirect()->back();
+
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', 'Erreur lors de l\'upload de l\'image: ' . $e->getMessage());
+            }
+
+        } elseif ($request->filled('pochette_url')) {
+            // Supprimer l'ancienne image si elle existe et si c'est pas une URL Discogs
+            if (!str_contains($vinyl->pochette ?? '', 'discogs.com')) {
+                $this->deleteVinylImage($vinyl->pochette);
+            }
+
+            $vinyl->update(['pochette' => $request->pochette_url]);
+
+            // Utiliser session()->flash() pour Inertia
+            $newImageUrl = $vinyl->fresh()->pochette;
+            session()->flash('success', true);
+            session()->flash('new_image_url', $newImageUrl);
+            session()->flash('message', 'Image mise à jour avec succès.');
+
+            return redirect()->back();
+        }
+
+        return redirect()->back()->with('error', 'Aucune image fournie.');
+    }
+
+    /**
+        error_log('Vinyl ID: ' . $vinyl->id . ', pochette: ' . $vinyl->pochette);
+
+        // Vérifier si l'image n'est pas accessible
+        $imageAccessible = $this->checkImageAccessibility($vinyl->pochette);
+
+        // Debug pour voir ce qui se passe
+        $debugAccessibility = [
+            'image_url' => $vinyl->pochette,
+            'is_accessible' => $imageAccessible,
+        ];
+
+        if ($imageAccessible) {
+            return back()->with([
+                'error' => 'Cette image est accessible, vous ne pouvez pas la modifier.',
+                'debug_accessibility' => $debugAccessibility
+            ]);
+        }
+
+        $request->validate([
+            'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'pochette_url' => 'nullable|url',
+        ]);
+
+        // Mettre à jour l'image
+        if ($request->hasFile('pochette_file')) {
+            // Supprimer l'ancienne image si elle existe
+            $this->deleteVinylImage($vinyl->pochette);
+
+            // Upload de la nouvelle image
+            $file = $request->file('pochette_file');
+            $filename = 'vinyl-' . uniqid() . '.' . $file->getClientOriginalExtension();
+
+            // Utiliser la même méthode que les autres uploads qui marchent
+            $imageUrl = $this->uploadVinylImage($file);
+
+            if ($imageUrl) {
+                $vinyl->update(['pochette' => $imageUrl]);
+                $debugInfo = [
+                    'success' => true,
+                    'new_url' => $imageUrl,
+                    'file_size' => $file->getSize(),
+                    'file_mime' => $file->getMimeType(),
+                ];
+            } else {
+                $debugInfo = [
+                    'error' => 'uploadVinylImage returned null',
+                    'file_size' => $file->getSize(),
+                    'file_mime' => $file->getMimeType(),
+                ];
+            }
+
+        } elseif ($request->filled('pochette_url')) {
+            // Supprimer l'ancienne image si elle existe et si c'est pas une URL Discogs
+            if (!str_contains($vinyl->pochette ?? '', 'discogs.com')) {
+                $this->deleteVinylImage($vinyl->pochette);
+            }
+
+            $vinyl->update(['pochette' => $request->pochette_url]);
+        }
+
+        // Retourner les données JSON pour mise à jour en AJAX
+        $response = [
+            'success' => true,
+            'message' => 'Image mise à jour avec succès.',
+            'new_image_url' => $vinyl->fresh()->pochette
+        ];
+
+        // Ajouter les infos de debug si on a uploadé un fichier
+        if (isset($debugInfo)) {
+            $response['debug'] = $debugInfo;
+        }
+
+        // Pour Inertia, on doit retourner une réponse back() avec les données
+        $finalResponse = [
+            'success' => 'Image mise à jour avec succès.',
+            'new_image_url' => $vinyl->fresh()->pochette,
+            'debug_accessibility' => $debugAccessibility,
+        ];
+
+        if (isset($debugInfo)) {
+            $finalResponse['debug_info'] = $debugInfo;
+        }
+
+    }
+
+    /**
+     * Check if image is accessible
+     */
+    private function checkImageAccessibility($imageUrl)
+    {
+        if (!$imageUrl) {
+            return false; // Pas d'image = pas accessible
+        }
+
+        try {
+            $response = Http::timeout(1)->head($imageUrl);
+            return $response->successful() && str_starts_with($response->header('content-type') ?? '', 'image/');
+        } catch (\Exception $e) {
+            return false; // Erreur = pas accessible
+        }
     }
 }

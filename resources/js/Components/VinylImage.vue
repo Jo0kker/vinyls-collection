@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps({
     src: {
@@ -69,6 +69,11 @@ const handleImageError = () => {
 const handleImageLoad = () => {
     imageError.value = false;
 };
+
+// Réinitialiser l'erreur quand l'URL de l'image change
+watch(() => props.src, () => {
+    imageError.value = false;
+});
 
 // Classes réactives basées sur la taille
 const sizeClasses = {

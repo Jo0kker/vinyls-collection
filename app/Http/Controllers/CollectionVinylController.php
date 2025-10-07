@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\CollectionVinyl;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class CollectionVinylController extends Controller
 {
@@ -37,7 +39,7 @@ class CollectionVinylController extends Controller
             abort(403, 'Vous n\'avez pas accès à cet exemplaire.');
         }
 
-        $request->validate([
+        $validation = [
             // Champs réellement présents dans la table collection_vinyls
             'prix_achat' => 'nullable|numeric|min:0',
             'annee_achat' => 'nullable|integer|min:1900|max:' . date('Y'),
@@ -46,20 +48,58 @@ class CollectionVinylController extends Controller
             'note' => 'nullable|integer|min:1|max:10',
             'vente' => 'boolean',
             'exemplaire_id' => 'nullable|integer',
-        ]);
+            'collection_id' => 'required|exists:collections,id',
+            // Image fields
+            'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'pochette_url' => 'nullable|url',
+        ];
 
-        // Mettre à jour uniquement les champs de l'exemplaire présents dans la BDD
+        $vinyl = $collectionVinyl->vinyl;
+        $canEditVinyl = $this->canEditVinyl($vinyl);
+
+        // Si on peut éditer le vinyle, ajouter les champs du vinyle à la validation
+        if ($canEditVinyl) {
+            $validation = array_merge($validation, [
+                'vinyl_nom' => 'required|string|max:255',
+                'vinyl_titre' => 'nullable|string|max:255',
+                'vinyl_format' => 'required|integer|min:1|max:9',
+                'artiste' => 'required|string|max:255',
+                'label' => 'nullable|string|max:255',
+                'reference' => 'nullable|string|max:255',
+                'annee' => 'nullable|integer|min:1900|max:' . date('Y'),
+                'pays' => 'nullable|string|max:255',
+                'tracks' => 'nullable|string',
+                'specificite' => 'nullable|string',
+                'refMatrice' => 'nullable|string|max:255',
+                'distribution' => 'nullable|string|max:255',
+                'edition' => 'nullable|integer|min:1|max:999',
+                'anneeOriginal' => 'nullable|integer|min:1900|max:' . date('Y'),
+            ]);
+        }
+
+        $request->validate($validation);
+
+        // Mettre à jour les champs de l'exemplaire
         $collectionVinyl->update($request->only([
             'prix_achat',
-            'annee_achat', 
+            'annee_achat',
             'provenance',
             'commentaires',
             'note',
             'vente',
             'exemplaire_id',
+            'collection_id',
         ]));
 
-        return back()->with('success', 'Informations de votre exemplaire mises à jour avec succès.');
+        // Gérer la mise à jour du vinyle si autorisé
+        if ($canEditVinyl) {
+            $this->updateVinylData($vinyl, $request);
+        } else {
+            // Même si on ne peut pas éditer le vinyle, on peut changer l'image si elle n'est pas accessible
+            $this->updateVinylImage($vinyl, $request);
+        }
+
+        return back()->with('success', 'Informations mises à jour avec succès.');
     }
 
     /**
@@ -138,5 +178,97 @@ class CollectionVinylController extends Controller
             'vinyl_editable' => $canEditVinyl ? $vinylFields : [],  // Champs du vinyle si permissions
             'vinyl_read_only' => !$canEditVinyl ? $vinylFields : [],  // Champs du vinyle en lecture seule
         ];
+    }
+
+    /**
+     * Mettre à jour toutes les données du vinyle (quand on a les permissions)
+     */
+    private function updateVinylData($vinyl, Request $request)
+    {
+        $vinylData = $request->only([
+            'vinyl_nom',
+            'vinyl_titre',
+            'vinyl_format',
+            'artiste',
+            'label',
+            'reference',
+            'annee',
+            'pays',
+            'tracks',
+            'specificite',
+            'refMatrice',
+            'distribution',
+            'edition',
+            'anneeOriginal',
+        ]);
+
+        // Gérer l'image
+        $this->handleVinylImage($vinyl, $request, $vinylData);
+
+        $vinyl->update($vinylData);
+    }
+
+    /**
+     * Mettre à jour seulement l'image du vinyle (même sans permissions sur le vinyle)
+     */
+    private function updateVinylImage($vinyl, Request $request)
+    {
+        if ($request->hasFile('pochette_file') || $request->filled('pochette_url')) {
+            $vinylData = [];
+            $this->handleVinylImage($vinyl, $request, $vinylData);
+
+            if (!empty($vinylData)) {
+                $vinyl->update($vinylData);
+            }
+        }
+    }
+
+    /**
+     * Gérer l'upload ou l'URL de l'image
+     */
+    private function handleVinylImage($vinyl, Request $request, &$vinylData)
+    {
+        if ($request->hasFile('pochette_file')) {
+            // Supprimer l'ancienne image si elle existe
+            $this->deleteVinylImage($vinyl->pochette);
+
+            // Upload de la nouvelle image
+            $file = $request->file('pochette_file');
+            $filename = 'vinyl-' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('vinyls', $filename, 's3');
+            $vinylData['pochette'] = Storage::disk('s3')->url($path);
+        } elseif ($request->filled('pochette_url')) {
+            // Supprimer l'ancienne image si elle existe et si c'est pas une URL Discogs
+            if (!str_contains($vinyl->pochette ?? '', 'discogs.com')) {
+                $this->deleteVinylImage($vinyl->pochette);
+            }
+
+            $vinylData['pochette'] = $request->pochette_url;
+        }
+    }
+
+    /**
+     * Supprimer l'image du vinyle du stockage S3
+     */
+    private function deleteVinylImage($imageUrl)
+    {
+        if (!$imageUrl) return;
+
+        try {
+            // Vérifier si c'est une URL S3
+            if (str_contains($imageUrl, 's3.amazonaws.com') || str_contains($imageUrl, 'digitaloceanspaces.com')) {
+                // Extraire le chemin depuis l'URL
+                $path = parse_url($imageUrl, PHP_URL_PATH);
+                $path = ltrim($path, '/');
+
+                // Supprimer le fichier de S3
+                if (Storage::disk('s3')->exists($path)) {
+                    Storage::disk('s3')->delete($path);
+                    \Log::info('Image supprimée de S3 depuis CollectionVinylController', ['path' => $path]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
+        }
     }
 }

@@ -17,6 +17,7 @@
         <meta name="theme-color" content="#111827">
         <meta name="msapplication-navbutton-color" content="#111827">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <!-- Styles -->
         @vite(['resources/css/app.css'])

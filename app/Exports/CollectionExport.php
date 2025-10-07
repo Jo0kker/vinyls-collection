@@ -20,59 +20,194 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 class CollectionExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize, WithStyles, WithEvents
 {
     protected $collection;
+    protected $columns;
+    protected $filters;
+    protected $sortBy;
+    protected $sortOrder;
 
-    public function __construct(Collection $collection)
+    // Mapping des colonnes
+    protected $columnMapping = [
+        'vinyl_nom' => 'Nom du vinyle',
+        'artiste' => 'Artiste',
+        'vinyl_titre' => 'Titre',
+        'vinyl_format' => 'Format',
+        'label' => 'Label',
+        'reference' => 'Référence',
+        'annee' => 'Année',
+        'pays' => 'Pays',
+        'prix_achat' => 'Prix d\'achat',
+        'annee_achat' => 'Année d\'achat',
+        'provenance' => 'Provenance',
+        'note' => 'Note',
+        'commentaires' => 'Commentaires',
+        'date_ajout' => 'Date d\'ajout',
+        'discogs_id' => 'Discogs ID'
+    ];
+
+    public function __construct(Collection $collection, array $columns = [], array $filters = [], string $sortBy = 'date_ajout', string $sortOrder = 'desc')
     {
         $this->collection = $collection;
+        $this->columns = empty($columns) ? array_keys($this->columnMapping) : $columns;
+        $this->filters = $filters;
+        $this->sortBy = $sortBy;
+        $this->sortOrder = $sortOrder;
     }
 
     public function collection()
     {
-        return $this->collection->collectionVinyls()->with('vinyl')->get();
+        $query = $this->collection->collectionVinyls()->with('vinyl');
+
+        // Apply filters
+        if (!empty($this->filters['date_ajout_from'])) {
+            $query->where('date_ajout', '>=', $this->filters['date_ajout_from']);
+        }
+
+        if (!empty($this->filters['date_ajout_to'])) {
+            $query->where('date_ajout', '<=', $this->filters['date_ajout_to']);
+        }
+
+        if (!empty($this->filters['annee_achat_min'])) {
+            $query->where('annee_achat', '>=', $this->filters['annee_achat_min']);
+        }
+
+        if (!empty($this->filters['annee_achat_max'])) {
+            $query->where('annee_achat', '<=', $this->filters['annee_achat_max']);
+        }
+
+        if (!empty($this->filters['prix_min'])) {
+            $query->where('prix_achat', '>=', $this->filters['prix_min']);
+        }
+
+        if (!empty($this->filters['prix_max'])) {
+            $query->where('prix_achat', '<=', $this->filters['prix_max']);
+        }
+
+        if (!empty($this->filters['note_min'])) {
+            $query->where('note', '>=', $this->filters['note_min']);
+        }
+
+        if (!empty($this->filters['provenance'])) {
+            $query->where('provenance', 'ILIKE', '%' . $this->filters['provenance'] . '%');
+        }
+
+        // Filtres sur les champs du vinyle
+        if (!empty($this->filters['annee_sortie_min']) || !empty($this->filters['annee_sortie_max'])) {
+            $query->whereHas('vinyl', function($q) {
+                if (!empty($this->filters['annee_sortie_min'])) {
+                    $q->where('annee', '>=', $this->filters['annee_sortie_min']);
+                }
+                if (!empty($this->filters['annee_sortie_max'])) {
+                    $q->where('annee', '<=', $this->filters['annee_sortie_max']);
+                }
+            });
+        }
+
+        // Apply sorting
+        switch ($this->sortBy) {
+            // Tris sur les champs de vinyls
+            case 'artiste':
+            case 'vinyl_nom':
+            case 'vinyl_titre':
+            case 'vinyl_format':
+            case 'label':
+            case 'reference':
+            case 'annee':
+            case 'pays':
+            case 'discogs_id':
+                $query->orderBy(
+                    \DB::table('vinyls')
+                        ->select($this->sortBy)
+                        ->whereColumn('vinyls.id', 'collection_vinyls.vinyl_id')
+                        ->limit(1),
+                    $this->sortOrder
+                );
+                break;
+
+            // Tris sur les champs de collection_vinyls
+            case 'prix_achat':
+            case 'annee_achat':
+            case 'provenance':
+            case 'note':
+            case 'updated_at':
+                $query->orderBy('collection_vinyls.' . $this->sortBy, $this->sortOrder);
+                break;
+
+            case 'date_ajout':
+            default:
+                $query->orderBy('collection_vinyls.date_ajout', $this->sortOrder);
+                break;
+        }
+
+        return $query->get();
     }
 
     public function headings(): array
     {
-        return [
-            'Nom du vinyle',
-            'Artiste',
-            'Titre',
-            'Format',
-            'Label',
-            'Référence',
-            'Année',
-            'Pays',
-            'Prix d\'achat',
-            'Année d\'achat',
-            'Provenance',
-            'Note',
-            'Commentaires',
-            'Date d\'ajout',
-            'Discogs ID'
-        ];
+        $headings = [];
+        foreach ($this->columns as $column) {
+            $headings[] = $this->columnMapping[$column] ?? $column;
+        }
+        return $headings;
     }
 
     public function map($collectionVinyl): array
     {
         $vinyl = $collectionVinyl->vinyl;
+        $row = [];
 
-        return [
-            $vinyl->vinyl_nom ?? '',
-            $vinyl->artiste ?? '',
-            $vinyl->vinyl_titre ?? '',
-            $vinyl->vinyl_format ?? '',
-            $vinyl->label ?? '',
-            $vinyl->reference ?? '',
-            $vinyl->annee ?? '',
-            $vinyl->pays ?? '',
-            $collectionVinyl->prix_achat ?? '',
-            $collectionVinyl->annee_achat ?? '',
-            $collectionVinyl->provenance ?? '',
-            $collectionVinyl->note ?? '',
-            $collectionVinyl->commentaires ?? '',
-            $collectionVinyl->date_ajout ? \Carbon\Carbon::parse($collectionVinyl->date_ajout)->format('d/m/Y') : '',
-            $vinyl->discogs_id ?? ''
-        ];
+        foreach ($this->columns as $column) {
+            switch ($column) {
+                case 'vinyl_nom':
+                    $row[] = $vinyl->vinyl_nom ?? '';
+                    break;
+                case 'artiste':
+                    $row[] = $vinyl->artiste ?? '';
+                    break;
+                case 'vinyl_titre':
+                    $row[] = $vinyl->vinyl_titre ?? '';
+                    break;
+                case 'vinyl_format':
+                    $row[] = $vinyl->vinyl_format ?? '';
+                    break;
+                case 'label':
+                    $row[] = $vinyl->label ?? '';
+                    break;
+                case 'reference':
+                    $row[] = $vinyl->reference ?? '';
+                    break;
+                case 'annee':
+                    $row[] = $vinyl->annee ?? '';
+                    break;
+                case 'pays':
+                    $row[] = $vinyl->pays ?? '';
+                    break;
+                case 'prix_achat':
+                    $row[] = $collectionVinyl->prix_achat ?? '';
+                    break;
+                case 'annee_achat':
+                    $row[] = $collectionVinyl->annee_achat ?? '';
+                    break;
+                case 'provenance':
+                    $row[] = $collectionVinyl->provenance ?? '';
+                    break;
+                case 'note':
+                    $row[] = $collectionVinyl->note ?? '';
+                    break;
+                case 'commentaires':
+                    $row[] = $collectionVinyl->commentaires ?? '';
+                    break;
+                case 'date_ajout':
+                    $row[] = $collectionVinyl->date_ajout ? \Carbon\Carbon::parse($collectionVinyl->date_ajout)->format('d/m/Y') : '';
+                    break;
+                case 'discogs_id':
+                    $row[] = $vinyl->discogs_id ?? '';
+                    break;
+                default:
+                    $row[] = '';
+            }
+        }
+
+        return $row;
     }
 
     public function title(): string
@@ -198,18 +333,25 @@ class CollectionExport implements FromCollection, WithHeadings, WithMapping, Wit
                     }
                 }
 
-                // Formats spécifiques pour les colonnes
-                // Colonne prix (I) en format monétaire
-                $sheet->getStyle("I{$firstDataRow}:I{$lastDataRow}")->getNumberFormat()
-                    ->setFormatCode('#,##0.00 €');
+                // Formats spécifiques pour les colonnes dynamiques
+                // Trouver l'index des colonnes spécifiques
+                $columnLetters = range('A', $highestColumn);
 
-                // Colonnes centrées
-                $sheet->getStyle("G{$firstDataRow}:G{$lastDataRow}")->getAlignment()
-                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("J{$firstDataRow}:J{$lastDataRow}")->getAlignment()
-                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("L{$firstDataRow}:L{$lastDataRow}")->getAlignment()
-                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                foreach ($this->columns as $index => $column) {
+                    $columnLetter = $columnLetters[$index];
+
+                    // Format monétaire pour le prix
+                    if ($column === 'prix_achat') {
+                        $sheet->getStyle("{$columnLetter}{$firstDataRow}:{$columnLetter}{$lastDataRow}")
+                            ->getNumberFormat()->setFormatCode('#,##0.00 €');
+                    }
+
+                    // Colonnes à centrer
+                    if (in_array($column, ['annee', 'annee_achat', 'note', 'vinyl_format'])) {
+                        $sheet->getStyle("{$columnLetter}{$firstDataRow}:{$columnLetter}{$lastDataRow}")
+                            ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    }
+                }
 
                 // Ajuster la hauteur des lignes de données
                 for ($row = $firstDataRow; $row <= $lastDataRow; $row++) {
