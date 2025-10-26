@@ -727,9 +727,19 @@
 
 
                         <div v-if="canReply" id="reply-form" class="mt-8 border-t dark:border-gray-700 pt-6">
-                            <h3 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                Répondre
-                            </h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                    Répondre
+                                </h3>
+                                <button @click="showReplyModal = true"
+                                        type="button"
+                                        class="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                                    </svg>
+                                    Mode étendu
+                                </button>
+                            </div>
                             <form @submit.prevent="submitReply" class="space-y-4">
                                 <TinyMCEEditor
                                     v-model="replyForm.content"
@@ -865,6 +875,14 @@
             @confirm="confirmDelete"
             @close="showDeleteModal = false"
         />
+
+        <ReplyModal
+            :show="showReplyModal"
+            v-model:content="replyForm.content"
+            :disabled="replyForm.processing"
+            @close="showReplyModal = false"
+            @submit="submitReply"
+        />
     </ForumLayout>
 </template>
 
@@ -877,6 +895,7 @@ import Pagination from '@/Components/Pagination.vue';
 import TinyMCEEditor from '@/Components/TinyMCEEditor.vue';
 import NotificationContainer from '@/Components/NotificationContainer.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import ReplyModal from '@/Components/Forum/ReplyModal.vue';
 import { useNotifications } from '@/composables/useNotifications.js';
 import { useForumContent } from '@/composables/useForumContent.js';
 
@@ -976,6 +995,7 @@ onMounted(() => {
 const showRenameModal = ref(false);
 const showMoveModal = ref(false);
 const showMobileMenu = ref(false);
+const showReplyModal = ref(false);
 
 // Post menus state
 const openPostMenus = ref({});
@@ -1146,8 +1166,9 @@ function submitReply() {
             editorIframes.forEach(iframe => {
                 iframe.src = 'about:blank';
             });
-            
+
             replyForm.reset();
+            showReplyModal.value = false;
         }
     });
 }

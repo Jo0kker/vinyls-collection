@@ -18,8 +18,9 @@ class PublicProfileController extends Controller
         $sortBy = $request->get('sort_by', 'vinyl_count'); // Default sort by vinyl count
         
         $query = User::where('profile_public', true)
-                    ->whereNotNull('email_verified_at'); // Only verified users
-        
+                    ->whereNotNull('email_verified_at') // Only verified users
+                    ->select(['id', 'name', 'avatar', 'location', 'bio', 'vinyl_count', 'public_collections_count', 'created_at']);
+
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
@@ -27,10 +28,8 @@ class PublicProfileController extends Controller
                   ->orWhere('bio', 'LIKE', "%{$search}%");
             });
         }
-        
-        $query->withCount(['publicCollections', 'vinylCollections']);
-        
-        // Apply sorting
+
+        // Apply sorting using cached columns
         switch ($sortBy) {
             case 'name':
                 $query->orderBy('name');
@@ -43,10 +42,10 @@ class PublicProfileController extends Controller
                 break;
             case 'vinyl_count':
             default:
-                $query->orderByDesc('vinyl_collections_count');
+                $query->orderByDesc('vinyl_count');
                 break;
         }
-        
+
         $users = $query->paginate(24)->appends($request->query());
 
         return Inertia::render('Profiles/Index', [

@@ -10,6 +10,10 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
 use Symfony\Component\Mailer\Transport\Dsn;
+use App\Models\Collection;
+use App\Models\CollectionVinyl;
+use App\Observers\CollectionObserver;
+use App\Observers\CollectionVinylObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -42,5 +46,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('export', function (Request $request) {
             return Limit::perMinute(1)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Register observers for automatic count synchronization
+        Collection::observe(CollectionObserver::class);
+        CollectionVinyl::observe(CollectionVinylObserver::class);
     }
 }
