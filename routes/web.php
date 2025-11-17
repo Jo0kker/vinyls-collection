@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:export');
     Route::delete('collections/{collection}/vinyl/{collectionVinyl}', [CollectionController::class, 'removeVinyl'])->name('collections.vinyl.remove');
     Route::patch('collections/{collection}/vinyl/{collectionVinyl}/move', [CollectionController::class, 'moveVinyl'])->name('collections.vinyl.move');
+    Route::get('collections/{collection}/deletion-stats', [CollectionController::class, 'getDeletionStats'])->name('collections.deletion-stats');
     
     // Vinyls routes (mes vinyles personnels)
     Route::resource('mes-vinyles', VinylController::class)->names([

@@ -251,7 +251,38 @@ class CollectionController extends Controller
     }
 
     /**
+     * Get deletion statistics for a collection
+     */
+    public function getDeletionStats(Collection $collection)
+    {
+        // Vérifier que l'utilisateur est propriétaire de la collection
+        if ($collection->user_id !== Auth::id()) {
+            abort(403, 'Vous n\'avez pas accès à cette collection.');
+        }
+
+        // Récupérer tous les vinyles de cette collection
+        $vinylIds = $collection->collectionVinyls()->pluck('vinyl_id')->unique();
+        $totalVinyls = $collection->collectionVinyls()->count();
+        
+        // Compter combien de vinyles deviendront orphelins
+        $orphanVinyls = 0;
+        foreach ($vinylIds as $vinylId) {
+            $count = CollectionVinyl::where('vinyl_id', $vinylId)->count();
+            if ($count === 1) {
+                $orphanVinyls++;
+            }
+        }
+
+        return response()->json([
+            'total_vinyls' => $totalVinyls,
+            'orphan_vinyls' => $orphanVinyls,
+            'collection_name' => $collection->collection_nom,
+        ]);
+    }
+
+    /**
      * Remove the specified collection from storage
+     * La suppression en cascade des vinyls orphelins et des images S3 est gérée dans le modèle Collection
      */
     public function destroy(Collection $collection)
     {
@@ -260,9 +291,10 @@ class CollectionController extends Controller
             abort(403, 'Vous n\'avez pas accès à cette collection.');
         }
 
+        $collectionName = $collection->collection_nom;
         $collection->delete();
 
-        return redirect()->route('collections.index')->with('success', 'Collection supprimée avec succès.');
+        return redirect()->route('collections.index')->with('success', "Collection \"{$collectionName}\" supprimée avec succès.");
     }
 
     /**
