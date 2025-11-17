@@ -1,6 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import DeleteCollectionModal from '@/Components/DeleteCollectionModal.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 defineProps({
     collections: {
@@ -9,6 +11,9 @@ defineProps({
     }
 });
 
+const showDeleteModal = ref(false);
+const collectionToDelete = ref(null);
+
 const formatDate = (date) => {
     if (!date) return '';
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -16,6 +21,16 @@ const formatDate = (date) => {
         month: 'short',
         year: 'numeric'
     });
+};
+
+const openDeleteModal = (collection) => {
+    collectionToDelete.value = collection;
+    showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+    showDeleteModal.value = false;
+    collectionToDelete.value = null;
 };
 </script>
 
@@ -62,10 +77,10 @@ const formatDate = (date) => {
                          class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">
                                     {{ collection.collection_nom }}
                                 </h3>
-                                <div class="flex space-x-2">
+                                <div class="flex space-x-2 flex-shrink-0">
                                     <Link :href="`/collections/${collection.id}/edit`"
                                        class="text-blue-600 hover:text-blue-800 text-sm">
                                         Modifier
@@ -74,6 +89,11 @@ const formatDate = (date) => {
                                        class="text-green-600 hover:text-green-800 text-sm">
                                         Voir
                                     </Link>
+                                    <button
+                                        @click="openDeleteModal(collection)"
+                                        class="text-red-600 hover:text-red-800 text-sm">
+                                        Supprimer
+                                    </button>
                                 </div>
                             </div>
                             
@@ -111,5 +131,13 @@ const formatDate = (date) => {
                 </div>
             </div>
         </div>
+
+        <!-- Delete Collection Modal -->
+        <DeleteCollectionModal
+            v-if="collectionToDelete"
+            :show="showDeleteModal"
+            :collection="collectionToDelete"
+            @close="closeDeleteModal"
+        />
     </AuthenticatedLayout>
 </template>

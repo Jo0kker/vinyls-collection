@@ -260,7 +260,39 @@ class CollectionController extends Controller
             abort(403, 'Vous n\'avez pas accès à cette collection.');
         }
 
+        // Récupérer les IDs de vinyles dans cette collection avant suppression
+        $vinylIds = $collection->collectionVinyls()->pluck('vinyl_id')->unique();
+        
+        // Supprimer la collection (cascade supprimera les collection_vinyls)
         $collection->delete();
+        
+        // Vérifier et nettoyer les vinyles orphelins
+        foreach ($vinylIds as $vinylId) {
+            $vinyl = Vinyl::find($vinylId);
+            
+            if ($vinyl) {
+                // Vérifier si d'autres utilisateurs possèdent encore ce vinyle
+                $remainingCount = CollectionVinyl::where('vinyl_id', $vinylId)->count();
+                
+                if ($remainingCount === 0) {
+                    // Personne d'autre ne possède ce vinyle, on peut le supprimer complètement
+                    
+                    // Supprimer l'image de S3 si elle existe et si ce n'est pas un vinyle Discogs
+                    if ($vinyl->pochette && !$vinyl->discogs_id) {
+                        $this->deleteVinylImage($vinyl->pochette);
+                    }
+                    
+                    // Supprimer le vinyle de la base de données
+                    $vinyl->delete();
+                    
+                    \Log::info('Vinyle orphelin supprimé lors de la suppression de collection', [
+                        'vinyl_id' => $vinylId,
+                        'vinyl_nom' => $vinyl->vinyl_nom,
+                        'collection_id' => $collection->id
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('collections.index')->with('success', 'Collection supprimée avec succès.');
     }

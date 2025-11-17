@@ -5,6 +5,7 @@ import DiscogsVinylModal from '@/Components/DiscogsVinylModal.vue';
 import ManualVinylModal from '@/Components/ManualVinylModal.vue';
 import EditVinylModal from '@/Components/EditVinylModal.vue';
 import ExportCollectionModal from '@/Components/ExportCollectionModal.vue';
+import DeleteCollectionModal from '@/Components/DeleteCollectionModal.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch, nextTick } from 'vue';
 
@@ -37,6 +38,7 @@ const showVinylModal = ref(false);
 const showManualVinylModal = ref(false);
 const showEditVinylModal = ref(false);
 const showExportModal = ref(false);
+const showDeleteCollectionModal = ref(false);
 
 // État pour l'export
 const isExporting = ref(false);
@@ -758,6 +760,14 @@ const handleExport = async () => {
                         </svg>
                         Modifier
                     </Link>
+                    <button @click="showDeleteCollectionModal = true"
+                           class="flex-1 sm:flex-initial bg-red-600 hover:bg-red-700 text-white px-3 py-2 sm:px-4 rounded-md transition-colors text-sm sm:text-base inline-flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Supprimer</span>
+                        <span class="inline sm:hidden">Suppr.</span>
+                    </button>
                     <button @click="openVinylModal"
                            class="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 sm:px-4 rounded-md transition-colors text-sm sm:text-base inline-flex items-center justify-center gap-2">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1710,6 +1720,13 @@ const handleExport = async () => {
             :collection-id="collection.id"
             :total-vinyls="pagination?.total || collection.collection_vinyls?.length || 0"
             @close="showExportModal = false"
+        />
+
+        <!-- Modal delete collection -->
+        <DeleteCollectionModal
+            :show="showDeleteCollectionModal"
+            :collection="collection"
+            @close="showDeleteCollectionModal = false"
         />
     </AuthenticatedLayout>
 </template>
