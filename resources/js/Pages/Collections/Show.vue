@@ -97,71 +97,11 @@ const filters = ref({
     commentaires: ''
 });
 
-// Collection filtrée
+// Collection filtrée - maintenant tous les filtres sont gérés par le backend
 const filteredVinyls = computed(() => {
-    if (!collectionVinyls.value.length) return paginationData.value;
-
-    let filtered = [...collectionVinyls.value];
-    
-    // Filtrer par titre
-    if (filters.value.titre) {
-        const titleQuery = filters.value.titre.toLowerCase();
-        filtered = filtered.filter(v => 
-            v.vinyl?.vinyl_nom?.toLowerCase().includes(titleQuery)
-        );
-    }
-    
-    // Filtrer par artiste
-    if (filters.value.artiste) {
-        const artistQuery = filters.value.artiste.toLowerCase();
-        filtered = filtered.filter(v => 
-            v.vinyl?.artiste?.toLowerCase().includes(artistQuery)
-        );
-    }
-    
-    // Filtrer par année min
-    if (filters.value.annee_min) {
-        filtered = filtered.filter(v => 
-            v.vinyl?.annee && parseInt(v.vinyl.annee) >= parseInt(filters.value.annee_min)
-        );
-    }
-    
-    // Filtrer par année max
-    if (filters.value.annee_max) {
-        filtered = filtered.filter(v => 
-            v.vinyl?.annee && parseInt(v.vinyl.annee) <= parseInt(filters.value.annee_max)
-        );
-    }
-    
-    // Filtrer par genre
-    if (filters.value.genre) {
-        filtered = filtered.filter(v => v.vinyl?.genre === filters.value.genre);
-    }
-    
-    // Filtrer par label
-    if (filters.value.label) {
-        filtered = filtered.filter(v => v.vinyl?.label === filters.value.label);
-    }
-    
-    // Filtrer par format
-    if (filters.value.format) {
-        filtered = filtered.filter(v => v.vinyl?.format === filters.value.format);
-    }
-    
-    // Filtrer par pays
-    if (filters.value.pays) {
-        filtered = filtered.filter(v => v.vinyl?.pays === filters.value.pays);
-    }
-    
-    // Filtrer par commentaires
-    if (filters.value.commentaires) {
-        const commentQuery = filters.value.commentaires.toLowerCase();
-        filtered = filtered.filter(v => 
-            v.commentaires?.toLowerCase().includes(commentQuery)
-        );
-    }
-    
-    return filtered;
+    // Les résultats sont toujours filtrés par le backend (recherche + filtres avancés)
+    // On retourne directement paginationData.value
+    return paginationData.value || [];
 });
 
 // Options pour les filtres (à générer dynamiquement depuis les données)
@@ -437,6 +377,41 @@ const formatDate = (date) => {
     });
 };
 
+// Fonction pour vérifier si un champ correspond à la recherche
+const matchesSearch = (value, searchTerm) => {
+    if (!searchTerm || !value) return false;
+    return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
+};
+
+// Fonction pour obtenir les champs qui correspondent à la recherche
+const getMatchingFields = (vinyl) => {
+    if (!searchQuery.value) return [];
+
+    const matches = [];
+    const search = searchQuery.value.toLowerCase();
+
+    if (vinyl?.vinyl_nom && vinyl.vinyl_nom.toLowerCase().includes(search)) {
+        matches.push('Nom');
+    }
+    if (vinyl?.vinyl_titre && vinyl.vinyl_titre.toLowerCase().includes(search)) {
+        matches.push('Titre');
+    }
+    if (vinyl?.artiste && vinyl.artiste.toLowerCase().includes(search)) {
+        matches.push('Artiste');
+    }
+    if (vinyl?.label && vinyl.label.toLowerCase().includes(search)) {
+        matches.push('Label');
+    }
+    if (vinyl?.reference && vinyl.reference.toLowerCase().includes(search)) {
+        matches.push('Référence');
+    }
+    if (vinyl?.annee && vinyl.annee.toString().includes(search)) {
+        matches.push('Année');
+    }
+
+    return matches;
+};
+
 // Méthodes pour les modals
 const openVinylModal = () => {
     showVinylModal.value = true;
@@ -503,9 +478,25 @@ const getSortLabel = (sortByValue) => {
 
 // Fonctions pour les filtres avancés
 const applyAdvancedFilters = () => {
-    // Pour l'instant, on filtre côté client
-    // Plus tard, on pourra envoyer ces filtres au serveur
-    applyFilters();
+    // Envoyer les filtres au backend via Inertia
+    router.get(route('collections.show', props.collection.id), {
+        search: searchQuery.value,
+        sort: sortBy.value,
+        order: sortOrder.value,
+        per_page: perPage.value,
+        filter_titre: filters.value.titre || '',
+        filter_artiste: filters.value.artiste || '',
+        filter_annee_min: filters.value.annee_min || '',
+        filter_annee_max: filters.value.annee_max || '',
+        filter_genre: filters.value.genre || '',
+        filter_label: filters.value.label || '',
+        filter_format: filters.value.format || '',
+        filter_pays: filters.value.pays || '',
+        filter_commentaires: filters.value.commentaires || '',
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+    });
 };
 
 const clearAdvancedFilters = () => {
@@ -1417,6 +1408,12 @@ const handleExport = async () => {
                                                     <div class="font-medium text-gray-900 dark:text-white">
                                                         {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
                                                     </div>
+                                                    <!-- Indicateur de champs correspondants à la recherche -->
+                                                    <div v-if="searchQuery && getMatchingFields(collectionVinyl.vinyl).length > 0"
+                                                         class="mt-1 text-xs text-purple-600 dark:text-purple-400">
+                                                        <span class="font-medium">Trouvé dans:</span>
+                                                        {{ getMatchingFields(collectionVinyl.vinyl).join(', ') }}
+                                                    </div>
                                                 </div>
                                                 
                                                 <!-- Artiste -->
@@ -1478,15 +1475,15 @@ const handleExport = async () => {
                                                 <button @click="openEditModal(collectionVinyl)"
                                                         :class="[
                                                             'p-1.5 rounded-md transition-colors',
-                                                            collectionVinyl.can_edit_vinyl 
+                                                            collectionVinyl.can_edit_vinyl
                                                                 ? 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900'
                                                                 : 'text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900'
                                                         ]"
-                                                        :title="collectionVinyl.can_edit_vinyl 
+                                                        :title="collectionVinyl.can_edit_vinyl
                                                             ? 'Éditer le vinyle et votre exemplaire'
                                                             : 'Éditer uniquement votre exemplaire'">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                     </svg>
                                                 </button>
                                                 <button @click="openMoveModal(collectionVinyl)"

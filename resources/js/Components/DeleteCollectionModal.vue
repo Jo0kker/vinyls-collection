@@ -25,18 +25,25 @@ const error = ref(null);
 // Charger les statistiques quand la modale s'ouvre
 watch(() => props.show, async (newValue) => {
     if (newValue && props.collection?.id) {
+        // Reset et set loading immédiatement
         loading.value = true;
         error.value = null;
-        
+        stats.value = null;
+
         try {
             const response = await axios.get(`/collections/${props.collection.id}/deletion-stats`);
             stats.value = response.data;
+            loading.value = false;
         } catch (err) {
             console.error('Erreur lors du chargement des statistiques:', err);
             error.value = 'Impossible de charger les statistiques.';
-        } finally {
             loading.value = false;
         }
+    } else if (!newValue) {
+        // Reset quand on ferme
+        stats.value = null;
+        error.value = null;
+        loading.value = false;
     }
 });
 
@@ -65,22 +72,33 @@ const confirm = () => {
                 </div>
             </div>
 
-            <div v-if="loading" class="py-8 text-center">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Chargement des informations...</p>
-            </div>
-
-            <div v-else-if="error" class="py-4">
+            <div v-if="error" class="py-4">
                 <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
             </div>
 
-            <div v-else-if="stats" class="space-y-4">
+            <div v-else class="space-y-4">
+                <!-- Question principale -->
                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                    Êtes-vous sûr de vouloir supprimer la collection 
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ stats.collection_name }}</span> ?
+                    Êtes-vous sûr de vouloir supprimer la collection
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ collection.collection_nom }}</span> ?
                 </p>
 
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4">
+                <!-- Skeleton loader pendant le chargement -->
+                <div v-if="loading" class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 animate-pulse">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <div class="h-5 w-5 bg-yellow-400 rounded"></div>
+                        </div>
+                        <div class="ml-3 flex-1 space-y-3">
+                            <div class="h-4 bg-yellow-200 dark:bg-yellow-800 rounded w-3/4"></div>
+                            <div class="h-3 bg-yellow-200 dark:bg-yellow-800 rounded w-full"></div>
+                            <div class="h-3 bg-yellow-200 dark:bg-yellow-800 rounded w-5/6"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistiques de suppression -->
+                <div v-else-if="stats" class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -94,13 +112,13 @@ const confirm = () => {
                             <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
                                 <ul class="list-disc list-inside space-y-1">
                                     <li>
-                                        <span class="font-semibold">{{ stats.total_vinyls }}</span> 
-                                        vinyle{{ stats.total_vinyls > 1 ? 's' : '' }} 
+                                        <span class="font-semibold">{{ stats.total_vinyls }}</span>
+                                        vinyle{{ stats.total_vinyls > 1 ? 's' : '' }}
                                         {{ stats.total_vinyls > 1 ? 'seront retirés' : 'sera retiré' }} de cette collection
                                     </li>
                                     <li v-if="stats.orphan_vinyls > 0">
-                                        <span class="font-semibold text-red-600 dark:text-red-400">{{ stats.orphan_vinyls }}</span> 
-                                        vinyle{{ stats.orphan_vinyls > 1 ? 's' : '' }} 
+                                        <span class="font-semibold text-red-600 dark:text-red-400">{{ stats.orphan_vinyls }}</span>
+                                        vinyle{{ stats.orphan_vinyls > 1 ? 's' : '' }}
                                         {{ stats.orphan_vinyls > 1 ? 'seront définitivement supprimés' : 'sera définitivement supprimé' }}
                                         ({{ stats.orphan_vinyls > 1 ? 'ils ne sont' : 'il n\'est' }} dans aucune autre collection)
                                     </li>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Helpers\ImageHelper;
 
 class Collection extends Model
 {
@@ -27,7 +28,7 @@ class Collection extends Model
 
     public function collectionVinyls()
     {
-        return $this->hasMany(CollectionVinyl::class)->onDelete('cascade');
+        return $this->hasMany(CollectionVinyl::class);
     }
     
     protected static function booted()
@@ -46,28 +47,11 @@ class Collection extends Model
                 if ($remainingCount === 0) {
                     // Personne d'autre ne possède ce vinyle, on peut le supprimer
                     $vinyl = Vinyl::find($vinylId);
-                    
+
                     if ($vinyl) {
-                        // Supprimer l'image de S3 si elle existe et si ce n'est pas un vinyle Discogs
-                        if ($vinyl->pochette && !$vinyl->discogs_id) {
-                            try {
-                                // Vérifier si c'est une URL S3
-                                if (str_contains($vinyl->pochette, 's3.amazonaws.com') || str_contains($vinyl->pochette, 'digitaloceanspaces.com')) {
-                                    // Extraire le chemin depuis l'URL
-                                    $path = parse_url($vinyl->pochette, PHP_URL_PATH);
-                                    $path = ltrim($path, '/');
-                                    
-                                    // Supprimer le fichier de S3
-                                    if (\Storage::disk('s3')->exists($path)) {
-                                        \Storage::disk('s3')->delete($path);
-                                        \Log::info('Image supprimée de S3', ['path' => $path, 'vinyl_id' => $vinylId]);
-                                    }
-                                }
-                            } catch (\Exception $e) {
-                                \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
-                            }
-                        }
-                        
+                        // Supprimer l'image du storage si c'est une image S3
+                        ImageHelper::deleteVinylImage($vinyl->pochette);
+
                         // Supprimer le vinyle
                         $vinyl->delete();
                         \Log::info('Vinyle orphelin supprimé', ['vinyl_id' => $vinylId, 'collection_id' => $collection->id]);

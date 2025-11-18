@@ -55,7 +55,19 @@ const form = ref({
 });
 
 const isManualVinyl = computed(() => {
-    return !props.collectionVinyl.vinyl?.discogs_id;
+    // Un vinyle est manuel s'il n'a pas de discogs_id OU si discogs_type === 'manual'
+    const vinyl = props.collectionVinyl.vinyl;
+    if (!vinyl) return false;
+
+    // Debug pour voir les valeurs
+    console.log('🔍 DEBUG isManualVinyl:', {
+        discogs_id: vinyl.discogs_id,
+        discogs_type: vinyl.discogs_type,
+        vinyl_nom: vinyl.vinyl_nom,
+        result: !vinyl.discogs_id || vinyl.discogs_type === 'manual'
+    });
+
+    return !vinyl.discogs_id || vinyl.discogs_type === 'manual';
 });
 
 const isDiscogsVinyl = computed(() => !isManualVinyl.value);
@@ -403,8 +415,8 @@ const getFormatLabel = (format) => {
                 <!-- Body avec scroll -->
                 <div class="flex-1 overflow-y-auto px-6 py-4">
                     <form @submit.prevent="saveVinyl">
-                        <!-- Image Section pour vinyles manuels avec permissions OU si pas d'image et owner -->
-                        <div v-if="isManualVinyl && ((canEditVinyl) || (!collectionVinyl.vinyl?.pochette && canEditInstance) || (imageNotAccessible && canEditInstance) || (checkingImageAccessibility && canEditInstance))" class="mb-6">
+                        <!-- Image Section pour vinyles manuels - toujours accessible si canEditInstance -->
+                        <div v-if="isManualVinyl && (canEditVinyl || canEditInstance)" class="mb-6">
                             <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">
                                 Image de pochette
                                 <span v-if="isDiscogsVinyl" class="text-sm font-normal text-gray-500 dark:text-gray-400">
@@ -465,13 +477,12 @@ const getFormatLabel = (format) => {
                                             Supprimer l'image
                                         </button>
 
-                                        <!-- Bouton sauvegarder l'image directement dans la section image -->
-                                        <button v-if="isManualVinyl && (imageNotAccessible || canEditVinyl)"
-                                                @click="saveImage"
+                                        <!-- Bouton sauvegarder l'image - toujours visible si la section image est affichée -->
+                                        <button @click="saveImage"
                                                 :disabled="isSaving || (!form.pochette_file && !form.pochette_url)"
                                                 type="button"
                                                 class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50">
-                                            {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder' }}
+                                            {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder l\'image' }}
                                         </button>
                                     </div>
                                 </div>

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Exports\CollectionExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Helpers\ImageHelper;
 
 class CollectionController extends Controller
 {
@@ -82,6 +83,17 @@ class CollectionController extends Controller
         $sortBy = $request->get('sort', 'date_ajout');
         $sortOrder = $request->get('order', 'desc');
         $perPage = $request->get('per_page', 20); // Par défaut 20 items
+
+        // Récupérer les filtres avancés
+        $filterTitre = $request->get('filter_titre', '');
+        $filterArtiste = $request->get('filter_artiste', '');
+        $filterAnneeMin = $request->get('filter_annee_min', '');
+        $filterAnneeMax = $request->get('filter_annee_max', '');
+        $filterGenre = $request->get('filter_genre', '');
+        $filterLabel = $request->get('filter_label', '');
+        $filterFormat = $request->get('filter_format', '');
+        $filterPays = $request->get('filter_pays', '');
+        $filterCommentaires = $request->get('filter_commentaires', '');
         
         // Valider que per_page est dans les valeurs autorisées
         if (!in_array($perPage, [20, 50, 100, 1000])) {
@@ -101,13 +113,66 @@ class CollectionController extends Controller
                           ->orWhereRaw('vinyl_titre ILIKE ?', ["%{$searchTerm}%"])
                           ->orWhereRaw('label ILIKE ?', ["%{$searchTerm}%"])
                           ->orWhereRaw('reference ILIKE ?', ["%{$searchTerm}%"]);
-                    
+
                     // Ajouter la condition sur l'année seulement si c'est numérique
                     if (is_numeric($searchTerm)) {
                         $query->orWhere('annee', '=', intval($searchTerm));
                     }
                 });
             });
+        }
+
+        // Appliquer les filtres avancés
+        if ($filterTitre) {
+            $query->whereHas('vinyl', function($q) use ($filterTitre) {
+                $q->whereRaw('vinyl_nom ILIKE ?', ["%{$filterTitre}%"]);
+            });
+        }
+
+        if ($filterArtiste) {
+            $query->whereHas('vinyl', function($q) use ($filterArtiste) {
+                $q->whereRaw('artiste ILIKE ?', ["%{$filterArtiste}%"]);
+            });
+        }
+
+        if ($filterAnneeMin) {
+            $query->whereHas('vinyl', function($q) use ($filterAnneeMin) {
+                $q->where('annee', '>=', intval($filterAnneeMin));
+            });
+        }
+
+        if ($filterAnneeMax) {
+            $query->whereHas('vinyl', function($q) use ($filterAnneeMax) {
+                $q->where('annee', '<=', intval($filterAnneeMax));
+            });
+        }
+
+        if ($filterGenre) {
+            $query->whereHas('vinyl', function($q) use ($filterGenre) {
+                $q->where('genre', $filterGenre);
+            });
+        }
+
+        if ($filterLabel) {
+            $query->whereHas('vinyl', function($q) use ($filterLabel) {
+                $q->where('label', $filterLabel);
+            });
+        }
+
+        if ($filterFormat) {
+            $query->whereHas('vinyl', function($q) use ($filterFormat) {
+                $q->where('vinyl_format', $filterFormat);
+            });
+        }
+
+        if ($filterPays) {
+            $query->whereHas('vinyl', function($q) use ($filterPays) {
+                $q->where('pays', $filterPays);
+            });
+        }
+
+        if ($filterCommentaires) {
+            $query->whereRaw('commentaires ILIKE ?', ["%{$filterCommentaires}%"]);
         }
 
         // Appliquer le tri en utilisant des sous-requêtes pour préserver les relations
@@ -142,6 +207,17 @@ class CollectionController extends Controller
 
         // Paginer les résultats
         $collectionVinylsPaginated = $query->paginate($perPage)->withQueryString();
+
+        // Debug: afficher le nombre de résultats
+        if ($search) {
+            \Log::info('Search results', [
+                'search_term' => $search,
+                'total_results' => $collectionVinylsPaginated->total(),
+                'current_page' => $collectionVinylsPaginated->currentPage(),
+                'per_page' => $collectionVinylsPaginated->perPage(),
+                'items_on_page' => $collectionVinylsPaginated->count(),
+            ]);
+        }
 
         // Ajouter les informations de permissions pour chaque vinyl
         $user = Auth::user();
@@ -322,18 +398,17 @@ class CollectionController extends Controller
         
         if ($remainingCount === 0) {
             // Personne d'autre ne possède ce vinyle, on peut le supprimer complètement
-            
-            // Supprimer l'image de S3 si elle existe et si ce n'est pas un vinyle Discogs
-            if ($vinyl->pochette && !$vinyl->discogs_id) {
-                $this->deleteVinylImage($vinyl->pochette);
-            }
-            
+
+            // Supprimer l'image du storage (la méthode vérifie si c'est une image S3)
+            ImageHelper::deleteVinylImage($vinyl->pochette);
+
             // Supprimer le vinyle de la base de données
             $vinyl->delete();
-            
+
             \Log::info('Vinyle orphelin supprimé depuis CollectionController', [
                 'vinyl_id' => $vinyl->id,
                 'vinyl_nom' => $vinyl->vinyl_nom,
+                'pochette' => $vinyl->pochette,
                 'collection_id' => $collection->id
             ]);
         }
@@ -455,29 +530,6 @@ class CollectionController extends Controller
             new CollectionExport($collection, $columns, $filters, $sortBy, $sortOrder),
             $fileName
         );
-    }
-
-    /**
-     * Delete a vinyl image from S3
-     */
-    private function deleteVinylImage($imageUrl)
-    {
-        try {
-            // Vérifier si c'est une URL S3
-            if (str_contains($imageUrl, 's3.amazonaws.com') || str_contains($imageUrl, 'digitaloceanspaces.com')) {
-                // Extraire le chemin depuis l'URL
-                $path = parse_url($imageUrl, PHP_URL_PATH);
-                $path = ltrim($path, '/');
-                
-                // Supprimer le fichier de S3
-                if (Storage::disk('s3')->exists($path)) {
-                    Storage::disk('s3')->delete($path);
-                    \Log::info('Image supprimée de S3 depuis CollectionController', ['path' => $path]);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
-        }
     }
 
     /**
