@@ -22,21 +22,37 @@ const loading = ref(false);
 const stats = ref(null);
 const error = ref(null);
 
+// AbortController pour annuler les requêtes en cours
+let abortController = null;
+
 // Charger les statistiques quand la modale s'ouvre
 watch(() => props.show, async (newValue) => {
+    // Annuler toute requête en cours
+    if (abortController) {
+        abortController.abort();
+    }
+
     if (newValue && props.collection?.id) {
+        // Créer un nouveau AbortController pour cette requête
+        abortController = new AbortController();
+
         // Reset et set loading immédiatement
         loading.value = true;
         error.value = null;
         stats.value = null;
 
         try {
-            const response = await axios.get(`/collections/${props.collection.id}/deletion-stats`);
+            const response = await axios.get(`/collections/${props.collection.id}/deletion-stats`, {
+                signal: abortController.signal
+            });
             stats.value = response.data;
-            loading.value = false;
         } catch (err) {
-            console.error('Erreur lors du chargement des statistiques:', err);
-            error.value = 'Impossible de charger les statistiques.';
+            // Ignorer les erreurs d'annulation
+            if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {
+                console.error('Erreur lors du chargement des statistiques:', err);
+                error.value = 'Impossible de charger les statistiques.';
+            }
+        } finally {
             loading.value = false;
         }
     } else if (!newValue) {

@@ -59,14 +59,6 @@ const isManualVinyl = computed(() => {
     const vinyl = props.collectionVinyl.vinyl;
     if (!vinyl) return false;
 
-    // Debug pour voir les valeurs
-    console.log('🔍 DEBUG isManualVinyl:', {
-        discogs_id: vinyl.discogs_id,
-        discogs_type: vinyl.discogs_type,
-        vinyl_nom: vinyl.vinyl_nom,
-        result: !vinyl.discogs_id || vinyl.discogs_type === 'manual'
-    });
-
     return !vinyl.discogs_id || vinyl.discogs_type === 'manual';
 });
 

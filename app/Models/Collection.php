@@ -35,27 +35,39 @@ class Collection extends Model
     {
         static::deleting(function ($collection) {
             // Avant de supprimer la collection, on récupère tous les vinyles
-            $vinylIds = $collection->collectionVinyls()->pluck('vinyl_id')->unique();
-            
+            $vinylIds = $collection->collectionVinyls()->pluck('vinyl_id')->unique()->toArray();
+
+            if (empty($vinylIds)) {
+                return;
+            }
+
+            // Optimisation: récupérer le nombre de collections pour chaque vinyle en une seule requête
+            $vinylCounts = CollectionVinyl::whereIn('vinyl_id', $vinylIds)
+                ->groupBy('vinyl_id')
+                ->selectRaw('vinyl_id, count(*) as count')
+                ->pluck('count', 'vinyl_id');
+
+            // Identifier les vinyles qui deviendront orphelins après suppression
+            $orphanVinylIds = [];
+            foreach ($vinylIds as $vinylId) {
+                if (($vinylCounts[$vinylId] ?? 0) === 1) {
+                    $orphanVinylIds[] = $vinylId;
+                }
+            }
+
             // Supprimer tous les collection_vinyls de cette collection
             $collection->collectionVinyls()->delete();
-            
-            // Pour chaque vinyle, vérifier s'il est encore possédé par quelqu'un
-            foreach ($vinylIds as $vinylId) {
-                $remainingCount = CollectionVinyl::where('vinyl_id', $vinylId)->count();
-                
-                if ($remainingCount === 0) {
-                    // Personne d'autre ne possède ce vinyle, on peut le supprimer
-                    $vinyl = Vinyl::find($vinylId);
 
-                    if ($vinyl) {
-                        // Supprimer l'image du storage si c'est une image S3
-                        ImageHelper::deleteVinylImage($vinyl->pochette);
+            // Supprimer les vinyles orphelins et leurs images
+            if (!empty($orphanVinylIds)) {
+                $orphanVinyls = Vinyl::whereIn('id', $orphanVinylIds)->get();
+                foreach ($orphanVinyls as $vinyl) {
+                    ImageHelper::deleteVinylImage($vinyl->pochette);
+                }
+                Vinyl::whereIn('id', $orphanVinylIds)->delete();
 
-                        // Supprimer le vinyle
-                        $vinyl->delete();
-                        \Log::info('Vinyle orphelin supprimé', ['vinyl_id' => $vinylId, 'collection_id' => $collection->id]);
-                    }
+                foreach ($orphanVinylIds as $vinylId) {
+                    \Log::info('Vinyle orphelin supprimé', ['vinyl_id' => $vinylId, 'collection_id' => $collection->id]);
                 }
             }
         });

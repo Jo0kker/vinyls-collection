@@ -10,6 +10,44 @@ use Illuminate\Support\Str;
 class ImageHelper
 {
     /**
+     * Validate URL for SSRF protection
+     *
+     * @param string $url The URL to validate
+     * @return bool True if safe, false otherwise
+     */
+    private static function isSafeUrl(string $url): bool
+    {
+        // Parse the URL
+        $parsedUrl = parse_url($url);
+
+        if (!$parsedUrl || !isset($parsedUrl['scheme']) || !isset($parsedUrl['host'])) {
+            return false;
+        }
+
+        // Only allow http and https
+        if (!in_array(strtolower($parsedUrl['scheme']), ['http', 'https'])) {
+            return false;
+        }
+
+        // Get the IP address
+        $ip = gethostbyname($parsedUrl['host']);
+
+        // If gethostbyname fails, it returns the hostname unchanged
+        if ($ip === $parsedUrl['host'] && !filter_var($ip, FILTER_VALIDATE_IP)) {
+            // Could not resolve, might be safe but let's be cautious
+            return true; // Allow external domains
+        }
+
+        // Block private IP ranges
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            Log::warning('SSRF attempt detected', ['url' => $url, 'ip' => $ip]);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Delete a vinyl image from S3 storage
      *
      * @param string|null $imageUrl The full URL of the image
@@ -159,6 +197,12 @@ class ImageHelper
         try {
             // Si c'est une URL externe (Discogs ou autre), télécharger l'image
             if (filter_var($originalUrl, FILTER_VALIDATE_URL)) {
+                // SSRF protection: validate URL before fetching
+                if (!self::isSafeUrl($originalUrl)) {
+                    Log::warning('Unsafe URL blocked in duplicateVinylImage', ['url' => $originalUrl]);
+                    return null;
+                }
+
                 $imageContent = @file_get_contents($originalUrl);
                 if (!$imageContent) {
                     return null;
@@ -166,18 +210,21 @@ class ImageHelper
 
                 // Créer un fichier temporaire
                 $tempPath = tempnam(sys_get_temp_dir(), 'vinyl_');
-                file_put_contents($tempPath, $imageContent);
 
-                // Créer un UploadedFile à partir du contenu
-                $file = new \Illuminate\Http\UploadedFile($tempPath, 'image.jpg', 'image/jpeg', null, true);
+                try {
+                    file_put_contents($tempPath, $imageContent);
 
-                // Utiliser la méthode existante pour uploader
-                $newUrl = self::uploadVinylImage($file);
+                    // Créer un UploadedFile à partir du contenu
+                    $file = new \Illuminate\Http\UploadedFile($tempPath, 'image.jpg', 'image/jpeg', null, true);
 
-                // Nettoyer le fichier temporaire
-                @unlink($tempPath);
+                    // Utiliser la méthode existante pour uploader
+                    $newUrl = self::uploadVinylImage($file);
 
-                return $newUrl;
+                    return $newUrl;
+                } finally {
+                    // Nettoyer le fichier temporaire (garanti même en cas d'exception)
+                    @unlink($tempPath);
+                }
             }
 
             // Si c'est déjà une image stockée sur S3, la dupliquer directement

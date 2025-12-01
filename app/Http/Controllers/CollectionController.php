@@ -208,17 +208,6 @@ class CollectionController extends Controller
         // Paginer les résultats
         $collectionVinylsPaginated = $query->paginate($perPage)->withQueryString();
 
-        // Debug: afficher le nombre de résultats
-        if ($search) {
-            \Log::info('Search results', [
-                'search_term' => $search,
-                'total_results' => $collectionVinylsPaginated->total(),
-                'current_page' => $collectionVinylsPaginated->currentPage(),
-                'per_page' => $collectionVinylsPaginated->perPage(),
-                'items_on_page' => $collectionVinylsPaginated->count(),
-            ]);
-        }
-
         // Ajouter les informations de permissions pour chaque vinyl
         $user = Auth::user();
         $collectionVinylsPaginated->getCollection()->transform(function ($collectionVinyl) use ($user) {
@@ -337,15 +326,21 @@ class CollectionController extends Controller
         }
 
         // Récupérer tous les vinyles de cette collection
-        $vinylIds = $collection->collectionVinyls()->pluck('vinyl_id')->unique();
+        $vinylIds = $collection->collectionVinyls()->pluck('vinyl_id')->unique()->toArray();
         $totalVinyls = $collection->collectionVinyls()->count();
-        
-        // Compter combien de vinyles deviendront orphelins
+
+        // Compter combien de vinyles deviendront orphelins - optimisation avec groupBy
         $orphanVinyls = 0;
-        foreach ($vinylIds as $vinylId) {
-            $count = CollectionVinyl::where('vinyl_id', $vinylId)->count();
-            if ($count === 1) {
-                $orphanVinyls++;
+        if (!empty($vinylIds)) {
+            $vinylCounts = CollectionVinyl::whereIn('vinyl_id', $vinylIds)
+                ->groupBy('vinyl_id')
+                ->selectRaw('vinyl_id, count(*) as count')
+                ->pluck('count', 'vinyl_id');
+
+            foreach ($vinylIds as $vinylId) {
+                if (($vinylCounts[$vinylId] ?? 0) === 1) {
+                    $orphanVinyls++;
+                }
             }
         }
 

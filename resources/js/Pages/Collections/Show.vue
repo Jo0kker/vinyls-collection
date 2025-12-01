@@ -377,12 +377,6 @@ const formatDate = (date) => {
     });
 };
 
-// Fonction pour vérifier si un champ correspond à la recherche
-const matchesSearch = (value, searchTerm) => {
-    if (!searchTerm || !value) return false;
-    return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
-};
-
 // Fonction pour obtenir les champs qui correspondent à la recherche
 const getMatchingFields = (vinyl) => {
     if (!searchQuery.value) return [];
