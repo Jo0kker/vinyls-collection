@@ -1,6 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import DeleteCollectionModal from '@/Components/DeleteCollectionModal.vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     collection: {
@@ -15,8 +17,26 @@ const form = useForm({
     visibility: props.collection.visibility || 'public'
 });
 
+const showDeleteModal = ref(false);
+
 const submit = () => {
     form.put(`/collections/${props.collection.id}`);
+};
+
+const openDeleteModal = () => {
+    showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+    showDeleteModal.value = false;
+};
+
+const confirmDelete = () => {
+    router.delete(`/collections/${props.collection.id}`, {
+        onSuccess: () => {
+            closeDeleteModal();
+        }
+    });
 };
 </script>
 
@@ -115,18 +135,25 @@ const submit = () => {
                                     </Link>
                                 </div>
 
-                                <Link :href="`/collections/${collection.id}`" 
-                                   method="delete" 
-                                   as="button"
-                                   class="text-red-600 hover:text-red-800 text-sm"
-                                   @before="confirm('Êtes-vous sûr de vouloir supprimer cette collection ? Cette action est irréversible.')">
+                                <button
+                                    @click="openDeleteModal"
+                                    type="button"
+                                    class="text-red-600 hover:text-red-800 text-sm font-medium">
                                     Supprimer la collection
-                                </Link>
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Delete Collection Modal -->
+        <DeleteCollectionModal
+            :show="showDeleteModal"
+            :collection="collection"
+            @close="closeDeleteModal"
+            @confirm="confirmDelete"
+        />
     </AuthenticatedLayout>
 </template>

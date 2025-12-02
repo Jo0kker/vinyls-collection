@@ -1,6 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import DeleteCollectionModal from '@/Components/DeleteCollectionModal.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 defineProps({
     collections: {
@@ -8,6 +10,29 @@ defineProps({
         default: () => []
     }
 });
+
+const showDeleteModal = ref(false);
+const collectionToDelete = ref(null);
+
+const openDeleteModal = (collection) => {
+    collectionToDelete.value = collection;
+    showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+    showDeleteModal.value = false;
+    collectionToDelete.value = null;
+};
+
+const confirmDelete = () => {
+    if (collectionToDelete.value) {
+        router.delete(`/collections/${collectionToDelete.value.id}`, {
+            onSuccess: () => {
+                closeDeleteModal();
+            }
+        });
+    }
+};
 
 const formatDate = (date) => {
     if (!date) return '';
@@ -74,6 +99,10 @@ const formatDate = (date) => {
                                        class="text-green-600 hover:text-green-800 text-sm">
                                         Voir
                                     </Link>
+                                    <button @click="openDeleteModal(collection)"
+                                       class="text-red-600 hover:text-red-800 text-sm">
+                                        Supprimer
+                                    </button>
                                 </div>
                             </div>
                             
@@ -111,5 +140,13 @@ const formatDate = (date) => {
                 </div>
             </div>
         </div>
+
+        <!-- Delete Collection Modal -->
+        <DeleteCollectionModal
+            :show="showDeleteModal"
+            :collection="collectionToDelete || {}"
+            @close="closeDeleteModal"
+            @confirm="confirmDelete"
+        />
     </AuthenticatedLayout>
 </template>

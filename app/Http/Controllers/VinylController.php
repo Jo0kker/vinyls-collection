@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use App\Helpers\ImageHelper;
 
 class VinylController extends Controller
 {
@@ -396,7 +397,7 @@ class VinylController extends Controller
         // Gérer l'upload d'image si présent
         $pochetteUrl = $vinyl->pochette;
         if ($request->hasFile('pochette_file')) {
-            $pochetteUrl = $this->uploadVinylImage($request->file('pochette_file'));
+            $pochetteUrl = ImageHelper::uploadVinylImage($request->file('pochette_file'));
         } elseif ($isManualVinyl && $request->filled('pochette_url')) {
             $pochetteUrl = $request->pochette_url;
         }
@@ -466,10 +467,8 @@ class VinylController extends Controller
         if ($remainingCount === 0) {
             // Personne d'autre ne possède ce vinyle, on peut le supprimer complètement
 
-            // Supprimer l'image de S3 si elle existe
-            if ($vinyl->pochette && !$vinyl->discogs_id) { // Ne pas supprimer les images Discogs
-                $this->deleteVinylImage($vinyl->pochette);
-            }
+            // Supprimer l'image du storage
+            ImageHelper::deleteVinylImage($vinyl->pochette);
 
             // Supprimer le vinyle de la base de données
             $vinyl->delete();
@@ -477,7 +476,7 @@ class VinylController extends Controller
             \Log::info('Vinyle orphelin supprimé', [
                 'vinyl_id' => $vinyl->id,
                 'vinyl_nom' => $vinyl->vinyl_nom,
-                'image_deleted' => !empty($vinyl->pochette)
+                'pochette' => $vinyl->pochette
             ]);
         }
 
@@ -509,7 +508,7 @@ class VinylController extends Controller
         // Dupliquer l'image si elle existe
         $newPochetteUrl = null;
         if ($originalVinyl->pochette) {
-            $newPochetteUrl = $this->duplicateVinylImage($originalVinyl->pochette);
+            $newPochetteUrl = ImageHelper::duplicateVinylImage($originalVinyl->pochette);
         }
 
         // Créer une copie du vinyle avec l'utilisateur actuel comme créateur
@@ -573,77 +572,6 @@ class VinylController extends Controller
     }
 
     /**
-     * Delete a vinyl image from S3
-     */
-    private function deleteVinylImage($imageUrl)
-    {
-        try {
-            // Vérifier si c'est une URL S3
-            if (str_contains($imageUrl, 's3.amazonaws.com') || str_contains($imageUrl, 'digitaloceanspaces.com')) {
-                // Extraire le chemin depuis l'URL
-                $path = parse_url($imageUrl, PHP_URL_PATH);
-                $path = ltrim($path, '/');
-
-                // Supprimer le fichier de S3
-                if (Storage::disk('s3')->exists($path)) {
-                    Storage::disk('s3')->delete($path);
-                    \Log::info('Image supprimée de S3', ['path' => $path]);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Duplicate a vinyl image to create a new copy
-     */
-    private function duplicateVinylImage($originalUrl)
-    {
-        try {
-            // Si c'est une URL externe (Discogs ou autre), télécharger l'image
-            if (filter_var($originalUrl, FILTER_VALIDATE_URL)) {
-                $imageContent = @file_get_contents($originalUrl);
-                if (!$imageContent) {
-                    return null;
-                }
-
-                // Créer un fichier temporaire
-                $tempPath = tempnam(sys_get_temp_dir(), 'vinyl_');
-                file_put_contents($tempPath, $imageContent);
-
-                // Créer un UploadedFile à partir du contenu
-                $file = new \Illuminate\Http\UploadedFile($tempPath, 'image.jpg', 'image/jpeg', null, true);
-
-                // Utiliser la méthode existante pour uploader
-                $newUrl = $this->uploadVinylImage($file);
-
-                // Nettoyer le fichier temporaire
-                @unlink($tempPath);
-
-                return $newUrl;
-            }
-
-            // Si c'est déjà une image stockée sur S3, la dupliquer directement
-            if (str_contains($originalUrl, 's3.amazonaws.com') || str_contains($originalUrl, 'digitaloceanspaces.com')) {
-                // Extraire le chemin depuis l'URL
-                $path = parse_url($originalUrl, PHP_URL_PATH);
-                $path = ltrim($path, '/');
-
-                // Copier le fichier sur S3
-                $newPath = "vinyls/" . \Illuminate\Support\Str::uuid() . ".jpg";
-                Storage::disk('s3')->copy($path, $newPath);
-
-                return Storage::disk('s3')->url($newPath);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la duplication de l\'image du vinyle: ' . $e->getMessage());
-        }
-
-        return null;
-    }
-
-    /**
      * Store a manually created vinyl (not from Discogs)
      */
     public function storeManual(Request $request)
@@ -674,7 +602,7 @@ class VinylController extends Controller
         // Gérer l'upload d'image si présent
         $pochetteUrl = $request->pochette;
         if ($request->hasFile('pochette_file')) {
-            $pochetteUrl = $this->uploadVinylImage($request->file('pochette_file'));
+            $pochetteUrl = ImageHelper::uploadVinylImage($request->file('pochette_file'));
         }
 
         // Créer le vinyle
@@ -838,91 +766,6 @@ class VinylController extends Controller
     }
 
     /**
-     * Upload vinyl image and return the URL
-     */
-    private function uploadVinylImage($file)
-    {
-        try {
-            // Compression et redimensionnement de l'image
-            $compressedImage = $this->compressImage($file);
-
-            // Générer un nom unique
-            $imagePath = "vinyls/" . Str::uuid() . ".jpg";
-
-            // Upload vers S3 (ou le disque configuré)
-            $uploaded = Storage::disk('s3')->put($imagePath, $compressedImage, [
-                'ContentType' => 'image/jpeg',
-                'CacheControl' => 'max-age=31536000',
-                'visibility' => 'public',
-            ]);
-
-            if ($uploaded) {
-                return Storage::disk('s3')->url($imagePath);
-            }
-        } catch (\Exception $e) {
-            // Pour debug, on retourne l'erreur dans la réponse JSON au lieu du log
-            throw new \Exception('Upload failed: ' . $e->getMessage());
-        }
-
-        throw new \Exception('Upload failed: uploaded returned false');
-    }
-
-    /**
-     * Compress and resize image (inspired by ImportVinylImagesCommand)
-     */
-    private function compressImage($file, $quality = 80)
-    {
-        try {
-            $image = imagecreatefromstring($file->getContent());
-            if (!$image) {
-                return $file->getContent();
-            }
-
-            // Obtenir les dimensions
-            $width = imagesx($image);
-            $height = imagesy($image);
-
-            // Redimensionner si trop grande (max 1200x1200 pour garder une bonne qualité)
-            $maxSize = 1200;
-            if ($width > $maxSize || $height > $maxSize) {
-                $ratio = min($maxSize / $width, $maxSize / $height);
-                $newWidth = (int)($width * $ratio);
-                $newHeight = (int)($height * $ratio);
-
-                $resized = imagecreatetruecolor($newWidth, $newHeight);
-
-                // Améliorer la qualité du redimensionnement
-                imagefill($resized, 0, 0, imagecolorallocate($resized, 255, 255, 255));
-                imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-                imagedestroy($image);
-                $image = $resized;
-            }
-
-            ob_start();
-            imagejpeg($image, null, $quality);
-            $compressedData = ob_get_contents();
-            ob_end_clean();
-
-            imagedestroy($image);
-
-            // Vérifier que la compression est bénéfique
-            $originalSize = strlen($file->getContent());
-            $compressedSize = strlen($compressedData);
-
-            // Si la compression augmente la taille de plus de 10%, garder l'original
-            if ($compressedSize > $originalSize * 1.1) {
-                return $file->getContent();
-            }
-
-            return $compressedData;
-
-        } catch (\Exception $e) {
-            return $file->getContent(); // Retourne l'original en cas d'erreur
-        }
-    }
-
-    /**
      * Add an existing vinyl to a user's collection
      */
     public function addToCollection(Request $request)
@@ -971,7 +814,7 @@ class VinylController extends Controller
         $vinyl = $collectionVinyl->vinyl;
 
         // Vérifier si l'image n'est pas accessible
-        $imageAccessible = $this->checkImageAccessibility($vinyl->pochette);
+        $imageAccessible = ImageHelper::checkImageAccessibility($vinyl->pochette);
 
         if ($imageAccessible) {
             return redirect()->back()->with('error', 'Cette image est accessible, vous ne pouvez pas la modifier.');
@@ -985,11 +828,11 @@ class VinylController extends Controller
         // Mettre à jour l'image
         if ($request->hasFile('pochette_file')) {
             // Supprimer l'ancienne image si elle existe
-            $this->deleteVinylImage($vinyl->pochette);
+            ImageHelper::deleteVinylImage($vinyl->pochette);
 
             try {
                 // Utiliser la même méthode que les autres uploads qui marchent
-                $imageUrl = $this->uploadVinylImage($request->file('pochette_file'));
+                $imageUrl = ImageHelper::uploadVinylImage($request->file('pochette_file'));
 
                 $vinyl->update(['pochette' => $imageUrl]);
 
@@ -1008,7 +851,7 @@ class VinylController extends Controller
         } elseif ($request->filled('pochette_url')) {
             // Supprimer l'ancienne image si elle existe et si c'est pas une URL Discogs
             if (!str_contains($vinyl->pochette ?? '', 'discogs.com')) {
-                $this->deleteVinylImage($vinyl->pochette);
+                ImageHelper::deleteVinylImage($vinyl->pochette);
             }
 
             $vinyl->update(['pochette' => $request->pochette_url]);
@@ -1023,108 +866,5 @@ class VinylController extends Controller
         }
 
         return redirect()->back()->with('error', 'Aucune image fournie.');
-    }
-
-    /**
-        error_log('Vinyl ID: ' . $vinyl->id . ', pochette: ' . $vinyl->pochette);
-
-        // Vérifier si l'image n'est pas accessible
-        $imageAccessible = $this->checkImageAccessibility($vinyl->pochette);
-
-        // Debug pour voir ce qui se passe
-        $debugAccessibility = [
-            'image_url' => $vinyl->pochette,
-            'is_accessible' => $imageAccessible,
-        ];
-
-        if ($imageAccessible) {
-            return back()->with([
-                'error' => 'Cette image est accessible, vous ne pouvez pas la modifier.',
-                'debug_accessibility' => $debugAccessibility
-            ]);
-        }
-
-        $request->validate([
-            'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
-            'pochette_url' => 'nullable|url',
-        ]);
-
-        // Mettre à jour l'image
-        if ($request->hasFile('pochette_file')) {
-            // Supprimer l'ancienne image si elle existe
-            $this->deleteVinylImage($vinyl->pochette);
-
-            // Upload de la nouvelle image
-            $file = $request->file('pochette_file');
-            $filename = 'vinyl-' . uniqid() . '.' . $file->getClientOriginalExtension();
-
-            // Utiliser la même méthode que les autres uploads qui marchent
-            $imageUrl = $this->uploadVinylImage($file);
-
-            if ($imageUrl) {
-                $vinyl->update(['pochette' => $imageUrl]);
-                $debugInfo = [
-                    'success' => true,
-                    'new_url' => $imageUrl,
-                    'file_size' => $file->getSize(),
-                    'file_mime' => $file->getMimeType(),
-                ];
-            } else {
-                $debugInfo = [
-                    'error' => 'uploadVinylImage returned null',
-                    'file_size' => $file->getSize(),
-                    'file_mime' => $file->getMimeType(),
-                ];
-            }
-
-        } elseif ($request->filled('pochette_url')) {
-            // Supprimer l'ancienne image si elle existe et si c'est pas une URL Discogs
-            if (!str_contains($vinyl->pochette ?? '', 'discogs.com')) {
-                $this->deleteVinylImage($vinyl->pochette);
-            }
-
-            $vinyl->update(['pochette' => $request->pochette_url]);
-        }
-
-        // Retourner les données JSON pour mise à jour en AJAX
-        $response = [
-            'success' => true,
-            'message' => 'Image mise à jour avec succès.',
-            'new_image_url' => $vinyl->fresh()->pochette
-        ];
-
-        // Ajouter les infos de debug si on a uploadé un fichier
-        if (isset($debugInfo)) {
-            $response['debug'] = $debugInfo;
-        }
-
-        // Pour Inertia, on doit retourner une réponse back() avec les données
-        $finalResponse = [
-            'success' => 'Image mise à jour avec succès.',
-            'new_image_url' => $vinyl->fresh()->pochette,
-            'debug_accessibility' => $debugAccessibility,
-        ];
-
-        if (isset($debugInfo)) {
-            $finalResponse['debug_info'] = $debugInfo;
-        }
-
-    }
-
-    /**
-     * Check if image is accessible
-     */
-    private function checkImageAccessibility($imageUrl)
-    {
-        if (!$imageUrl) {
-            return false; // Pas d'image = pas accessible
-        }
-
-        try {
-            $response = Http::timeout(1)->head($imageUrl);
-            return $response->successful() && str_starts_with($response->header('content-type') ?? '', 'image/');
-        } catch (\Exception $e) {
-            return false; // Erreur = pas accessible
-        }
     }
 }

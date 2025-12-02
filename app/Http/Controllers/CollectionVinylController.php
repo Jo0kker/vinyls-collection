@@ -8,6 +8,7 @@ use App\Models\CollectionVinyl;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
+use App\Helpers\ImageHelper;
 
 class CollectionVinylController extends Controller
 {
@@ -130,9 +131,9 @@ class CollectionVinylController extends Controller
      */
     private function canEditVinyl($vinyl): bool
     {
-        // Si c'est un vinyle Discogs, tout le monde peut éditer
+        // Si c'est un vinyle Discogs, PERSONNE ne peut éditer les infos (données protégées de Discogs)
         if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
-            return true;
+            return false;
         }
 
         // Si c'est un vinyle manuel, seul le créateur peut éditer
@@ -210,14 +211,34 @@ class CollectionVinylController extends Controller
 
     /**
      * Mettre à jour seulement l'image du vinyle (même sans permissions sur le vinyle)
+     * Permet de remplacer une image inaccessible
      */
     private function updateVinylImage($vinyl, Request $request)
     {
-        if ($request->hasFile('pochette_file') || $request->filled('pochette_url')) {
+        // Vérifier si une image est fournie
+        if (!$request->hasFile('pochette_file') && !$request->filled('pochette_url')) {
+            return;
+        }
+
+        // Pour un vinyle Discogs, on ne peut JAMAIS remplacer l'image
+        if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
+            return;
+        }
+
+        // Pour un vinyle manuel, vérifier si l'image est accessible
+        $imageIsAccessible = ImageHelper::checkImageAccessibility($vinyl->pochette);
+
+        // Si l'image est inaccessible OU si c'est le créateur, permettre le remplacement
+        if (!$imageIsAccessible || $vinyl->created_by === Auth::id()) {
             $vinylData = [];
             $this->handleVinylImage($vinyl, $request, $vinylData);
 
             if (!empty($vinylData)) {
+                // Si pas de créateur, définir l'utilisateur actuel comme créateur
+                if (!$vinyl->created_by) {
+                    $vinylData['created_by'] = Auth::id();
+                }
+
                 $vinyl->update($vinylData);
             }
         }
@@ -230,45 +251,17 @@ class CollectionVinylController extends Controller
     {
         if ($request->hasFile('pochette_file')) {
             // Supprimer l'ancienne image si elle existe
-            $this->deleteVinylImage($vinyl->pochette);
+            ImageHelper::deleteVinylImage($vinyl->pochette);
 
-            // Upload de la nouvelle image
-            $file = $request->file('pochette_file');
-            $filename = 'vinyl-' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('vinyls', $filename, 's3');
-            $vinylData['pochette'] = Storage::disk('s3')->url($path);
+            // Upload de la nouvelle image via ImageHelper (compression incluse)
+            $vinylData['pochette'] = ImageHelper::uploadVinylImage($request->file('pochette_file'));
         } elseif ($request->filled('pochette_url')) {
             // Supprimer l'ancienne image si elle existe et si c'est pas une URL Discogs
             if (!str_contains($vinyl->pochette ?? '', 'discogs.com')) {
-                $this->deleteVinylImage($vinyl->pochette);
+                ImageHelper::deleteVinylImage($vinyl->pochette);
             }
 
             $vinylData['pochette'] = $request->pochette_url;
-        }
-    }
-
-    /**
-     * Supprimer l'image du vinyle du stockage S3
-     */
-    private function deleteVinylImage($imageUrl)
-    {
-        if (!$imageUrl) return;
-
-        try {
-            // Vérifier si c'est une URL S3
-            if (str_contains($imageUrl, 's3.amazonaws.com') || str_contains($imageUrl, 'digitaloceanspaces.com')) {
-                // Extraire le chemin depuis l'URL
-                $path = parse_url($imageUrl, PHP_URL_PATH);
-                $path = ltrim($path, '/');
-
-                // Supprimer le fichier de S3
-                if (Storage::disk('s3')->exists($path)) {
-                    Storage::disk('s3')->delete($path);
-                    \Log::info('Image supprimée de S3 depuis CollectionVinylController', ['path' => $path]);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la suppression de l\'image du vinyle: ' . $e->getMessage());
         }
     }
 }
