@@ -271,9 +271,15 @@ class ImageHelper
             return false;
         }
 
+        // SSRF protection: validate URL before making request
+        if (!self::isSafeUrl($imageUrl)) {
+            Log::warning('SSRF protection: unsafe image URL detected', ['url' => $imageUrl]);
+            return false;
+        }
+
         try {
-            // Vérifier si l'URL répond
-            $response = Http::timeout(5)->head($imageUrl);
+            // Vérifier si l'URL répond, sans suivre les redirections
+            $response = Http::timeout(5)->withoutRedirecting()->head($imageUrl);
             return $response->successful() && str_starts_with($response->header('content-type') ?? '', 'image/');
         } catch (\Exception $e) {
             Log::info('Image inaccessible détectée', ['url' => $imageUrl, 'error' => $e->getMessage()]);
