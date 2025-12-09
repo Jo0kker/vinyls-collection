@@ -1,14 +1,14 @@
 <template>
-    <nav class="flex items-center justify-between">
+    <nav v-if="pagination.links && pagination.links.length > 3" class="flex items-center justify-between">
         <div class="flex-1 flex justify-between sm:hidden">
             
-            <Link v-if="links.prev" 
-                  :href="links.prev" 
+            <Link v-if="pagination.prev_page_url" 
+                  :href="pagination.prev_page_url" 
                   class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:text-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300">
                 Précédent
             </Link>
-            <Link v-if="links.next" 
-                  :href="links.next" 
+            <Link v-if="pagination.next_page_url" 
+                  :href="pagination.next_page_url" 
                   class="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:text-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300">
                 Suivant
             </Link>
@@ -16,14 +16,14 @@
         
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             
-            <div v-if="from && to && total">
+            <div v-if="pagination.from && pagination.to && pagination.total">
                 <p class="text-sm text-gray-700 dark:text-gray-300">
                     Affichage de
-                    <span class="font-medium">{{ from }}</span>
+                    <span class="font-medium">{{ pagination.from }}</span>
                     à
-                    <span class="font-medium">{{ to }}</span>
+                    <span class="font-medium">{{ pagination.to }}</span>
                     sur
-                    <span class="font-medium">{{ total }}</span>
+                    <span class="font-medium">{{ pagination.total }}</span>
                     résultats
                 </p>
             </div>
@@ -32,8 +32,8 @@
             <div>
                 <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     
-                    <Link v-if="links.prev" 
-                          :href="links.prev" 
+                    <Link v-if="pagination.prev_page_url" 
+                          :href="pagination.prev_page_url" 
                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                         <span class="sr-only">Précédent</span>
                         <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -69,8 +69,8 @@
                     </template>
                     
                     
-                    <Link v-if="links.next" 
-                          :href="links.next" 
+                    <Link v-if="pagination.next_page_url" 
+                          :href="pagination.next_page_url" 
                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                         <span class="sr-only">Suivant</span>
                         <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -88,17 +88,15 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps({
-    links: {
+    pagination: {
         type: Object,
         required: true
     }
 });
 
-const from = computed(() => props.links.from);
-const to = computed(() => props.links.to);
-const total = computed(() => props.links.total);
-
 const paginationLinks = computed(() => {
-    return props.links.data ? props.links.data.slice(1, -1) : [];
+    // Laravel's links array (first is prev, last is next, middle are page numbers)
+    if (!props.pagination.links) return [];
+    return props.pagination.links.slice(1, -1);
 });
 </script>

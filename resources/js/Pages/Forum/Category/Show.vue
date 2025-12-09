@@ -156,8 +156,8 @@
                         </div>
 
                         
-                        <div v-if="threads.links" class="mt-6">
-                            <Pagination :links="threads.links" />
+                        <div v-if="threads.links && threads.links.length > 3" class="mt-6">
+                            <Pagination :pagination="threads" />
                         </div>
                     </div>
                 </div>

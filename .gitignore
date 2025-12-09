@@ -23,5 +23,6 @@
 Homestead.json
 Homestead.yaml
 npm-debug.log
+package-lock.json
 Thumbs.db
 yarn-error.log
