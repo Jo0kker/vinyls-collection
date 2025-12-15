@@ -203,6 +203,20 @@ stderr_logfile=/var/log/worker-inertia-ssr.log
 stdout_logfile=/var/log/worker-inertia-ssr.log
 '''
 
+"worker-nightwatch.conf" = '''
+[program:nightwatch]
+process_name=%(program_name)s_%(process_num)02d
+command=bash -c 'exec php /app/artisan nightwatch:agent'
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+startsecs=0
+stdout_logfile=/var/log/worker-nightwatch.log
+stderr_logfile=/var/log/worker-nightwatch.log
+'''
+
 "php-fpm.conf" = '''
 [www]
 listen = 127.0.0.1:9000
