@@ -77,6 +77,9 @@ mkdir -p /app/bootstrap/cache
 chown -R www-data:www-data /app/storage /app/bootstrap/cache
 chmod -R 775 /app/storage /app/bootstrap/cache
 
+# Remove any existing log files that might have wrong permissions
+rm -f /app/storage/logs/laravel.log
+
 # Ensure logs directory belongs to www-data
 chown -R www-data:www-data /app/storage/logs
 chmod -R 775 /app/storage/logs
@@ -127,7 +130,12 @@ php artisan view:cache || echo "WARNING: View cache failed"
 
 echo "Starting supervisor services..."
 
+# Final permissions check before starting supervisor
 chown -R www-data:www-data /app/storage/logs
+chmod -R 775 /app/storage/logs
+
+# Ensure any new log files will be created with correct permissions
+umask 002
 
 # Start supervisor
 supervisord -c /etc/supervisord.conf -n
@@ -232,6 +240,8 @@ pm.start_servers = 18
 clear_env = no
 php_admin_value[post_max_size] = 100M
 php_admin_value[upload_max_filesize] = 100M
+; Force umask pour que les fichiers créés aient les bonnes permissions
+php_admin_value[session.save_path] = "/app/storage/framework/sessions"
 '''
 
 "nginx.template.conf" = '''

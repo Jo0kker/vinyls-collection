@@ -35,9 +35,31 @@ class CollectionVinylController extends Controller
      */
     public function update(Request $request, CollectionVinyl $collectionVinyl)
     {
+        \Log::info('CollectionVinylController::update - DÉBUT de la méthode', ['collectionVinyl_id' => $collectionVinyl->id]);
+        
         // Vérifier que l'utilisateur possède cet exemplaire
         if ($collectionVinyl->user_id !== Auth::id()) {
             abort(403, 'Vous n\'avez pas accès à cet exemplaire.');
+        }
+
+        // Debug temporaire pour voir les données reçues
+        \Log::info('CollectionVinylController::update - Données reçues:', $request->all());
+        \Log::info('collection_id spécifique:', ['collection_id' => $request->input('collection_id')]);
+
+        // Vérifier si on change de collection
+        $newCollectionId = $request->input('collection_id');
+        if ($newCollectionId && $newCollectionId != $collectionVinyl->collection_id) {
+            // Vérifier que le vinyle n'existe pas déjà dans la collection de destination
+            $vinylExistsInNewCollection = CollectionVinyl::where('collection_id', $newCollectionId)
+                ->where('vinyl_id', $collectionVinyl->vinyl_id)
+                ->where('user_id', Auth::id())
+                ->exists();
+            
+            if ($vinylExistsInNewCollection) {
+                return back()->withErrors([
+                    'collection_id' => 'Ce vinyle existe déjà dans la collection de destination. Vous ne pouvez pas avoir le même vinyle deux fois dans une collection.'
+                ])->withInput();
+            }
         }
 
         $validation = [

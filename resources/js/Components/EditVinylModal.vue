@@ -26,9 +26,23 @@ const emit = defineEmits(['close', 'image-updated']);
 const page = usePage();
 
 
+// Calculer la collection_id initiale
+const initialCollectionId = computed(() => {
+    // Si on a un collection_id direct, l'utiliser
+    if (props.collectionVinyl.collection_id) {
+        return props.collectionVinyl.collection_id;
+    }
+    // Sinon, si on a une seule collection dans la liste, l'utiliser par défaut
+    if (props.collections && props.collections.length === 1) {
+        return props.collections[0].id;
+    }
+    // Sinon null
+    return null;
+});
+
 // Données du formulaire
 const form = ref({
-    collection_id: props.collectionVinyl.collection_id,
+    collection_id: initialCollectionId.value,
     prix_achat: props.collectionVinyl.prix_achat || null,
     annee_achat: props.collectionVinyl.annee_achat || null,
     provenance: props.collectionVinyl.provenance || 0,
@@ -121,14 +135,21 @@ if (props.show && props.collectionVinyl.vinyl?.pochette) {
 // Réinitialiser les données quand le vinyle change
 watch(() => props.collectionVinyl, (newValue) => {
     if (newValue) {
+        console.log('CollectionVinyl data:', newValue); // Debug temporaire
+        console.log('collection_id:', newValue.collection_id); // Debug temporaire
+        
         // Ne pas réinitialiser imagePreview si on vient de faire un upload
         if (skipNextImageReset.value) {
             skipNextImageReset.value = false;
             return;
         }
 
+        // Recalculer la collection_id avec la même logique
+        const collectionId = newValue.collection_id || 
+                            (props.collections && props.collections.length === 1 ? props.collections[0].id : null);
+        
         form.value = {
-            collection_id: newValue.collection_id,
+            collection_id: collectionId,
             prix_achat: newValue.prix_achat || null,
             annee_achat: newValue.annee_achat || null,
             provenance: newValue.provenance || 0,
@@ -200,8 +221,11 @@ const clearImage = () => {
 };
 
 const closeModal = () => {
+    const collectionId = props.collectionVinyl.collection_id || 
+                        (props.collections && props.collections.length === 1 ? props.collections[0].id : null);
+    
     form.value = {
-        collection_id: props.collectionVinyl.collection_id,
+        collection_id: collectionId,
         prix_achat: props.collectionVinyl.prix_achat || null,
         annee_achat: props.collectionVinyl.annee_achat || null,
         provenance: props.collectionVinyl.provenance || 0,
@@ -304,34 +328,76 @@ const saveImage = () => {
 };
 
 const saveVinyl = () => {
+    console.log('Form collection_id before save:', form.value.collection_id); // Debug
+    console.log('Form data:', form.value); // Debug complet
+    
+    // Validation de la collection
+    if (!form.value.collection_id) {
+        alert('Veuillez sélectionner une collection');
+        return;
+    }
+    
+    // Vérification côté frontend si on change de collection
+    if (form.value.collection_id != props.collectionVinyl.collection_id) {
+        // Chercher si le vinyle existe déjà dans cette collection
+        const targetCollection = props.collections.find(col => col.id == form.value.collection_id);
+        if (targetCollection) {
+            // On ne peut pas faire une vérification complète côté frontend car on n'a pas toutes les données
+            // On laisse le backend gérer cette validation
+            console.log('Changement de collection détecté vers:', targetCollection.collection_nom);
+        }
+    }
+    
     // Validation seulement si on peut éditer le vinyle
     if (canEditVinyl.value && isManualVinyl.value && (!form.value.vinyl_nom || !form.value.artiste)) {
         alert('Veuillez remplir les champs obligatoires');
         return;
     }
 
+    // Si on a un fichier, utiliser POST avec spoofing, sinon PUT normal
+    const hasImageFile = form.value.pochette_file !== null;
+    
     // Préparer les données selon les permissions
     let dataToSend = {
-        _method: 'PUT',
         // Toujours envoyer les champs de l'exemplaire
-        collection_id: form.value.collection_id,
+        collection_id: hasImageFile ? String(form.value.collection_id) : form.value.collection_id, // String pour FormData, number pour JSON
         prix_achat: form.value.prix_achat,
         annee_achat: form.value.annee_achat,
         provenance: form.value.provenance,
         commentaires: form.value.commentaires,
         note: form.value.note,
     };
+    
+    // Si on utilise FormData, ajouter _method
+    if (hasImageFile) {
+        dataToSend._method = 'PUT';
+    }
 
     // Ajouter les champs du vinyle seulement si on a les permissions
     if (canEditVinyl.value) {
         dataToSend = {
             ...dataToSend,
-            ...form.value
+            ...form.value,
+            collection_id: hasImageFile ? String(form.value.collection_id) : form.value.collection_id
         };
+    } else {
+        // Même si on ne peut pas éditer le vinyle, on peut changer son image
+        // Ajouter les champs d'image si présents
+        if (form.value.pochette_file) {
+            dataToSend.pochette_file = form.value.pochette_file;
+        }
+        if (form.value.pochette_url) {
+            dataToSend.pochette_url = form.value.pochette_url;
+        }
     }
 
-    router.put(route('collection-vinyl.update', props.collectionVinyl.id), dataToSend, {
-        forceFormData: true,
+    console.log('Data being sent:', dataToSend); // Debug final
+    console.log('Route:', route('collection-vinyl.update', props.collectionVinyl.id)); // Debug route
+    console.log('canEditVinyl:', canEditVinyl.value); // Debug permissions
+    console.log('Has file:', form.value.pochette_file !== null); // Debug file
+
+    const routeOptions = {
+        forceFormData: hasImageFile, // Utiliser FormData seulement si nécessaire
         preserveState: false,
         preserveScroll: true,
         onStart: () => {
@@ -342,12 +408,27 @@ const saveVinyl = () => {
         },
         onError: (errors) => {
             console.error('Erreurs de validation:', errors);
-            alert('Erreur lors de la mise à jour du vinyle. Vérifiez les champs.');
+            
+            // Gestion spéciale pour l'erreur de duplication de collection
+            if (errors.collection_id && errors.collection_id.includes('existe déjà')) {
+                alert('❌ ' + errors.collection_id);
+            } else {
+                // Autres erreurs de validation
+                const errorMessages = Object.values(errors).flat().join('\n');
+                alert('Erreur lors de la mise à jour :\n' + errorMessages);
+            }
         },
         onFinish: () => {
             isSaving.value = false;
         }
-    });
+    };
+    
+    // Appel à la route avec la bonne méthode selon si on a un fichier ou non
+    if (hasImageFile) {
+        router.post(route('collection-vinyl.update', props.collectionVinyl.id), dataToSend, routeOptions);
+    } else {
+        router.put(route('collection-vinyl.update', props.collectionVinyl.id), dataToSend, routeOptions);
+    }
 };
 
 const getFormatLabel = (format) => {
@@ -469,13 +550,17 @@ const getFormatLabel = (format) => {
                                             Supprimer l'image
                                         </button>
 
-                                        <!-- Bouton sauvegarder l'image - toujours visible si la section image est affichée -->
-                                        <button @click="saveImage"
-                                                :disabled="isSaving || (!form.pochette_file && !form.pochette_url)"
+                                        <!-- Bouton sauvegarder l'image - seulement si pas de fichier (pour URL) -->
+                                        <button v-if="!form.pochette_file && form.pochette_url" 
+                                                @click="saveImage"
+                                                :disabled="isSaving"
                                                 type="button"
                                                 class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50">
                                             {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder l\'image' }}
                                         </button>
+                                        <p v-else-if="form.pochette_file" class="text-xs text-green-600 dark:text-green-400">
+                                            ✓ Image sélectionnée. Utilisez "Sauvegarder" pour enregistrer tous les changements.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -486,15 +571,25 @@ const getFormatLabel = (format) => {
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Collection <span class="text-red-500">*</span>
                             </label>
-                            <select v-model="form.collection_id" 
+                            <select v-model.number="form.collection_id" 
                                     required
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                                <option v-if="!collections || collections.length === 0" disabled>
+                                    Aucune collection disponible
+                                </option>
                                 <option v-for="collection in collections" 
                                         :key="collection.id" 
-                                        :value="collection.id">
+                                        :value="collection.id"
+                                        :selected="collection.id === form.collection_id">
                                     {{ collection.collection_nom }}
                                 </option>
                             </select>
+                            <p v-if="form.collection_id" class="text-xs text-gray-500 mt-1">
+                                Collection actuelle ID: {{ form.collection_id }}
+                            </p>
+                            <p v-if="form.collection_id != collectionVinyl.collection_id" class="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                                ⚠️ Vous changez de collection. Le vinyle ne doit pas déjà exister dans la collection de destination.
+                            </p>
                         </div>
 
                         <!-- Informations en lecture seule (Discogs ou manuel sans permissions) -->
