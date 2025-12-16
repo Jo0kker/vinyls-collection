@@ -329,15 +329,7 @@ const saveVinyl = () => {
         return;
     }
     
-    // Vérification côté frontend si on change de collection
-    if (form.value.collection_id != props.collectionVinyl.collection_id) {
-        // Chercher si le vinyle existe déjà dans cette collection
-        const targetCollection = props.collections.find(col => col.id == form.value.collection_id);
-        if (targetCollection) {
-            // On ne peut pas faire une vérification complète côté frontend car on n'a pas toutes les données
-            // On laisse le backend gérer cette validation
-        }
-    }
+    // La vérification de l'existence du vinyle dans la collection cible est gérée côté backend, car le frontend n'a pas toutes les données nécessaires.
     
     // Validation seulement si on peut éditer le vinyle
     if (canEditVinyl.value && isManualVinyl.value && (!form.value.vinyl_nom || !form.value.artiste)) {
