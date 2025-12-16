@@ -36,7 +36,7 @@ const formatDate = (date) => {
         <meta property="og:title" :content="`${user.name} - Collectionneur de vinyles`" />
         <meta property="og:description" :content="`Découvrez la collection de ${user.name} sur Vinyls Collection`" />
         <meta property="og:type" content="profile" />
-        <link rel="canonical" :href="route('profiles.show', user.id)" />
+        <link rel="canonical" :href="route('collectors.show', user.id)" />
     </Head>
 
     <AuthenticatedLayout>

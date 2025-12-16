@@ -11,13 +11,13 @@ const showingNavigationDropdown = ref(false);
 </script>
 
 <template>
-    <div>
+    <div class="overflow-x-hidden">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             <nav
-                class="v-navbar shadow py-4 bg-white dark:bg-gray-800"
+                class="v-navbar shadow py-4 bg-white dark:bg-gray-800 overflow-hidden"
             >
                 
-                <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
+                <div class="container mx-auto px-4 md:flex md:items-center md:gap-4 overflow-x-hidden">
                     <div class="flex justify-between items-center">
                         
                         <Link href="/" class="text-2xl font-bold text-blue-600 dark:text-blue-400">

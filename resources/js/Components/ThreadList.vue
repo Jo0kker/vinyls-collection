@@ -162,8 +162,7 @@ function getLastPageUrl(thread) {
     } else {
         finalUrl = `${baseUrl}?scroll=last`;
     }
-    
-    console.log('Generated URL:', finalUrl, 'for thread:', thread.id, 'lastPage:', lastPage);
+
     return finalUrl;
 }
 </script>

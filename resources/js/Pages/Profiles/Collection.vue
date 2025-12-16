@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VinylImage from '@/Components/VinylImage.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
 const props = defineProps({
@@ -10,6 +10,10 @@ const props = defineProps({
         required: true
     },
     collection: {
+        type: Object,
+        required: true
+    },
+    vinyls: {
         type: Object,
         required: true
     }
@@ -49,6 +53,16 @@ const formatDate = (date) => {
         month: 'short',
         year: 'numeric'
     });
+};
+
+// Fonction pour charger une page
+const loadPage = (url) => {
+    if (url) {
+        router.get(url, {}, {
+            preserveState: true,
+            preserveScroll: true
+        });
+    }
 };
 </script>
 
@@ -92,7 +106,7 @@ const formatDate = (date) => {
                             <div>
                                 <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Nombre de vinyles</h3>
                                 <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {{ collection.collection_vinyls?.length || 0 }}
+                                    {{ vinyls.total || 0 }}
                                 </p>
                             </div>
                             <div>
@@ -170,7 +184,7 @@ const formatDate = (date) => {
                 
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <div v-if="!collection.collection_vinyls || collection.collection_vinyls.length === 0" 
+                        <div v-if="!vinyls.data || vinyls.data.length === 0" 
                              class="text-center py-8">
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -184,7 +198,7 @@ const formatDate = (date) => {
 
                         
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                            <div v-for="collectionVinyl in vinyls.data" :key="collectionVinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-colors group relative">
                                 <div class="flex items-start space-x-4">
                                     <VinylImage 
@@ -240,7 +254,7 @@ const formatDate = (date) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                                    <tr v-for="collectionVinyl in vinyls.data" :key="collectionVinyl.id"
                                         class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td class="py-3 px-4">
                                             <VinylImage 
@@ -286,7 +300,7 @@ const formatDate = (date) => {
 
                         
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <Link v-for="collectionVinyl in collection.collection_vinyls" :key="collectionVinyl.id"
+                            <Link v-for="collectionVinyl in vinyls.data" :key="collectionVinyl.id"
                                   :href="route('vinyl.show', collectionVinyl.vinyl.id)"
                                   class="relative aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform shadow-md block">
                                 
@@ -320,6 +334,89 @@ const formatDate = (date) => {
                                     </p>
                                 </div>
                             </Link>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div v-if="vinyls.last_page > 1" class="mt-6 flex items-center justify-between">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button @click="loadPage(vinyls.prev_page_url)"
+                                        :disabled="!vinyls.prev_page_url"
+                                        :class="[
+                                            'relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md',
+                                            vinyls.prev_page_url 
+                                                ? 'text-gray-700 bg-white hover:bg-gray-50 border border-gray-300'
+                                                : 'text-gray-400 bg-gray-100 cursor-not-allowed border border-gray-300'
+                                        ]">
+                                    Précédent
+                                </button>
+                                <button @click="loadPage(vinyls.next_page_url)"
+                                        :disabled="!vinyls.next_page_url"
+                                        :class="[
+                                            'ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md',
+                                            vinyls.next_page_url 
+                                                ? 'text-gray-700 bg-white hover:bg-gray-50 border border-gray-300'
+                                                : 'text-gray-400 bg-gray-100 cursor-not-allowed border border-gray-300'
+                                        ]">
+                                    Suivant
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                        Affichage de <span class="font-medium">{{ vinyls.from }}</span> à <span class="font-medium">{{ vinyls.to }}</span> sur
+                                        <span class="font-medium">{{ vinyls.total }}</span> résultats
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                        <!-- Previous Page Link -->
+                                        <button @click="loadPage(vinyls.prev_page_url)"
+                                                :disabled="!vinyls.prev_page_url"
+                                                :class="[
+                                                    'relative inline-flex items-center px-2 py-2 rounded-l-md border text-sm font-medium',
+                                                    vinyls.prev_page_url 
+                                                        ? 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                                                        : 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-900 dark:border-gray-700'
+                                                ]">
+                                            <span class="sr-only">Précédent</span>
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+
+                                        <!-- Page Number Links -->
+                                        <template v-for="link in vinyls.links" :key="link.label">
+                                            <button v-if="!isNaN(link.label)" 
+                                                    @click="loadPage(link.url)"
+                                                    :disabled="!link.url"
+                                                    :class="[
+                                                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
+                                                        link.active 
+                                                            ? 'z-10 bg-purple-50 border-purple-500 text-purple-600 dark:bg-purple-900/50 dark:border-purple-400 dark:text-purple-300'
+                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                                                    ]">
+                                                {{ link.label }}
+                                            </button>
+                                        </template>
+
+                                        <!-- Next Page Link -->
+                                        <button @click="loadPage(vinyls.next_page_url)"
+                                                :disabled="!vinyls.next_page_url"
+                                                :class="[
+                                                    'relative inline-flex items-center px-2 py-2 rounded-r-md border text-sm font-medium',
+                                                    vinyls.next_page_url 
+                                                        ? 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                                                        : 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-900 dark:border-gray-700'
+                                                ]"
+                                                aria-label="Page suivante">
+                                            <span class="sr-only">Suivant</span>
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

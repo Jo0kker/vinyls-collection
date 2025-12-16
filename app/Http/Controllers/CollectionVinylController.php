@@ -40,6 +40,22 @@ class CollectionVinylController extends Controller
             abort(403, 'Vous n\'avez pas accès à cet exemplaire.');
         }
 
+        // Vérifier si on change de collection
+        $newCollectionId = $request->input('collection_id');
+        if ($newCollectionId && $newCollectionId != $collectionVinyl->collection_id) {
+            // Vérifier que le vinyle n'existe pas déjà dans la collection de destination
+            $vinylExistsInNewCollection = CollectionVinyl::where('collection_id', $newCollectionId)
+                ->where('vinyl_id', $collectionVinyl->vinyl_id)
+                ->where('user_id', Auth::id())
+                ->exists();
+            
+            if ($vinylExistsInNewCollection) {
+                return back()->withErrors([
+                    'collection_id' => 'Ce vinyle existe déjà dans la collection de destination. Vous ne pouvez pas avoir le même vinyle deux fois dans une collection.'
+                ])->withInput();
+            }
+        }
+
         $validation = [
             // Champs réellement présents dans la table collection_vinyls
             'prix_achat' => 'nullable|numeric|min:0',

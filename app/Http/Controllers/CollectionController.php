@@ -210,8 +210,11 @@ class CollectionController extends Controller
 
         // Ajouter les informations de permissions pour chaque vinyl
         $user = Auth::user();
-        $collectionVinylsPaginated->getCollection()->transform(function ($collectionVinyl) use ($user) {
+        $collectionVinylsPaginated->getCollection()->transform(function ($collectionVinyl) use ($user, $collection) {
             $vinyl = $collectionVinyl->vinyl;
+            
+            // S'assurer que collection_id est bien présent
+            $collectionVinyl->collection_id = $collectionVinyl->collection_id ?? $collection->id;
             
             // L'utilisateur peut toujours éditer son exemplaire
             $collectionVinyl->can_edit_instance = true;
@@ -246,9 +249,8 @@ class CollectionController extends Controller
         $collectionData = $collection->toArray();
         $collectionData['collection_vinyls'] = $collectionVinylsPaginated->items();
 
-        // Récupérer toutes les collections de l'utilisateur pour le dropdown de déplacement
+        // Récupérer toutes les collections de l'utilisateur pour les dropdowns
         $userCollections = Auth::user()->collections()
-            ->where('id', '!=', $collection->id)
             ->orderBy('collection_nom')
             ->get(['id', 'collection_nom']);
 
@@ -399,13 +401,6 @@ class CollectionController extends Controller
 
             // Supprimer le vinyle de la base de données
             $vinyl->delete();
-
-            \Log::info('Vinyle orphelin supprimé depuis CollectionController', [
-                'vinyl_id' => $vinyl->id,
-                'vinyl_nom' => $vinyl->vinyl_nom,
-                'pochette' => $vinyl->pochette,
-                'collection_id' => $collection->id
-            ]);
         }
 
         // Mettre à jour la date de modification de la collection

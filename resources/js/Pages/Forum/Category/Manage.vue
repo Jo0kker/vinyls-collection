@@ -363,11 +363,7 @@ function updateCategoriesOrder() {
         categories: orderedCategories
     }, {
         preserveScroll: true,
-        onSuccess: () => {
-            console.log('Categories order updated successfully');
-        },
-        onError: (errors) => {
-            console.error('Error updating categories order:', errors);
+        onError: () => {
             // Reload page to reset order in case of error
             router.reload();
         }
@@ -387,11 +383,7 @@ function updateSubCategoriesOrder(parentCategory) {
         categories: orderedSubCategories
     }, {
         preserveScroll: true,
-        onSuccess: () => {
-            console.log('Sub-categories order updated successfully');
-        },
-        onError: (errors) => {
-            console.error('Error updating sub-categories order:', errors);
+        onError: () => {
             // Reload page to reset order in case of error
             router.reload();
         }

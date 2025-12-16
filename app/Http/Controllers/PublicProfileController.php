@@ -94,19 +94,35 @@ class PublicProfileController extends Controller
     /**
      * Display a specific public collection
      */
-    public function showCollection(User $user, Collection $collection)
+    public function showCollection(User $user, Collection $collection, Request $request)
     {
         // Vérifier que le profil et la collection sont publics
         if (!$user->profile_public || $collection->visibility !== 'public' || $collection->user_id !== $user->id) {
             abort(404, 'Cette collection n\'est pas accessible.');
         }
 
-        // Charger la collection avec tous ses vinyles
-        $collection->load(['collectionVinyls.vinyl']);
+        // Paginer les vinyles de la collection
+        $vinyls = $collection->collectionVinyls()
+                            ->with('vinyl')
+                            ->orderBy('date_ajout', 'desc')
+                            ->paginate(30)
+                            ->appends($request->query());
+
+        // Préparer les données de la collection sans les relations pour éviter la duplication
+        $collectionData = $collection->only([
+            'id',
+            'collection_nom',
+            'collection_commentaires',
+            'collection_date_crea',
+            'collection_date_modif',
+            'visibility',
+            'user_id'
+        ]);
 
         return Inertia::render('Profiles/Collection', [
             'user' => $user,
-            'collection' => $collection
+            'collection' => $collectionData,
+            'vinyls' => $vinyls
         ]);
     }
 }
