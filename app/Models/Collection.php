@@ -65,10 +65,6 @@ class Collection extends Model
                     ImageHelper::deleteVinylImage($vinyl->pochette);
                 }
                 Vinyl::whereIn('id', $orphanVinylIds)->delete();
-
-                foreach ($orphanVinylIds as $vinylId) {
-                    \Log::info('Vinyle orphelin supprimé', ['vinyl_id' => $vinylId, 'collection_id' => $collection->id]);
-                }
             }
         });
     }

@@ -196,22 +196,18 @@ function resetCrop() {
 // Mettre à jour l'aperçu
 function updatePreview() {
     if (!cropper.value || !previewCanvas.value) {
-        console.log('Cropper ou canvas non disponible');
         return;
     }
-    
+
     try {
         const canvas = cropper.value.getCanvas();
         if (canvas && canvas.width > 0 && canvas.height > 0) {
             const ctx = previewCanvas.value.getContext('2d');
             ctx.clearRect(0, 0, 64, 64);
             ctx.drawImage(canvas, 0, 0, 64, 64);
-            console.log('Preview mis à jour');
-        } else {
-            console.log('Canvas invalide:', canvas ? `${canvas.width}x${canvas.height}` : 'null');
         }
-    } catch (error) {
-        console.error('Erreur lors de la mise à jour de la preview:', error);
+    } catch {
+        // Erreur silencieuse lors de la mise à jour de la preview
     }
 }
 

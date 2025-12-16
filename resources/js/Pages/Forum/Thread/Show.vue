@@ -951,17 +951,9 @@ onMounted(() => {
                                   urlParams.get('scroll') === 'last' ||
                                   $page.props._inertiaFormData?.scroll === 'last';
 
-        console.log('Should scroll check:', {
-            hash: window.location.hash,
-            urlParam: urlParams.get('scroll'),
-            inertiaData: $page.props._inertiaFormData,
-            shouldScrollToLast
-        });
-
         if (shouldScrollToLast) {
             // Attendre que le DOM soit complètement chargé
             const scrollToBottom = () => {
-                console.log('Scrolling to bottom...');
                 window.scrollTo({
                     top: document.documentElement.scrollHeight,
                     behavior: 'smooth'

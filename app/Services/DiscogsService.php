@@ -147,18 +147,6 @@ class DiscogsService
             // Fallback pour artists_sort
             $artists = [$discogsData['artists_sort']];
         }
-        
-        // Log pour debug les problèmes d'artiste
-        Log::info('Discogs conversion debug', [
-            'discogs_id' => $discogsId,
-            'has_artists' => isset($discogsData['artists']),
-            'has_artist' => isset($discogsData['artist']),
-            'has_artists_sort' => isset($discogsData['artists_sort']),
-            'artists_count' => count($artists),
-            'artists' => $artists,
-            'title' => $discogsData['title'] ?? 'No title',
-            'raw_data_keys' => array_keys($discogsData)
-        ]);
 
         // Essaie de trouver une image de qualité
         $pochette = null;
@@ -196,11 +184,6 @@ class DiscogsService
         }
 
         $artisteName = !empty($artists) ? implode(', ', $artists) : 'Artiste inconnu';
-        
-        Log::info('Final artist result', [
-            'discogs_id' => $discogsId,
-            'final_artist' => $artisteName
-        ]);
 
         return [
             'vinyl_nom' => $discogsData['title'] ?? 'Titre inconnu',

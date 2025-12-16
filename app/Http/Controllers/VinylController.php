@@ -472,12 +472,6 @@ class VinylController extends Controller
 
             // Supprimer le vinyle de la base de données
             $vinyl->delete();
-
-            \Log::info('Vinyle orphelin supprimé', [
-                'vinyl_id' => $vinyl->id,
-                'vinyl_nom' => $vinyl->vinyl_nom,
-                'pochette' => $vinyl->pochette
-            ]);
         }
 
         // Mettre à jour la date de modification de la collection

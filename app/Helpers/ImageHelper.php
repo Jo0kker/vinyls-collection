@@ -79,11 +79,9 @@ class ImageHelper
             // Vérifier si le fichier existe sur notre disque S3 avant de supprimer
             if (Storage::disk('s3')->exists($path)) {
                 Storage::disk('s3')->delete($path);
-                Log::info('Image supprimée de S3', ['path' => $path, 'url' => $imageUrl]);
                 return true;
             } else {
                 // L'URL ne pointe pas vers notre stockage S3 (probablement une URL externe Discogs)
-                Log::info('Image non supprimée (URL externe ou fichier inexistant)', ['path' => $path, 'url' => $imageUrl]);
                 return false;
             }
         } catch (\Exception $e) {
@@ -281,8 +279,7 @@ class ImageHelper
             // Vérifier si l'URL répond, sans suivre les redirections
             $response = Http::timeout(5)->withoutRedirecting()->head($imageUrl);
             return $response->successful() && str_starts_with($response->header('content-type') ?? '', 'image/');
-        } catch (\Exception $e) {
-            Log::info('Image inaccessible détectée', ['url' => $imageUrl, 'error' => $e->getMessage()]);
+        } catch (\Exception) {
             return false;
         }
     }

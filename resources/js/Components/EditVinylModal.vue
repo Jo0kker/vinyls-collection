@@ -3,8 +3,6 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
-// Debug au chargement du composant
-
 const props = defineProps({
     show: {
         type: Boolean,
@@ -123,8 +121,6 @@ const checkImageAccessibility = () => {
     img.src = imageUrl;
 };
 
-// Debug des props
-
 // Déclencher la vérification si le modal est déjà ouvert au chargement
 if (props.show && props.collectionVinyl.vinyl?.pochette) {
     nextTick(() => {
@@ -135,9 +131,6 @@ if (props.show && props.collectionVinyl.vinyl?.pochette) {
 // Réinitialiser les données quand le vinyle change
 watch(() => props.collectionVinyl, (newValue) => {
     if (newValue) {
-        console.log('CollectionVinyl data:', newValue); // Debug temporaire
-        console.log('collection_id:', newValue.collection_id); // Debug temporaire
-        
         // Ne pas réinitialiser imagePreview si on vient de faire un upload
         if (skipNextImageReset.value) {
             skipNextImageReset.value = false;
@@ -196,16 +189,18 @@ const handleImageUpload = (event) => {
             alert('L\'image est trop grande. Taille maximum: 5MB');
             return;
         }
-        
+
         imageFile.value = file;
         form.value.pochette_file = file;
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
             imagePreview.value = e.target.result;
+            // Réinitialiser le flag pour afficher la preview de la nouvelle image
+            imageNotAccessible.value = false;
         };
         reader.readAsDataURL(file);
-        
+
         form.value.pochette_url = '';
     }
 };
@@ -328,9 +323,6 @@ const saveImage = () => {
 };
 
 const saveVinyl = () => {
-    console.log('Form collection_id before save:', form.value.collection_id); // Debug
-    console.log('Form data:', form.value); // Debug complet
-    
     // Validation de la collection
     if (!form.value.collection_id) {
         alert('Veuillez sélectionner une collection');
@@ -344,7 +336,6 @@ const saveVinyl = () => {
         if (targetCollection) {
             // On ne peut pas faire une vérification complète côté frontend car on n'a pas toutes les données
             // On laisse le backend gérer cette validation
-            console.log('Changement de collection détecté vers:', targetCollection.collection_nom);
         }
     }
     
@@ -390,11 +381,6 @@ const saveVinyl = () => {
             dataToSend.pochette_url = form.value.pochette_url;
         }
     }
-
-    console.log('Data being sent:', dataToSend); // Debug final
-    console.log('Route:', route('collection-vinyl.update', props.collectionVinyl.id)); // Debug route
-    console.log('canEditVinyl:', canEditVinyl.value); // Debug permissions
-    console.log('Has file:', form.value.pochette_file !== null); // Debug file
 
     const routeOptions = {
         forceFormData: hasImageFile, // Utiliser FormData seulement si nécessaire
@@ -543,25 +529,11 @@ const getFormatLabel = (format) => {
                                                class="w-full text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                                     </div>
                                     
-                                    <div class="flex space-x-2">
-                                        <button type="button"
-                                                @click="clearImage"
-                                                class="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
-                                            Supprimer l'image
-                                        </button>
-
-                                        <!-- Bouton sauvegarder l'image - seulement si pas de fichier (pour URL) -->
-                                        <button v-if="!form.pochette_file && form.pochette_url" 
-                                                @click="saveImage"
-                                                :disabled="isSaving"
-                                                type="button"
-                                                class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50">
-                                            {{ isSaving ? 'Sauvegarde...' : 'Sauvegarder l\'image' }}
-                                        </button>
-                                        <p v-else-if="form.pochette_file" class="text-xs text-green-600 dark:text-green-400">
-                                            ✓ Image sélectionnée. Utilisez "Sauvegarder" pour enregistrer tous les changements.
-                                        </p>
-                                    </div>
+                                    <button type="button"
+                                            @click="clearImage"
+                                            class="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                                        Supprimer l'image
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -584,9 +556,6 @@ const getFormatLabel = (format) => {
                                     {{ collection.collection_nom }}
                                 </option>
                             </select>
-                            <p v-if="form.collection_id" class="text-xs text-gray-500 mt-1">
-                                Collection actuelle ID: {{ form.collection_id }}
-                            </p>
                             <p v-if="form.collection_id != collectionVinyl.collection_id" class="text-xs text-orange-600 dark:text-orange-400 mt-1">
                                 ⚠️ Vous changez de collection. Le vinyle ne doit pas déjà exister dans la collection de destination.
                             </p>
