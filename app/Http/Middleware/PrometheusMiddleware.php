@@ -26,22 +26,17 @@ class PrometheusMiddleware
     {
         $route = $request->route()?->getName() ?? $request->route()?->uri() ?? 'unknown';
         $method = $request->method();
-        $status = $response->getStatusCode();
-        $statusGroup = (string) (intval($status / 100) * 100); // 200, 400, 500, etc.
+        $status = (string) $response->getStatusCode();
+        $statusGroup = (string) (intval($response->getStatusCode() / 100) * 100);
 
         // Compteur de requêtes par route/method/status
         Prometheus::addCounter('http_requests_total')
-            ->label('route', $route)
-            ->label('method', $method)
-            ->label('status', (string) $status)
-            ->label('status_group', $statusGroup)
-            ->increment();
+            ->labels(['route', 'method', 'status', 'status_group'])
+            ->inc(1, [$route, $method, $status, $statusGroup]);
 
-        // Histogram pour la latence
-        Prometheus::addHistogram('http_request_duration_seconds')
-            ->label('route', $route)
-            ->label('method', $method)
-            ->buckets([0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10])
-            ->observe($duration);
+        // Gauge pour la latence de la dernière requête par route
+        Prometheus::addGauge('http_request_duration_seconds')
+            ->labels(['route', 'method'])
+            ->value($duration, [$route, $method]);
     }
 }

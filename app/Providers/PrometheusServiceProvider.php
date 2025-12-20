@@ -27,32 +27,31 @@ class PrometheusServiceProvider extends ServiceProvider
     protected function registerSlowQueryListener(): void
     {
         DB::listen(function (QueryExecuted $query) {
+            $connection = $query->connectionName;
+            $durationSeconds = $query->time / 1000;
+
             // Compteur total des queries
             Prometheus::addCounter('database_queries_total')
-                ->label('connection', $query->connectionName)
-                ->increment();
+                ->labels(['connection'])
+                ->inc(1, [$connection]);
 
-            // Histogram pour la durée des queries
-            Prometheus::addHistogram('database_query_duration_seconds')
-                ->label('connection', $query->connectionName)
-                ->buckets([0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5])
-                ->observe($query->time / 1000); // Convertir ms en secondes
+            // Gauge pour la durée de la dernière query
+            Prometheus::addGauge('database_query_duration_seconds')
+                ->labels(['connection'])
+                ->value($durationSeconds, [$connection]);
 
             // Compteur spécifique pour les queries lentes
             if ($query->time >= $this->slowQueryThreshold) {
-                // Extraire le type de query (SELECT, INSERT, UPDATE, DELETE, etc.)
                 $queryType = strtoupper(strtok(trim($query->sql), ' '));
 
                 Prometheus::addCounter('database_slow_queries_total')
-                    ->label('connection', $query->connectionName)
-                    ->label('type', $queryType)
-                    ->increment();
+                    ->labels(['connection', 'type'])
+                    ->inc(1, [$connection, $queryType]);
 
-                // Gauge pour la dernière query lente (utile pour debug)
+                // Gauge pour la dernière query lente
                 Prometheus::addGauge('database_slow_query_duration_seconds')
-                    ->label('connection', $query->connectionName)
-                    ->label('type', $queryType)
-                    ->set($query->time / 1000);
+                    ->labels(['connection', 'type'])
+                    ->value($durationSeconds, [$connection, $queryType]);
             }
         });
     }

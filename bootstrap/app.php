@@ -4,7 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Spatie\Prometheus\Facades\Prometheus;
-use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,13 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Request::HEADER_X_FORWARDED_PREFIX);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->report(function (Throwable $e) {
-            $exceptionClass = get_class($e);
+        $exceptions->report(function (\Throwable $e) {
             $shortClass = class_basename($e);
+            $code = (string) $e->getCode();
 
-            Prometheus::addCounter('app_exceptions_total')
-                ->label('exception', $shortClass)
-                ->label('code', (string) $e->getCode())
-                ->increment();
+            Prometheus::addCounter('exceptions_total')
+                ->labels(['exception', 'code'])
+                ->inc(1, [$shortClass, $code]);
         });
     })->create();
