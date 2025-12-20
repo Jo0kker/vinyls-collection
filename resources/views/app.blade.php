@@ -8,16 +8,32 @@
 
         <title inertia>{{ config('app.name', 'Vinyls Collection') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+        <link rel="manifest" href="/site.webmanifest">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" preload as="style" onload="this.onload=null;this.rel='stylesheet'">
         <noscript><link rel="stylesheet" href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap"></noscript>
         
         <!-- SEO Meta -->
-        <meta name="theme-color" content="#111827">
-        <meta name="msapplication-navbutton-color" content="#111827">
+        <meta name="description" content="Gérez et explorez votre collection de vinyles. Cataloguez vos disques, suivez votre wishlist et découvrez de nouvelles pépites.">
+        <meta name="theme-color" content="#2563eb">
+        <meta name="msapplication-navbutton-color" content="#2563eb">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+
+        <!-- Open Graph / Social -->
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="{{ config('app.name', 'Vinyls Collection') }}">
+        <meta property="og:description" content="Gérez et explorez votre collection de vinyles. Cataloguez vos disques, suivez votre wishlist et découvrez de nouvelles pépites.">
+        <meta property="og:image" content="{{ url('/favicon-512.png') }}">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:image" content="{{ url('/favicon-512.png') }}">
 
         <!-- Styles -->
         @vite(['resources/css/app.css'])
