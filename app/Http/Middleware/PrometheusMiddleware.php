@@ -12,6 +12,8 @@ class PrometheusMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
+        Log::warning('PrometheusMiddleware called', ['uri' => $request->getRequestUri()]);
+
         $startTime = microtime(true);
 
         $response = $next($request);
@@ -20,6 +22,7 @@ class PrometheusMiddleware
 
         try {
             $this->recordMetrics($request, $response, $duration);
+            Log::warning('PrometheusMiddleware metrics recorded');
         } catch (\Throwable $e) {
             Log::error('PrometheusMiddleware error: ' . $e->getMessage(), [
                 'exception' => $e,
