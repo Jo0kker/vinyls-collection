@@ -14,6 +14,9 @@ use App\Models\Collection;
 use App\Models\CollectionVinyl;
 use App\Observers\CollectionObserver;
 use App\Observers\CollectionVinylObserver;
+use App\Prometheus\FixedLaravelCacheAdapter;
+use Prometheus\CollectorRegistry;
+use Illuminate\Support\Facades\Cache;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,7 +25,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override Spatie's buggy adapter with our fixed version
+        $this->app->scoped(CollectorRegistry::class, function () {
+            $cacheStore = config('prometheus.cache');
+
+            if ($cacheStore === null) {
+                return new CollectorRegistry(new \Prometheus\Storage\InMemory(), false);
+            }
+
+            return new CollectorRegistry(
+                new FixedLaravelCacheAdapter(Cache::store($cacheStore)),
+                false
+            );
+        });
     }
 
     /**
