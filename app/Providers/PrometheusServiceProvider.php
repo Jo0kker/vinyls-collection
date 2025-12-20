@@ -2,72 +2,58 @@
 
 namespace App\Providers;
 
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
-use Spatie\Prometheus\Collectors\Horizon\CurrentMasterSupervisorCollector;
-use Spatie\Prometheus\Collectors\Horizon\CurrentProcessesPerQueueCollector;
-use Spatie\Prometheus\Collectors\Horizon\CurrentWorkloadCollector;
-use Spatie\Prometheus\Collectors\Horizon\FailedJobsPerHourCollector;
-use Spatie\Prometheus\Collectors\Horizon\HorizonStatusCollector;
-use Spatie\Prometheus\Collectors\Horizon\JobsPerMinuteCollector;
-use Spatie\Prometheus\Collectors\Horizon\RecentJobsCollector;
-use Spatie\Prometheus\Collectors\Queue\QueueDelayedJobsCollector;
-use Spatie\Prometheus\Collectors\Queue\QueueOldestPendingJobCollector;
-use Spatie\Prometheus\Collectors\Queue\QueuePendingJobsCollector;
-use Spatie\Prometheus\Collectors\Queue\QueueReservedJobsCollector;
-use Spatie\Prometheus\Collectors\Queue\QueueSizeCollector;
 use Spatie\Prometheus\Facades\Prometheus;
 
 class PrometheusServiceProvider extends ServiceProvider
 {
-    public function register()
+    /**
+     * Seuil en millisecondes pour considérer une query comme lente
+     */
+    protected int $slowQueryThreshold = 100;
+
+    public function register(): void
     {
-        /*
-         * Here you can register all the exporters that you
-         * want to export to prometheus
-         */
-        Prometheus::addGauge('My gauge')
-            ->value(function() {
-                return 123.45;
-            });
-
-        /*
-         * Uncomment this line if you want to export
-         * all Horizon metrics to prometheus
-         */
-        // $this->registerHorizonCollectors();
-
-        /*
-         * Uncomment this line if you want to export queue metrics to Prometheus.
-         * You need to pass an array of queues to monitor.
-         */
-        // $this->registerQueueCollectors(['default']);
+        //
     }
 
-    public function registerHorizonCollectors(): self
+    public function boot(): void
     {
-        Prometheus::registerCollectorClasses([
-            CurrentMasterSupervisorCollector::class,
-            CurrentProcessesPerQueueCollector::class,
-            CurrentWorkloadCollector::class,
-            FailedJobsPerHourCollector::class,
-            HorizonStatusCollector::class,
-            JobsPerMinuteCollector::class,
-            RecentJobsCollector::class,
-        ]);
-
-        return $this;
+        $this->registerSlowQueryListener();
     }
 
-    public function registerQueueCollectors(array $queues = [], ?string $connection = null): self
+    protected function registerSlowQueryListener(): void
     {
-        Prometheus::registerCollectorClasses([
-            QueueSizeCollector::class,
-            QueuePendingJobsCollector::class,
-            QueueDelayedJobsCollector::class,
-            QueueReservedJobsCollector::class,
-            QueueOldestPendingJobCollector::class,
-        ], compact('connection', 'queues'));
+        DB::listen(function (QueryExecuted $query) {
+            // Compteur total des queries
+            Prometheus::addCounter('database_queries_total')
+                ->label('connection', $query->connectionName)
+                ->increment();
 
-        return $this;
+            // Histogram pour la durée des queries
+            Prometheus::addHistogram('database_query_duration_seconds')
+                ->label('connection', $query->connectionName)
+                ->buckets([0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5])
+                ->observe($query->time / 1000); // Convertir ms en secondes
+
+            // Compteur spécifique pour les queries lentes
+            if ($query->time >= $this->slowQueryThreshold) {
+                // Extraire le type de query (SELECT, INSERT, UPDATE, DELETE, etc.)
+                $queryType = strtoupper(strtok(trim($query->sql), ' '));
+
+                Prometheus::addCounter('database_slow_queries_total')
+                    ->label('connection', $query->connectionName)
+                    ->label('type', $queryType)
+                    ->increment();
+
+                // Gauge pour la dernière query lente (utile pour debug)
+                Prometheus::addGauge('database_slow_query_duration_seconds')
+                    ->label('connection', $query->connectionName)
+                    ->label('type', $queryType)
+                    ->set($query->time / 1000);
+            }
+        });
     }
 }
