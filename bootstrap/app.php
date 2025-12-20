@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Prometheus\Facades\Prometheus;
+use Prometheus\CollectorRegistry;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,11 +27,20 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->report(function (\Throwable $e) {
-            $shortClass = class_basename($e);
-            $code = (string) $e->getCode();
+            try {
+                $registry = app(CollectorRegistry::class);
+                $shortClass = class_basename($e);
+                $code = (string) $e->getCode();
 
-            Prometheus::addCounter('exceptions_total')
-                ->labels(['exception', 'code'])
-                ->inc(1, [$shortClass, $code]);
+                $counter = $registry->getOrRegisterCounter(
+                    'app',
+                    'exceptions_total',
+                    'Total exceptions',
+                    ['exception', 'code']
+                );
+                $counter->incBy(1, [$shortClass, $code]);
+            } catch (\Throwable $ignored) {
+                // Ignore errors in exception reporting
+            }
         });
     })->create();

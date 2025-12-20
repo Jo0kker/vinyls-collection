@@ -5,15 +5,17 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Spatie\Prometheus\Facades\Prometheus;
+use Prometheus\CollectorRegistry;
 use Symfony\Component\HttpFoundation\Response;
 
 class PrometheusMiddleware
 {
+    public function __construct(
+        protected CollectorRegistry $registry
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
-        Log::warning('PrometheusMiddleware called', ['uri' => $request->getRequestUri()]);
-
         $startTime = microtime(true);
 
         $response = $next($request);
@@ -22,7 +24,6 @@ class PrometheusMiddleware
 
         try {
             $this->recordMetrics($request, $response, $duration);
-            Log::warning('PrometheusMiddleware metrics recorded');
         } catch (\Throwable $e) {
             Log::error('PrometheusMiddleware error: ' . $e->getMessage(), [
                 'exception' => $e,
@@ -40,13 +41,21 @@ class PrometheusMiddleware
         $statusGroup = (string) (intval($response->getStatusCode() / 100) * 100);
 
         // Compteur de requêtes par route/method/status
-        Prometheus::addCounter('http_requests_total')
-            ->labels(['route', 'method', 'status', 'status_group'])
-            ->inc(1, [$route, $method, $status, $statusGroup]);
+        $counter = $this->registry->getOrRegisterCounter(
+            'app',
+            'http_requests_total',
+            'Total HTTP requests',
+            ['route', 'method', 'status', 'status_group']
+        );
+        $counter->incBy(1, [$route, $method, $status, $statusGroup]);
 
         // Gauge pour la latence de la dernière requête par route
-        Prometheus::addGauge('http_request_duration_seconds')
-            ->labels(['route', 'method'])
-            ->value($duration, [$route, $method]);
+        $gauge = $this->registry->getOrRegisterGauge(
+            'app',
+            'http_request_duration_seconds',
+            'HTTP request duration in seconds',
+            ['route', 'method']
+        );
+        $gauge->set($duration, [$route, $method]);
     }
 }

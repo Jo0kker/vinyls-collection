@@ -4,8 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
-use Spatie\Prometheus\Facades\Prometheus;
+use Prometheus\CollectorRegistry;
 
 class PrometheusServiceProvider extends ServiceProvider
 {
@@ -27,31 +28,52 @@ class PrometheusServiceProvider extends ServiceProvider
     protected function registerSlowQueryListener(): void
     {
         DB::listen(function (QueryExecuted $query) {
-            $connection = $query->connectionName;
-            $durationSeconds = $query->time / 1000;
+            try {
+                $registry = app(CollectorRegistry::class);
+                $connection = $query->connectionName;
+                $durationSeconds = $query->time / 1000;
 
-            // Compteur total des queries
-            Prometheus::addCounter('database_queries_total')
-                ->labels(['connection'])
-                ->inc(1, [$connection]);
+                // Compteur total des queries
+                $counter = $registry->getOrRegisterCounter(
+                    'app',
+                    'database_queries_total',
+                    'Total database queries',
+                    ['connection']
+                );
+                $counter->incBy(1, [$connection]);
 
-            // Gauge pour la durée de la dernière query
-            Prometheus::addGauge('database_query_duration_seconds')
-                ->labels(['connection'])
-                ->value($durationSeconds, [$connection]);
+                // Gauge pour la durée de la dernière query
+                $gauge = $registry->getOrRegisterGauge(
+                    'app',
+                    'database_query_duration_seconds',
+                    'Database query duration in seconds',
+                    ['connection']
+                );
+                $gauge->set($durationSeconds, [$connection]);
 
-            // Compteur spécifique pour les queries lentes
-            if ($query->time >= $this->slowQueryThreshold) {
-                $queryType = strtoupper(strtok(trim($query->sql), ' '));
+                // Compteur spécifique pour les queries lentes
+                if ($query->time >= $this->slowQueryThreshold) {
+                    $queryType = strtoupper(strtok(trim($query->sql), ' '));
 
-                Prometheus::addCounter('database_slow_queries_total')
-                    ->labels(['connection', 'type'])
-                    ->inc(1, [$connection, $queryType]);
+                    $slowCounter = $registry->getOrRegisterCounter(
+                        'app',
+                        'database_slow_queries_total',
+                        'Total slow database queries',
+                        ['connection', 'type']
+                    );
+                    $slowCounter->incBy(1, [$connection, $queryType]);
 
-                // Gauge pour la dernière query lente
-                Prometheus::addGauge('database_slow_query_duration_seconds')
-                    ->labels(['connection', 'type'])
-                    ->value($durationSeconds, [$connection, $queryType]);
+                    // Gauge pour la dernière query lente
+                    $slowGauge = $registry->getOrRegisterGauge(
+                        'app',
+                        'database_slow_query_duration_seconds',
+                        'Slow database query duration in seconds',
+                        ['connection', 'type']
+                    );
+                    $slowGauge->set($durationSeconds, [$connection, $queryType]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('PrometheusServiceProvider error: ' . $e->getMessage());
             }
         });
     }
