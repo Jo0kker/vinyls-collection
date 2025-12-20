@@ -55,5 +55,5 @@ return [
      *  'cache' => null       // InMemory implementation without laravel cache
      *  'cache' => 'array'    // InMemory implementation using laravel cache
      */
-    'cache' => null,
+    'cache' => 'redis',
 ];
