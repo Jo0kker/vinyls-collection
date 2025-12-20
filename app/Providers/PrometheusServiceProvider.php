@@ -55,6 +55,15 @@ class PrometheusServiceProvider extends ServiceProvider
                 if ($query->time >= $this->slowQueryThreshold) {
                     $queryType = strtoupper(strtok(trim($query->sql), ' '));
 
+                    // Log détaillé pour Loki
+                    Log::channel('loki')->warning('Slow query detected', [
+                        'sql' => $query->sql,
+                        'bindings' => $query->bindings,
+                        'time_ms' => $query->time,
+                        'connection' => $connection,
+                        'type' => $queryType,
+                    ]);
+
                     $slowCounter = $registry->getOrRegisterCounter(
                         'app',
                         'database_slow_queries_total',

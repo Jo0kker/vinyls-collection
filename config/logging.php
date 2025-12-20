@@ -1,5 +1,6 @@
 <?php
 
+use Itspire\MonologLoki\Handler\LokiHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -54,7 +55,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', env('LOG_STACK', 'single')),
+            'channels' => explode(',', env('LOG_STACK', 'single,loki')),
             'ignore_exceptions' => false,
         ],
 
@@ -125,6 +126,28 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'loki' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'debug'),
+            'handler' => LokiHandler::class,
+            'handler_with' => [
+                'apiConfig' => [
+                    'entrypoint' => env('LOKI_ENTRYPOINT', 'http://localhost:3100'),
+                    'context' => [],
+                    'labels' => [],
+                    'client_name' => 'vinyls-collection',
+                ],
+                'systemConfig' => [
+                    'env' => env('APP_ENV', 'production'),
+                ],
+                'globalLabels' => [
+                    'app' => 'vinyls-collection',
+                    'env' => env('APP_ENV', 'production'),
+                ],
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
         ],
 
     ],
