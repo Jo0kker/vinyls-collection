@@ -10,7 +10,6 @@ NIXPACKS_PHP_ROOT_DIR = "/app/public"
 nixPkgs = [
   "...",
   "python311Packages.supervisor",
-  "php84Extensions.redis",
   # Solution au conflit LICENSE entre yarn et composer
   # On baisse la priorité de composer pour éviter le conflit
   '(lib.recursiveUpdate php84Packages.composer { meta.priority = php84Packages.composer.meta.priority or 0 -1; })'
