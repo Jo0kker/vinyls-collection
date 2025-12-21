@@ -233,7 +233,7 @@ const loadPage = (url) => {
                                     </div>
                                 </div>
                                 
-                                <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
+                                <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-900 dark:text-white">
                                     {{ collectionVinyl.commentaires }}
                                 </div>
                             </div>
@@ -267,7 +267,7 @@ const loadPage = (url) => {
                                             <div class="font-medium text-gray-900 dark:text-white">
                                                 {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
                                             </div>
-                                            <div v-if="collectionVinyl.commentaires" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            <div v-if="collectionVinyl.commentaires" class="text-xs text-gray-900 dark:text-white mt-1">
                                                 {{ collectionVinyl.commentaires }}
                                             </div>
                                         </td>

@@ -1213,7 +1213,7 @@ const handleExport = async () => {
                                     </div>
                                 </div>
 
-                                <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
+                                <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-900 dark:text-white">
                                     {{ collectionVinyl.commentaires }}
                                 </div>
                             </div>

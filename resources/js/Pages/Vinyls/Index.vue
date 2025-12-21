@@ -221,7 +221,7 @@ const handleImageUpdated = (data) => {
                                     </div>
                                 </div>
                                 
-                                <div v-if="vinyl.commentaires" class="mt-3 text-xs text-gray-600 dark:text-gray-300">
+                                <div v-if="vinyl.commentaires" class="mt-3 text-xs text-gray-900 dark:text-white">
                                     {{ vinyl.commentaires }}
                                 </div>
                             </div>

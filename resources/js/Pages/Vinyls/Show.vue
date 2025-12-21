@@ -220,7 +220,7 @@ const getProvenanceLabel = (provenance) => {
                                     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
                                         Mes commentaires
                                     </h3>
-                                    <p class="text-gray-700 dark:text-gray-300">{{ collectionVinyl.commentaires }}</p>
+                                    <p class="text-gray-900 dark:text-white">{{ collectionVinyl.commentaires }}</p>
                                 </div>
                             </div>
                         </div>
