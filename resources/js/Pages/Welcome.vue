@@ -1,32 +1,53 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
-// Les données structurées seront créées dynamiquement dans onMounted
-
-const isLoading = ref(true);
-
-defineProps({
-    canLogin: {
-        type: Boolean,
+const props = defineProps({
+    latestVinyls: {
+        type: Array,
+        default: () => [],
     },
-    canRegister: {
-        type: Boolean,
+    latestThreads: {
+        type: Array,
+        default: () => [],
     },
-    laravelVersion: {
-        type: String,
-        required: true,
+    latestPosts: {
+        type: Array,
+        default: () => [],
     },
-    phpVersion: {
-        type: String,
-        required: true,
+    stats: {
+        type: Object,
+        default: () => ({}),
     },
 });
 
+const isLoading = ref(true);
+const activeTab = ref('messages'); // 'messages' or 'threads'
+
+// Format relative time
+function formatRelativeTime(date) {
+    const now = new Date();
+    const then = new Date(date);
+    const diffInSeconds = Math.floor((now - then) / 1000);
+
+    if (diffInSeconds < 60) return 'il y a quelques secondes';
+    if (diffInSeconds < 3600) return `il y a ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400) return `il y a ${Math.floor(diffInSeconds / 3600)}h`;
+    if (diffInSeconds < 604800) return `il y a ${Math.floor(diffInSeconds / 86400)}j`;
+    return then.toLocaleDateString('fr-FR');
+}
+
+// Format number with K/M suffix
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return num?.toString() || '0';
+}
+
 onMounted(() => {
     isLoading.value = false;
-    
+
     // Créer les données structurées avec l'URL actuelle
     const currentUrl = window.location.origin;
     const structuredData = {
@@ -46,31 +67,12 @@ onMounted(() => {
             "name": "Vinyls Collection"
         }
     };
-    
-    // Ajouter les données structurées JSON-LD
+
     const script = document.createElement('script');
     script.type = 'application/ld+json';
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
-    
-    // Mettre à jour les meta tags avec l'URL actuelle si pas définie
-    const ogUrl = document.querySelector('meta[property="og:url"]');
-    const canonical = document.querySelector('link[rel="canonical"]');
-    
-    if (ogUrl && !ogUrl.content) {
-        ogUrl.content = currentUrl;
-    }
-    if (canonical && !canonical.href) {
-        canonical.href = currentUrl;
-    }
 });
-
-function handleImageError() {
-    document.getElementById('screenshot-container')?.classList.add('!hidden');
-    document.getElementById('docs-card')?.classList.add('!row-span-1');
-    document.getElementById('docs-card-content')?.classList.add('!flex-row');
-    document.getElementById('background')?.classList.add('!hidden');
-}
 </script>
 
 <template>
@@ -93,7 +95,7 @@ function handleImageError() {
     </div>
 
     <AuthenticatedLayout v-else>
-
+        <!-- Bannière info -->
         <div class="bg-gradient-to-r from-green-500 to-green-600 border-b border-green-600">
             <div class="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between flex-wrap">
@@ -108,7 +110,7 @@ function handleImageError() {
                                 Nouveau site ! Récupérez votre ancien compte.
                             </span>
                             <span class="hidden md:inline">
-                                🎉 Bienvenue sur le nouveau site Vinyls Collection ! Pour récupérer votre ancien compte, 
+                                Bienvenue sur le nouveau site Vinyls Collection ! Pour récupérer votre ancien compte,
                                 <Link href="/forgot-password" class="underline font-semibold hover:text-green-100">
                                     faites une demande de réinitialisation de mot de passe
                                 </Link>.
@@ -119,136 +121,263 @@ function handleImageError() {
             </div>
         </div>
 
-        <div class="relative min-h-screen bg-gray-100 dark:bg-gray-900">
-        
-        <div class="relative overflow-hidden">
-            <div class="absolute inset-0">
-                <img class="h-full w-full object-cover opacity-10" src="/images/vinyl-bg.jpg" alt="Vinyl background" />
-                <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-800 mix-blend-multiply"></div>
-            </div>
-            <div class="relative max-w-7xl mx-auto">
-                <div class="relative z-10 pb-8 bg-transparent sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-                    <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-                        <div class="sm:text-center lg:text-left">
-                            <h1 class="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
-                                <span class="block">Votre passion</span>
-                                <span class="block text-blue-200">pour les vinyles</span>
-                            </h1>
-                            <p class="mt-3 text-base text-blue-100 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                                Gérez votre collection, échangez avec d'autres passionnés et découvrez de nouveaux trésors musicaux sur notre plateforme communautaire.
-                            </p>
-                            <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-                                <div class="rounded-md shadow">
-                                    <Link href="/forum" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 md:py-4 md:text-lg md:px-10">
-                                        Accéder au forum
-                                    </Link>
-                                </div>
-                                <div class="mt-3 sm:mt-0 sm:ml-3">
-                                    <Link v-if="$page.props.auth.user" href="/dashboard" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10">
-                                        Mon espace
-                                    </Link>
-                                    <Link v-else href="/register" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10">
-                                        Créer un compte
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </main>
+        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+            <!-- Hero Section -->
+            <div class="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900">
+                <div class="absolute inset-0 opacity-10">
+                    <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;0.4&quot;%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;20&quot;/%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;10&quot;/%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;3&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E'); background-size: 60px 60px;"></div>
                 </div>
-            </div>
-        </div>
-
-        
-        <div class="py-12 bg-white dark:bg-gray-800">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="lg:text-center">
-                    <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Fonctionnalités</h2>
-                    <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                        Une meilleure façon de gérer votre collection
-                    </p>
-                </div>
-
-                <div class="mt-10">
-                    <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-3 md:gap-x-8 md:gap-y-10">
-                        <div class="relative">
-                            <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                            </div>
-                            <div class="ml-16">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Gestion de collection</h3>
-                                <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
-                                    Organisez et suivez facilement votre collection de vinyles avec notre interface intuitive.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="relative">
-                            <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                                </svg>
-                            </div>
-                            <div class="ml-16">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Forum communautaire</h3>
-                                <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
-                                    Échangez avec d'autres passionnés, partagez vos découvertes et obtenez des conseils.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="relative">
-                            <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+                    <div class="text-center">
+                        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+                            Votre passion pour les <span class="text-blue-200">vinyles</span>
+                        </h1>
+                        <p class="mt-4 max-w-2xl mx-auto text-lg sm:text-xl text-blue-100">
+                            Gérez votre collection, échangez avec d'autres passionnés et découvrez de nouveaux trésors musicaux.
+                        </p>
+                        <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                            <Link href="/explore" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-blue-700 bg-white hover:bg-blue-50 shadow-lg transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
+                                Explorer les vinyles
+                            </Link>
+                            <Link href="/forum" class="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-base font-medium rounded-lg text-white hover:bg-white/10 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                                </svg>
+                                Rejoindre le forum
+                            </Link>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                        <div class="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-white">{{ formatNumber(stats.totalVinyls) }}</div>
+                            <div class="text-sm text-blue-200">Vinyles</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-white">{{ formatNumber(stats.totalUsers) }}</div>
+                            <div class="text-sm text-blue-200">Collectionneurs</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-white">{{ formatNumber(stats.totalCollections) }}</div>
+                            <div class="text-sm text-blue-200">Collections</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                            <div class="text-3xl font-bold text-white">{{ formatNumber(stats.totalThreads) }}</div>
+                            <div class="text-sm text-blue-200">Discussions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="grid lg:grid-cols-3 gap-8">
+
+                    <!-- Derniers vinyles ajoutés -->
+                    <div class="lg:col-span-2">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                Derniers vinyles ajoutés
+                            </h2>
+                            <Link href="/explore" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
+                                Voir tout &rarr;
+                            </Link>
+                        </div>
+
+                        <div v-if="latestVinyls.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            <Link
+                                v-for="vinyl in latestVinyls"
+                                :key="vinyl.id"
+                                :href="route('vinyl.show', vinyl.id)"
+                                class="group bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition overflow-hidden"
+                            >
+                                <div class="aspect-square bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+                                    <img
+                                        v-if="vinyl.cover_image"
+                                        :src="vinyl.cover_image"
+                                        :alt="vinyl.title"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                        loading="lazy"
+                                    />
+                                    <div v-else class="w-full h-full flex items-center justify-center">
+                                        <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="p-3">
+                                    <h3 class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ vinyl.title }}</h3>
+                                    <p class="text-gray-500 dark:text-gray-400 text-xs truncate">{{ vinyl.artist }}</p>
+                                    <div class="mt-2 flex items-center text-xs text-gray-400 dark:text-gray-500">
+                                        <span>par {{ vinyl.added_by.name }}</span>
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+
+                        <div v-else class="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
+                            <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                            <p class="mt-4 text-gray-500 dark:text-gray-400">Aucun vinyle pour le moment</p>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar: Activité du forum avec onglets -->
+                    <div>
+                        <!-- Header avec onglets -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                                <button
+                                    @click="activeTab = 'messages'"
+                                    :class="[
+                                        'px-3 py-1.5 text-sm font-medium rounded-md transition',
+                                        activeTab === 'messages'
+                                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    ]"
+                                >
+                                    Messages
+                                </button>
+                                <button
+                                    @click="activeTab = 'threads'"
+                                    :class="[
+                                        'px-3 py-1.5 text-sm font-medium rounded-md transition',
+                                        activeTab === 'threads'
+                                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    ]"
+                                >
+                                    Discussions
+                                </button>
                             </div>
-                            <div class="ml-16">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Recherche avancée</h3>
-                                <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
-                                    Trouvez facilement les vinyles que vous recherchez grâce à notre système de recherche performant.
+                            <Link href="/forum" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
+                                Forum &rarr;
+                            </Link>
+                        </div>
+
+                        <!-- Contenu: Derniers messages -->
+                        <div v-show="activeTab === 'messages'" class="max-h-[500px] overflow-y-auto">
+                            <div v-if="latestPosts.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
+                                <a
+                                    v-for="post in latestPosts"
+                                    :key="post.id"
+                                    :href="route('forum.thread.show', { thread_id: post.thread.id }) + '#post-' + post.sequence"
+                                    class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                                >
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-1 h-12 rounded-full flex-shrink-0 bg-blue-500"></div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ post.author.name }}</span>
+                                                <span>&middot;</span>
+                                                <span>{{ formatRelativeTime(post.created_at) }}</span>
+                                            </div>
+                                            <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                                                {{ post.content }}
+                                            </p>
+                                            <div class="mt-1 text-xs text-blue-600 dark:text-blue-400 truncate">
+                                                {{ post.thread.title }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <div v-else class="bg-white dark:bg-gray-800 rounded-lg p-6 text-center">
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">Aucun message récent</p>
+                            </div>
+                        </div>
+
+                        <!-- Contenu: Nouvelles discussions -->
+                        <div v-show="activeTab === 'threads'" class="max-h-[400px] overflow-y-auto">
+                            <div v-if="latestThreads.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
+                                <Link
+                                    v-for="thread in latestThreads"
+                                    :key="thread.id"
+                                    :href="route('forum.thread.show', { thread_id: thread.id })"
+                                    class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                                >
+                                    <div class="flex items-start gap-3">
+                                        <div
+                                            v-if="thread.category"
+                                            class="w-1 h-10 rounded-full flex-shrink-0"
+                                            :style="{ backgroundColor: thread.category.color_light_mode || '#3b82f6' }"
+                                        ></div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-medium text-gray-900 dark:text-white text-sm truncate">
+                                                {{ thread.title }}
+                                            </h3>
+                                            <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                                <span>{{ thread.author.name }}</span>
+                                                <span>&middot;</span>
+                                                <span>{{ formatRelativeTime(thread.created_at) }}</span>
+                                                <span v-if="thread.reply_count > 0">&middot;</span>
+                                                <span v-if="thread.reply_count > 0" class="flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                    </svg>
+                                                    {{ thread.reply_count }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Link>
+                            </div>
+
+                            <div v-else class="bg-white dark:bg-gray-800 rounded-lg p-6 text-center">
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">Aucune discussion</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Section -->
+                <div v-if="!$page.props.auth.user" class="mt-16">
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl overflow-hidden">
+                        <div class="px-6 py-12 sm:px-12 lg:flex lg:items-center lg:justify-between">
+                            <div>
+                                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">
+                                    Prêt à rejoindre la communauté ?
+                                </h2>
+                                <p class="mt-2 text-lg text-blue-100">
+                                    Créez votre compte gratuitement et commencez à gérer votre collection.
                                 </p>
+                            </div>
+                            <div class="mt-8 lg:mt-0 lg:ml-8 flex flex-shrink-0">
+                                <Link
+                                    href="/register"
+                                    class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-blue-600 bg-white hover:bg-blue-50 shadow-lg transition"
+                                >
+                                    Créer un compte
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        
-        <div class="bg-gradient-to-r from-blue-600 to-blue-800">
-            <div class="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
-                <h2 class="text-3xl font-extrabold text-white sm:text-4xl">
-                    <span class="block">Prêt à commencer ?</span>
-                    <span class="block">Rejoignez notre communauté dès aujourd'hui.</span>
-                </h2>
-                <p class="mt-4 text-lg leading-6 text-blue-100">
-                    Créez votre compte gratuitement et commencez à gérer votre collection de vinyles.
-                </p>
-                <Link v-if="!$page.props.auth.user" href="/register" class="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 sm:w-auto">
-                    Créer un compte
-                </Link>
-            </div>
-        </div>
-
-        
-        <footer class="bg-white dark:bg-gray-800">
-            <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
-                <div class="mt-8 md:mt-0">
-                    <p class="text-center text-base text-gray-400">
+            <!-- Footer -->
+            <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                    <p class="text-center text-sm text-gray-500 dark:text-gray-400">
                         &copy; {{ new Date().getFullYear() }} Vinyls Collection. Tous droits réservés.
                     </p>
                 </div>
-            </div>
-        </footer>
+            </footer>
         </div>
     </AuthenticatedLayout>
 </template>
 
-<style>
-/* Ajout d'un style pour éviter le FOUC */
-[v-cloak] {
-    display: none;
+<style scoped>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 </style>
