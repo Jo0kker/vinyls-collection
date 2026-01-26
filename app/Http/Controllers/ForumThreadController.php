@@ -7,6 +7,8 @@ use Inertia\Inertia;
 use TeamTeaTime\Forum\Models\Category;
 use TeamTeaTime\Forum\Models\Thread;
 use TeamTeaTime\Forum\Models\Post;
+use App\Models\ThreadSubscription;
+use App\Models\ForumThread;
 
 class ForumThreadController extends Controller
 {
@@ -59,6 +61,14 @@ class ForumThreadController extends Controller
             ->where('id', '!=', $thread->category_id)
             ->get(['id', 'title']);
         
+        // Check if user is subscribed
+        $isSubscribed = false;
+        if (auth()->check()) {
+            $isSubscribed = ThreadSubscription::where('user_id', auth()->id())
+                ->where('thread_id', $thread->id)
+                ->exists();
+        }
+
         $data = [
             'thread' => [
                 'id' => $thread->id,
@@ -77,6 +87,7 @@ class ForumThreadController extends Controller
                 ] : null,
                 'created_at' => $thread->created_at,
                 'reply_count' => $thread->reply_count,
+                'is_subscribed' => $isSubscribed,
             ],
             'posts' => $posts,
             'categories' => $allCategories
@@ -318,5 +329,52 @@ class ForumThreadController extends Controller
     {
         // Only admins can force delete threads
         return $user->roles()->where('name', 'admin')->exists();
+    }
+
+    /**
+     * Subscribe to a thread
+     */
+    public function subscribe($thread_id)
+    {
+        $thread = Thread::findOrFail($thread_id);
+        $user = auth()->user();
+
+        // Check if already subscribed
+        $existingSubscription = ThreadSubscription::where('user_id', $user->id)
+            ->where('thread_id', $thread->id)
+            ->first();
+
+        if ($existingSubscription) {
+            return redirect()->back()->with('info', 'Vous suivez déjà cette discussion.');
+        }
+
+        ThreadSubscription::create([
+            'user_id' => $user->id,
+            'thread_id' => $thread->id,
+            'email_notifications' => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Vous suivez maintenant cette discussion.');
+    }
+
+    /**
+     * Unsubscribe from a thread
+     */
+    public function unsubscribe($thread_id)
+    {
+        $thread = Thread::findOrFail($thread_id);
+        $user = auth()->user();
+
+        $subscription = ThreadSubscription::where('user_id', $user->id)
+            ->where('thread_id', $thread->id)
+            ->first();
+
+        if (!$subscription) {
+            return redirect()->back()->with('info', 'Vous ne suiviez pas cette discussion.');
+        }
+
+        $subscription->delete();
+
+        return redirect()->back()->with('success', 'Vous ne suivez plus cette discussion.');
     }
 }

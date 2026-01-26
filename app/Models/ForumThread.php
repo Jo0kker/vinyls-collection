@@ -4,6 +4,8 @@ namespace App\Models;
 
 use TeamTeaTime\Forum\Models\Thread as BaseThread;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ForumThread extends BaseThread
 {
@@ -52,5 +54,35 @@ class ForumThread extends BaseThread
         $this->update([
             'last_post_id' => $lastActivePost ? $lastActivePost->id : null
         ]);
+    }
+
+    /**
+     * Get all subscriptions for this thread.
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ThreadSubscription::class, 'thread_id');
+    }
+
+    /**
+     * Get all subscribers to this thread.
+     */
+    public function subscribers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'thread_subscriptions', 'thread_id', 'user_id')
+            ->withPivot('email_notifications')
+            ->withTimestamps();
+    }
+
+    /**
+     * Check if a user is subscribed to this thread.
+     */
+    public function isSubscribedBy(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return $this->subscriptions()->where('user_id', $user->id)->exists();
     }
 }

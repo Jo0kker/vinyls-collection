@@ -130,7 +130,11 @@ Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
     Route::delete('thread/{thread_id}', [ForumThreadController::class, 'destroy'])->name('thread.destroy');
     Route::post('thread/{thread_id}/restore', [ForumThreadController::class, 'restore'])->name('thread.restore');
     Route::delete('thread/{thread_id}/force', [ForumThreadController::class, 'forceDestroy'])->name('thread.force-destroy');
-    
+
+    // Thread subscription routes
+    Route::post('thread/{thread_id}/subscribe', [ForumThreadController::class, 'subscribe'])->name('thread.subscribe');
+    Route::post('thread/{thread_id}/unsubscribe', [ForumThreadController::class, 'unsubscribe'])->name('thread.unsubscribe');
+
     // Post management routes
     Route::delete('post/{post_id}', [ForumPostController::class, 'destroy'])->name('post.destroy');
     Route::post('post/{post_id}/restore', [ForumPostController::class, 'restore'])->name('post.restore');

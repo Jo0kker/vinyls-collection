@@ -69,6 +69,25 @@
                     </div>
                 </div>
 
+                <!-- Bouton suivre/ne plus suivre (pour tous les utilisateurs connectés) -->
+                <div class="flex items-center gap-2">
+                    <button v-if="$page.props.auth.user && !thread.is_subscribed"
+                            @click="subscribeToThread"
+                            class="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        Suivre
+                    </button>
+                    <button v-else-if="$page.props.auth.user && thread.is_subscribed"
+                            @click="unsubscribeFromThread"
+                            class="inline-flex items-center gap-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm transition-colors">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        Ne plus suivre
+                    </button>
+                </div>
 
                 <div v-if="canModerateThread" class="flex flex-col md:flex-row items-stretch md:items-center gap-2">
 
@@ -1373,6 +1392,15 @@ function submitMove() {
             showMoveModal.value = false;
         }
     });
+}
+
+// Subscription functions
+function subscribeToThread() {
+    router.post(route('forum.thread.subscribe', { thread_id: props.thread.id }));
+}
+
+function unsubscribeFromThread() {
+    router.post(route('forum.thread.unsubscribe', { thread_id: props.thread.id }));
 }
 
 // Post menu functions

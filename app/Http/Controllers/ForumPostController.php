@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use TeamTeaTime\Forum\Models\Thread;
 use TeamTeaTime\Forum\Models\Post;
+use App\Models\ForumThread;
+use App\Models\ForumPost;
+use App\Models\ThreadSubscription;
+use App\Notifications\NewForumPostNotification;
 
 class ForumPostController extends Controller
 {
     public function store(Request $request, $thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         $request->validate([
             'content' => 'required|string'
         ]);
@@ -32,11 +36,41 @@ class ForumPostController extends Controller
         $thread->update([
             'last_post_id' => $newPost->id,
         ]);
-        
+
         // Update thread's updated_at timestamp
         $thread->touch();
 
+        // Notify subscribers (except the post author)
+        $this->notifySubscribers($thread, $newPost);
+
         return back();
+    }
+
+    /**
+     * Notify all subscribers of a new post
+     */
+    private function notifySubscribers($thread, $post)
+    {
+        // Get all subscribers except the post author
+        $subscriptions = ThreadSubscription::where('thread_id', $thread->id)
+            ->where('user_id', '!=', $post->author_id)
+            ->where('email_notifications', true)
+            ->with('user')
+            ->get();
+
+        // Convert to ForumThread and ForumPost for the notification
+        $forumThread = ForumThread::find($thread->id);
+        $forumPost = ForumPost::find($post->id);
+
+        if (!$forumThread || !$forumPost) {
+            return;
+        }
+
+        foreach ($subscriptions as $subscription) {
+            if ($subscription->user) {
+                $subscription->user->notify(new NewForumPostNotification($forumThread, $forumPost));
+            }
+        }
     }
 
     public function edit($post_id)
