@@ -40,6 +40,18 @@ const showManualVinylModal = ref(false);
 const showEditVinylModal = ref(false);
 const showExportModal = ref(false);
 const showDeleteCollectionModal = ref(false);
+const showCollectionSwitcher = ref(false);
+
+// Autres collections (excluant la collection actuelle)
+const otherCollections = computed(() => {
+    return props.userCollections.filter(c => c.id !== props.collection.id);
+});
+
+// Navigation vers une autre collection
+function switchToCollection(collectionId) {
+    showCollectionSwitcher.value = false;
+    router.visit(`/collections/${collectionId}`);
+}
 
 // État pour l'export
 const isExporting = ref(false);
@@ -746,12 +758,53 @@ const handleExport = async () => {
         <template #header>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <Link href="/collections" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
+                    <Link href="/collections" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm mb-2 inline-block">
                         ← Retour aux collections
                     </Link>
-                    <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        {{ collection.collection_nom }}
-                    </h2>
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                            {{ collection.collection_nom }}
+                        </h2>
+                        <!-- Sélecteur de collection -->
+                        <div v-if="otherCollections.length > 0" class="relative">
+                            <button
+                                @click="showCollectionSwitcher = !showCollectionSwitcher"
+                                class="flex items-center gap-1 px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition"
+                                title="Changer de collection"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                                </svg>
+                                <span class="hidden sm:inline">Changer</span>
+                            </button>
+                            <!-- Dropdown -->
+                            <div
+                                v-show="showCollectionSwitcher"
+                                class="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-64 overflow-y-auto"
+                            >
+                                <div class="p-2">
+                                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 uppercase tracking-wider">
+                                        Mes collections
+                                    </div>
+                                    <button
+                                        v-for="col in otherCollections"
+                                        :key="col.id"
+                                        @click="switchToCollection(col.id)"
+                                        class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center justify-between gap-2"
+                                    >
+                                        <span class="text-sm text-gray-700 dark:text-gray-200 truncate">{{ col.collection_nom }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{{ col.vinyls_count || 0 }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Overlay pour fermer -->
+                            <div
+                                v-if="showCollectionSwitcher"
+                                @click="showCollectionSwitcher = false"
+                                class="fixed inset-0 z-40"
+                            ></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                     <!-- Message d'erreur pour l'export -->

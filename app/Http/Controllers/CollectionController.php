@@ -265,8 +265,9 @@ class CollectionController extends Controller
 
         // Récupérer toutes les collections de l'utilisateur pour les dropdowns
         $userCollections = Auth::user()->collections()
+            ->withCount('collectionVinyls as vinyls_count')
             ->orderBy('collection_nom')
-            ->get(['id', 'collection_nom']);
+            ->get(['id', 'collection_nom', 'vinyls_count']);
 
         return Inertia::render('Collections/Show', [
             'collection' => $collectionData,

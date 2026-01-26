@@ -213,10 +213,18 @@ class PublicProfileController extends Controller
             'user_id'
         ]);
 
+        // Récupérer les autres collections publiques de l'utilisateur
+        $userCollections = $user->collections()
+            ->where('visibility', 'public')
+            ->withCount('collectionVinyls as vinyls_count')
+            ->orderBy('collection_nom')
+            ->get(['id', 'collection_nom', 'vinyls_count']);
+
         return Inertia::render('Profiles/Collection', [
             'user' => $user,
             'collection' => $collectionData,
             'vinyls' => $vinyls,
+            'userCollections' => $userCollections,
             'filters' => [
                 'search' => $search,
                 'sort' => $sortBy,
