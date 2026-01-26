@@ -1,7 +1,22 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import VinylIcon from '@/Components/VinylIcon.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
+const globalStats = computed(() => page.props.globalStats || { totalVinyls: 0, totalUsers: 0, totalCollections: 0 });
+
+// Formater les nombres pour l'affichage (ex: 266000 -> "266k")
+const formatNumber = (num) => {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return num.toString();
+};
 </script>
 
 <style scoped>
@@ -159,15 +174,15 @@ import { Link } from '@inertiajs/vue3';
                 
                 <div class="flex justify-center space-x-6">
                     <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl p-6 wave-effect border border-gray-200 dark:border-gray-600 shadow-lg">
-                        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">266k</div>
+                        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ formatNumber(globalStats.totalVinyls) }}</div>
                         <div class="text-sm text-gray-600 dark:text-gray-400">Vinyles</div>
                     </div>
                     <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl p-6 wave-effect border border-gray-200 dark:border-gray-600 shadow-lg" style="animation-delay: 1s;">
-                        <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">4.2k</div>
+                        <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ formatNumber(globalStats.totalUsers) }}</div>
                         <div class="text-sm text-gray-600 dark:text-gray-400">Utilisateurs</div>
                     </div>
                     <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-xl p-6 wave-effect border border-gray-200 dark:border-gray-600 shadow-lg" style="animation-delay: 2s;">
-                        <div class="text-3xl font-bold text-pink-600 dark:text-pink-400">9.9k</div>
+                        <div class="text-3xl font-bold text-pink-600 dark:text-pink-400">{{ formatNumber(globalStats.totalCollections) }}</div>
                         <div class="text-sm text-gray-600 dark:text-gray-400">Collections</div>
                     </div>
                 </div>

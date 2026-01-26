@@ -65,6 +65,7 @@ class CollectionVinylController extends Controller
             'note' => 'nullable|integer|min:1|max:10',
             'vente' => 'boolean',
             'exemplaire_id' => 'nullable|integer',
+            'quantite' => 'required|integer|min:1|max:999',
             'collection_id' => 'required|exists:collections,id',
             // Image fields
             'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
@@ -105,6 +106,7 @@ class CollectionVinylController extends Controller
             'note',
             'vente',
             'exemplaire_id',
+            'quantite',
             'collection_id',
         ]));
 
@@ -165,11 +167,12 @@ class CollectionVinylController extends Controller
         $instanceFields = [
             'prix_achat',
             'annee_achat',
-            'provenance', 
+            'provenance',
             'commentaires',
             'note',
             'vente',
             'exemplaire_id',
+            'quantite',
         ];
 
         // Champs du vinyle (dans la table vinyls) éditables si on a les permissions

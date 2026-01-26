@@ -82,36 +82,26 @@ const toggleDropdown = () => {
             <slot name="trigger" />
         </div>
 
-        
+        <!-- Overlay pour fermer le dropdown -->
         <div
-            v-show="open"
+            v-if="open"
             class="fixed inset-0 z-40"
             @click="open = false"
         ></div>
 
-        <Transition
-            enter-active-class="transition ease-out duration-200"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-75"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
+        <!-- Menu dropdown -->
+        <div
+            v-if="open"
+            ref="dropdownRef"
+            class="absolute z-50 mt-2 rounded-md shadow-lg"
+            :class="[widthClass, alignmentClasses]"
         >
             <div
-                v-show="open"
-                ref="dropdownRef"
-                class="absolute z-50 mt-2 rounded-md shadow-lg"
-                :class="[widthClass, alignmentClasses]"
-                style="display: none"
-                @click="open = false"
+                class="rounded-md ring-1 ring-black ring-opacity-5"
+                :class="contentClasses"
             >
-                <div
-                    class="rounded-md ring-1 ring-black ring-opacity-5"
-                    :class="contentClasses"
-                >
-                    <slot name="content" />
-                </div>
+                <slot name="content" />
             </div>
-        </Transition>
+        </div>
     </div>
 </template>

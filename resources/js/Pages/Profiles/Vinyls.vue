@@ -9,13 +9,17 @@ const props = defineProps({
         type: Object,
         required: true
     },
-    collection: {
-        type: Object,
-        required: true
-    },
     vinyls: {
         type: Object,
         required: true
+    },
+    collections: {
+        type: Array,
+        default: () => []
+    },
+    totalVinyls: {
+        type: Number,
+        default: 0
     },
     filters: {
         type: Object,
@@ -25,6 +29,7 @@ const props = defineProps({
             order: 'desc',
             per_page: 30,
             letter: '',
+            collection: '',
             artiste: '',
             label: '',
             format: '',
@@ -48,7 +53,7 @@ const setViewMode = (mode) => {
     try {
         localStorage.setItem('vinyl-view-mode', mode);
     } catch {
-        // Ignorer les erreurs localStorage (mode privé, etc.)
+        // Ignorer les erreurs localStorage
     }
     viewMode.value = mode;
 };
@@ -64,6 +69,7 @@ watch(viewMode, (newMode) => {
 // État des filtres
 const searchQuery = ref(props.filters.search || '');
 const selectedLetter = ref(props.filters.letter || '');
+const selectedCollection = ref(props.filters.collection || '');
 const sortBy = ref(props.filters.sort || 'date_ajout');
 const sortOrder = ref(props.filters.order || 'desc');
 const perPage = ref(props.filters.per_page || 30);
@@ -101,6 +107,7 @@ const applyFilters = () => {
 
     if (searchQuery.value) params.search = searchQuery.value;
     if (selectedLetter.value) params.letter = selectedLetter.value;
+    if (selectedCollection.value) params.collection = selectedCollection.value;
     if (sortBy.value !== 'date_ajout') params.sort = sortBy.value;
     if (sortOrder.value !== 'desc') params.order = sortOrder.value;
     if (perPage.value !== 30) params.per_page = perPage.value;
@@ -112,7 +119,7 @@ const applyFilters = () => {
     if (filterYearFrom.value) params.year_from = filterYearFrom.value;
     if (filterYearTo.value) params.year_to = filterYearTo.value;
 
-    router.get(`/collectors/${props.user.id}/collections/${props.collection.id}`, params, {
+    router.get(`/collectors/${props.user.id}/vinyls`, params, {
         preserveState: true,
         preserveScroll: true
     });
@@ -128,6 +135,7 @@ const selectLetter = (letter) => {
 const resetFilters = () => {
     searchQuery.value = '';
     selectedLetter.value = '';
+    selectedCollection.value = '';
     sortBy.value = 'date_ajout';
     sortOrder.value = 'desc';
     filterArtiste.value = '';
@@ -165,7 +173,7 @@ const loadPage = (url) => {
 </script>
 
 <template>
-    <Head :title="`${collection.collection_nom} - ${user.name}`" />
+    <Head :title="`Vinyles de ${user.name}`" />
 
     <AuthenticatedLayout>
         <template #header>
@@ -175,7 +183,7 @@ const loadPage = (url) => {
                         ← Retour au profil de {{ user.name }}
                     </Link>
                     <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        {{ collection.collection_nom }}
+                        Vinyles de {{ user.name }}
                     </h2>
                 </div>
             </div>
@@ -184,47 +192,27 @@ const loadPage = (url) => {
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
 
-                <!-- Info collection -->
+                <!-- Info utilisateur -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <div class="flex items-start gap-4 mb-6">
-                            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                        <div class="flex items-start gap-4">
+                            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
                                 {{ user.name.charAt(0).toUpperCase() }}
                             </div>
-                            <div>
+                            <div class="flex-1">
                                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                                    {{ collection.collection_nom }}
+                                    Tous les vinyles de {{ user.name }}
                                 </h1>
-                                <p class="text-gray-600 dark:text-gray-400">
-                                    Collection de <Link :href="`/collectors/${user.id}`" class="text-purple-600 hover:text-purple-800">{{ user.name }}</Link>
+                                <p v-if="user.location" class="text-gray-600 dark:text-gray-400 mb-2">
+                                    {{ user.location }}
                                 </p>
+                                <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="font-semibold text-purple-600 dark:text-purple-400">
+                                        {{ totalVinyls }} vinyle{{ totalVinyls > 1 ? 's' : '' }}
+                                    </span>
+                                    <span>dans {{ collections.length }} collection{{ collections.length > 1 ? 's' : '' }} publique{{ collections.length > 1 ? 's' : '' }}</span>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Nombre de vinyles</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {{ vinyls.total || 0 }}
-                                </p>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Créée le</h3>
-                                <p class="text-lg text-gray-900 dark:text-white">
-                                    {{ formatDate(collection.collection_date_crea) }}
-                                </p>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Modifiée le</h3>
-                                <p class="text-lg text-gray-900 dark:text-white">
-                                    {{ formatDate(collection.collection_date_modif) }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div v-if="collection.collection_commentaires" class="mt-4">
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
-                            <p class="text-gray-900 dark:text-white">{{ collection.collection_commentaires }}</p>
                         </div>
                     </div>
                 </div>
@@ -248,6 +236,20 @@ const loadPage = (url) => {
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                 </div>
+                            </div>
+
+                            <!-- Filtre par collection -->
+                            <div class="flex items-center gap-2">
+                                <select
+                                    v-model="selectedCollection"
+                                    @change="applyFilters"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                >
+                                    <option value="">Toutes les collections</option>
+                                    <option v-for="collection in collections" :key="collection.id" :value="collection.id">
+                                        {{ collection.collection_nom }} ({{ collection.collection_vinyls_count }})
+                                    </option>
+                                </select>
                             </div>
 
                             <!-- Tri -->
@@ -379,7 +381,7 @@ const loadPage = (url) => {
                     <div class="p-6">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                Vinyles de la collection
+                                Vinyles
                                 <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
                                     ({{ vinyls.total }} résultat{{ vinyls.total > 1 ? 's' : '' }})
                                 </span>
@@ -451,7 +453,7 @@ const loadPage = (url) => {
                             </svg>
                             <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun vinyle trouvé</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {{ searchQuery || selectedLetter || hasAdvancedFilters ? 'Essayez de modifier vos critères de recherche.' : 'Cette collection ne contient pas encore de vinyles.' }}
+                                {{ searchQuery || selectedLetter || hasAdvancedFilters ? 'Essayez de modifier vos critères de recherche.' : 'Cet utilisateur n\'a pas de vinyles dans ses collections publiques.' }}
                             </p>
                             <button v-if="searchQuery || selectedLetter || hasAdvancedFilters"
                                     @click="resetFilters"
@@ -478,6 +480,9 @@ const loadPage = (url) => {
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                             {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
                                         </p>
+                                        <p v-if="collectionVinyl.collection" class="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                            {{ collectionVinyl.collection.collection_nom }}
+                                        </p>
                                         <div class="flex items-center mt-2 text-xs text-gray-400">
                                             <span>
                                                 Ajouté le {{ formatDate(collectionVinyl.date_ajout) }}
@@ -499,10 +504,6 @@ const loadPage = (url) => {
                                         </Link>
                                     </div>
                                 </div>
-
-                                <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-900 dark:text-white">
-                                    {{ collectionVinyl.commentaires }}
-                                </div>
                             </div>
                         </div>
 
@@ -514,8 +515,8 @@ const loadPage = (url) => {
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Pochette</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Titre</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Artiste</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Collection</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Année</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Label</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Ajouté le</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Actions</th>
                                     </tr>
@@ -537,18 +538,19 @@ const loadPage = (url) => {
                                                     x{{ collectionVinyl.quantite }}
                                                 </span>
                                             </div>
-                                            <div v-if="collectionVinyl.commentaires" class="text-xs text-gray-900 dark:text-white mt-1">
-                                                {{ collectionVinyl.commentaires }}
-                                            </div>
                                         </td>
                                         <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
                                             {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
                                         </td>
-                                        <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.annee || '-' }}
+                                        <td class="py-3 px-4">
+                                            <Link v-if="collectionVinyl.collection"
+                                                  :href="`/collectors/${user.id}/collections/${collectionVinyl.collection.id}`"
+                                                  class="text-purple-600 hover:text-purple-800 text-sm">
+                                                {{ collectionVinyl.collection.collection_nom }}
+                                            </Link>
                                         </td>
                                         <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.label || '-' }}
+                                            {{ collectionVinyl.vinyl?.annee || '-' }}
                                         </td>
                                         <td class="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
                                             {{ formatDate(collectionVinyl.date_ajout) }}

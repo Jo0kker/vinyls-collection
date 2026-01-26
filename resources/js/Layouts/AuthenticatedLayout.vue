@@ -11,23 +11,23 @@ const showingNavigationDropdown = ref(false);
 </script>
 
 <template>
-    <div class="overflow-x-hidden">
+    <div>
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             <nav
-                class="v-navbar shadow py-4 bg-white dark:bg-gray-800 overflow-hidden"
+                class="v-navbar shadow py-4 bg-white dark:bg-gray-800"
             >
-                
-                <div class="container mx-auto px-4 md:flex md:items-center md:gap-4 overflow-x-hidden">
+
+                <div class="container mx-auto px-4 md:flex md:items-center md:gap-4">
                     <div class="flex justify-between items-center">
-                        
+
                         <Link href="/" class="text-2xl font-bold text-blue-600 dark:text-blue-400">
                             <ApplicationLogo />
                         </Link>
-                        
-                        
-                        <button 
+
+
+                        <button
                             @click="showingNavigationDropdown = !showingNavigationDropdown"
-                            class="navbar-toggler block md:hidden border rounded-md px-2 py-1" 
+                            class="navbar-toggler block md:hidden border rounded-md px-2 py-1"
                             type="button"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="navbar-toggler-icon w-6 h-6">
@@ -35,17 +35,18 @@ const showingNavigationDropdown = ref(false);
                             </svg>
                         </button>
                     </div>
-                    
-                    <div 
+
+                    <div
                         :class="{ 'flex flex-col': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                         class="grow justify-between navbar-collapse md:flex"
                     >
-                        
-                        <ul class="flex flex-col md:flex-row gap-3 mb-4 md:mb-0 md:flex-1">
+
+                        <ul class="flex flex-col md:flex-row md:items-stretch gap-3 mt-4 md:mt-0 mb-4 md:mb-0 md:flex-1">
                             <li v-if="$page.props.auth.user">
                                 <NavLink
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
+                                    class="h-full"
                                 >
                                     Tableau de bord
                                 </NavLink>
@@ -54,6 +55,7 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('forum.index')"
                                     :active="route().current('forum.*')"
+                                    class="h-full"
                                 >
                                     Forum
                                 </NavLink>
@@ -62,6 +64,7 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('collections.index')"
                                     :active="route().current('collections.*')"
+                                    class="h-full"
                                 >
                                     Mes Collections
                                 </NavLink>
@@ -70,13 +73,23 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink
                                     :href="route('collectors.index')"
                                     :active="route().current('collectors.*')"
+                                    class="h-full"
                                 >
                                     Collectionneurs
                                 </NavLink>
                             </li>
+                            <li>
+                                <NavLink
+                                    :href="route('catalog.index')"
+                                    :active="route().current('catalog.*')"
+                                    class="h-full"
+                                >
+                                    Vinyles
+                                </NavLink>
+                            </li>
                         </ul>
 
-                        
+
                         <!-- Boutons connexion/inscription pour utilisateurs non connectés -->
                         <div v-if="!$page.props.auth.user" class="hidden md:flex items-center gap-3">
                             <Link
@@ -92,7 +105,7 @@ const showingNavigationDropdown = ref(false);
                                 Inscription
                             </Link>
                         </div>
-                        
+
                         <!-- Menu utilisateur connecté -->
                         <div v-if="$page.props.auth.user" class="hidden md:flex items-center gap-4">
                             <div class="relative">
@@ -135,8 +148,8 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
-                        
-                        <div 
+
+                        <div
                             v-if="$page.props.auth.user"
                             :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                             class="md:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-600"
@@ -162,9 +175,9 @@ const showingNavigationDropdown = ref(false);
                                 </ResponsiveNavLink>
                             </div>
                         </div>
-                        
+
                         <!-- Menu mobile pour utilisateurs non connectés -->
-                        <div 
+                        <div
                             v-if="!$page.props.auth.user"
                             :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                             class="md:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-2"
@@ -187,7 +200,7 @@ const showingNavigationDropdown = ref(false);
 
             </nav>
 
-            
+
             <header
                 class="bg-white shadow dark:bg-gray-800"
                 v-if="$slots.header"
@@ -197,7 +210,7 @@ const showingNavigationDropdown = ref(false);
                 </div>
             </header>
 
-            
+
             <main>
                 <slot />
             </main>

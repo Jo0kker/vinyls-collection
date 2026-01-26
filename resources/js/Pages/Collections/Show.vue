@@ -24,7 +24,8 @@ const props = defineProps({
             search: '',
             sort: 'date_ajout',
             order: 'desc',
-            per_page: 20
+            per_page: 20,
+            letter: ''
         })
     },
     pagination: {
@@ -55,6 +56,10 @@ const searchQuery = ref(props.filters.search || '');
 const sortBy = ref(props.filters.sort || 'date_ajout');
 const sortOrder = ref(props.filters.order || 'desc');
 const perPage = ref(props.filters.per_page || 20);
+const selectedLetter = ref(props.filters.letter || '');
+
+// Index alphabétique
+const alphabet = ['#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
 // Références reactives pour les données modifiables
 const paginationData = ref(props.pagination?.data ? [...props.pagination.data] : []);
@@ -80,6 +85,7 @@ watch(() => props.filters, (newFilters) => {
         sortBy.value = newFilters.sort || 'date_ajout';
         sortOrder.value = newFilters.order || 'desc';
         perPage.value = newFilters.per_page || 20;
+        selectedLetter.value = newFilters.letter || '';
     }
 }, { deep: true, immediate: true });
 
@@ -432,6 +438,9 @@ const applyFilters = (page = 1) => {
     if (perPage.value != 20) {
         params.append('per_page', perPage.value);
     }
+    if (selectedLetter.value) {
+        params.append('letter', selectedLetter.value);
+    }
     if (page > 1) {
         params.append('page', page);
     }
@@ -443,6 +452,12 @@ const applyFilters = (page = 1) => {
         preserveState: true,
         preserveScroll: true
     });
+};
+
+// Sélectionner une lettre
+const selectLetter = (letter) => {
+    selectedLetter.value = selectedLetter.value === letter ? '' : letter;
+    applyFilters(1);
 };
 
 const clearSearch = () => {
@@ -818,7 +833,8 @@ const handleExport = async () => {
 
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <!-- Ligne 1: Recherche, modes d'affichage, tri -->
+                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
 
                             <div class="flex-1 max-w-md">
                                 <div class="relative">
@@ -841,7 +857,6 @@ const handleExport = async () => {
                                     </button>
                                 </div>
                             </div>
-
 
                             <div class="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
                                 <button @click="setViewMode('grid')"
@@ -939,8 +954,26 @@ const handleExport = async () => {
                             </div>
                         </div>
 
+                        <!-- Index alphabétique -->
+                        <div class="flex flex-wrap items-center gap-1">
+                            <button v-for="letter in alphabet" :key="letter"
+                                    @click="selectLetter(letter)"
+                                    :class="[
+                                        'w-8 h-8 text-sm font-medium rounded transition-colors',
+                                        selectedLetter === letter
+                                            ? 'bg-purple-600 text-white'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    ]">
+                                {{ letter }}
+                            </button>
+                            <button v-if="selectedLetter"
+                                    @click="selectLetter('')"
+                                    class="ml-2 px-3 h-8 text-sm font-medium rounded bg-gray-300 dark:bg-gray-500 text-gray-800 dark:text-white hover:bg-gray-400 dark:hover:bg-gray-400 transition-colors">
+                                Effacer
+                            </button>
+                        </div>
 
-                        <div v-if="searchQuery || sortBy !== 'date_ajout' || sortOrder !== 'desc'" class="mt-3 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div v-if="searchQuery || sortBy !== 'date_ajout' || sortOrder !== 'desc' || selectedLetter" class="mt-3 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <span>Filtres actifs :</span>
                             <span v-if="searchQuery" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                                 Recherche: "{{ searchQuery }}"
@@ -1168,6 +1201,9 @@ const handleExport = async () => {
                                         <div class="flex items-center mt-2 text-xs text-gray-400">
                                             <span>
                                                 Ajouté le {{ formatDate(collectionVinyl.date_ajout) }}
+                                            </span>
+                                            <span v-if="collectionVinyl.quantite > 1" class="ml-2 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
+                                                x{{ collectionVinyl.quantite }}
                                             </span>
                                         </div>
                                     </div>
@@ -1399,8 +1435,11 @@ const handleExport = async () => {
                                                 
                                                 <!-- Titre -->
                                                 <div v-else-if="column.key === 'titre'">
-                                                    <div class="font-medium text-gray-900 dark:text-white">
+                                                    <div class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                                                         {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
+                                                        <span v-if="collectionVinyl.quantite > 1" class="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
+                                                            x{{ collectionVinyl.quantite }}
+                                                        </span>
                                                     </div>
                                                     <!-- Indicateur de champs correspondants à la recherche -->
                                                     <div v-if="searchQuery && getMatchingFields(collectionVinyl.vinyl).length > 0"
@@ -1507,6 +1546,11 @@ const handleExport = async () => {
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                             <div v-for="collectionVinyl in filteredVinyls" :key="collectionVinyl.id"
                                  class="relative aspect-square rounded-lg overflow-hidden group hover:scale-105 transition-transform shadow-md">
+
+                                <!-- Badge quantité -->
+                                <span v-if="collectionVinyl.quantite > 1" class="absolute top-2 left-2 z-20 px-1.5 py-0.5 bg-purple-600 text-white rounded-full text-xs font-medium shadow">
+                                    x{{ collectionVinyl.quantite }}
+                                </span>
 
                                 <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
                                       class="absolute inset-0 z-0 cursor-pointer">

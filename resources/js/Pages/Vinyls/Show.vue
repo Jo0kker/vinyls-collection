@@ -209,6 +209,15 @@ const getProvenanceLabel = (provenance) => {
                                             <span class="ml-2 text-gray-900 dark:text-white">{{ collectionVinyl.note }}/10 ⭐</span>
                                         </div>
                                         <div>
+                                            <span class="font-medium text-gray-700 dark:text-gray-300">Nombre d'exemplaires:</span>
+                                            <span class="ml-2 text-gray-900 dark:text-white">
+                                                {{ collectionVinyl.quantite || 1 }}
+                                                <span v-if="collectionVinyl.quantite > 1" class="ml-1 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
+                                                    x{{ collectionVinyl.quantite }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div>
                                             <span class="font-medium text-gray-700 dark:text-gray-300">Ajouté le:</span>
                                             <span class="ml-2 text-gray-900 dark:text-white">{{ formatDate(collectionVinyl.date_ajout) }}</span>
                                         </div>

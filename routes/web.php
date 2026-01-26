@@ -12,6 +12,7 @@ use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumCategoryController;
 use App\Http\Controllers\ForumThreadController;
 use App\Http\Controllers\ForumPostController;
+use App\Http\Controllers\CatalogController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -32,6 +33,10 @@ Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 Route::get('/collectors', [PublicProfileController::class, 'index'])->name('collectors.index');
 Route::get('/collectors/{user}', [PublicProfileController::class, 'show'])->name('collectors.show');
 Route::get('/collectors/{user}/collections/{collection}', [PublicProfileController::class, 'showCollection'])->name('collectors.collection');
+Route::get('/collectors/{user}/vinyls', [PublicProfileController::class, 'showVinyls'])->name('collectors.vinyls');
+
+// Catalogue global des vinyles
+Route::get('/explore', [CatalogController::class, 'index'])->name('catalog.index');
 
 // Route pour afficher les détails d'un vinyle (accessible à tous si public)
 Route::get('vinyles/{vinyl}', [VinylController::class, 'showVinyl'])->name('vinyl.show');

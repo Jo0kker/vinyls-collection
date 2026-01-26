@@ -14,6 +14,7 @@ class CollectionVinyl extends Model
         'vinyl_id',
         'user_id',
         'exemplaire_id',
+        'quantite',
         'annee_achat',
         'provenance',
         'prix_achat',

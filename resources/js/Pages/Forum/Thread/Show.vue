@@ -675,20 +675,56 @@
                         <div v-if="posts && posts.links && posts.links.length > 3" class="mt-6">
                             <nav class="flex items-center justify-center">
 
-                                <div class="flex sm:hidden items-center gap-2">
+                                <!-- Pagination mobile améliorée -->
+                                <div class="flex sm:hidden items-center justify-center">
+                                    <!-- Première page -->
+                                    <Link v-if="posts.current_page > 1"
+                                          :href="posts.first_page_url || (posts.path + '?page=1')"
+                                          class="px-2.5 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-l-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                          title="Première page">
+                                        «
+                                    </Link>
+                                    <span v-else class="px-2.5 py-2 border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 rounded-l-md dark:bg-gray-900 dark:border-gray-700 dark:text-gray-600">
+                                        «
+                                    </span>
+
+                                    <!-- Page précédente -->
                                     <Link v-if="posts.prev_page_url"
                                           :href="posts.prev_page_url"
-                                          class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                                        ← Précédent
+                                          class="px-2.5 py-2 border-t border-b border-r border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                          title="Page précédente">
+                                        ‹
                                     </Link>
-                                    <span class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                                        Page {{ posts.current_page }} / {{ posts.last_page }}
+                                    <span v-else class="px-2.5 py-2 border-t border-b border-r border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-600">
+                                        ‹
                                     </span>
+
+                                    <!-- Page actuelle -->
+                                    <span class="px-3 py-2 border-t border-b border-gray-300 bg-blue-50 text-sm font-medium text-blue-600 dark:bg-blue-900/50 dark:border-gray-600 dark:text-blue-300 min-w-[70px] text-center">
+                                        {{ posts.current_page }} / {{ posts.last_page }}
+                                    </span>
+
+                                    <!-- Page suivante -->
                                     <Link v-if="posts.next_page_url"
                                           :href="posts.next_page_url"
-                                          class="px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                                        Suivant →
+                                          class="px-2.5 py-2 border-t border-b border-l border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                          title="Page suivante">
+                                        ›
                                     </Link>
+                                    <span v-else class="px-2.5 py-2 border-t border-b border-l border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-600">
+                                        ›
+                                    </span>
+
+                                    <!-- Dernière page -->
+                                    <Link v-if="posts.current_page < posts.last_page"
+                                          :href="posts.last_page_url || (posts.path + '?page=' + posts.last_page)"
+                                          class="px-2.5 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-r-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                          title="Dernière page">
+                                        »
+                                    </Link>
+                                    <span v-else class="px-2.5 py-2 border border-gray-300 bg-gray-100 text-sm font-medium text-gray-400 rounded-r-md dark:bg-gray-900 dark:border-gray-700 dark:text-gray-600">
+                                        »
+                                    </span>
                                 </div>
 
 

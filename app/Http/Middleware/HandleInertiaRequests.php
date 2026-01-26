@@ -3,8 +3,12 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
+use App\Models\Vinyl;
+use App\Models\User;
+use App\Models\Collection;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -45,6 +49,7 @@ class HandleInertiaRequests extends Middleware
                     'location' => $request->url(),
                 ]);
             },
+            'globalStats' => fn () => $this->getGlobalStats(),
         ]);
     }
 
@@ -54,10 +59,24 @@ class HandleInertiaRequests extends Middleware
     private function formatUser($user)
     {
         $userData = $user->toArray();
-        
+
         // L'avatar contient déjà l'URL complète S3, pas besoin de transformation
         // (contrairement aux autres assets qui pourraient être des paths relatifs)
-        
+
         return $userData;
+    }
+
+    /**
+     * Get global site statistics (cached for 1 hour)
+     */
+    private function getGlobalStats(): array
+    {
+        return Cache::remember('global_stats', 3600, function () {
+            return [
+                'totalVinyls' => Vinyl::count(),
+                'totalUsers' => User::whereNotNull('email_verified_at')->count(),
+                'totalCollections' => Collection::where('visibility', 'public')->count(),
+            ];
+        });
     }
 }

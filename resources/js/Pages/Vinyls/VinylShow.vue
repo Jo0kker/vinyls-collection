@@ -357,9 +357,14 @@ onMounted(() => {
                                                     {{ owner.collection.collection_nom }}
                                                 </Link>
                                             </p>
-                                            <p v-if="owner.note" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                Note: {{ owner.note }}/10 ⭐
-                                            </p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span v-if="owner.quantite > 1" class="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
+                                                    x{{ owner.quantite }} exemplaires
+                                                </span>
+                                                <span v-if="owner.note" class="text-xs text-gray-400 dark:text-gray-500">
+                                                    ⭐ {{ owner.note }}/10
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

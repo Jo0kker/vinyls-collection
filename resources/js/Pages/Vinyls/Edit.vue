@@ -41,6 +41,7 @@ const form = useForm({
     provenance: props.collectionVinyl.provenance || 0,
     commentaires: props.collectionVinyl.commentaires || '',
     note: props.collectionVinyl.note || null,
+    quantite: props.collectionVinyl.quantite || 1,
     
     // Champs vinyles - basiques pour Discogs (avec valeurs par défaut)
     vinyl_nom: vinyl.vinyl_nom || '',
@@ -573,6 +574,25 @@ const getFormatLabel = (format) => {
                                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                                         <p class="text-xs text-red-500 mt-1" v-if="form.errors.note">
                                             {{ form.errors.note }}
+                                        </p>
+                                    </div>
+
+                                    <!-- Quantité -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Nombre d'exemplaires
+                                        </label>
+                                        <input v-model="form.quantite"
+                                               type="number"
+                                               min="1"
+                                               max="999"
+                                               required
+                                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Combien d'exemplaires de ce vinyle possédez-vous ?
+                                        </p>
+                                        <p class="text-xs text-red-500 mt-1" v-if="form.errors.quantite">
+                                            {{ form.errors.quantite }}
                                         </p>
                                     </div>
                                 </div>

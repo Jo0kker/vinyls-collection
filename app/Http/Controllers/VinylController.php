@@ -20,33 +20,147 @@ class VinylController extends Controller
     /**
      * Display a listing of the user's vinyls
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        $vinyls = $user->vinylCollections()
-            ->with(['vinyl', 'collection'])
-            ->orderBy('date_ajout', 'desc')
-            ->get();
+        // Récupérer les paramètres de recherche, tri et pagination
+        $search = $request->get('search', '');
+        $sortBy = $request->get('sort', 'date_ajout');
+        $sortOrder = $request->get('order', 'desc');
+        $perPage = $request->get('per_page', 20);
+        $letter = $request->get('letter', '');
 
-        // Ajouter les informations de permissions pour chaque vinyl comme dans CollectionController
-        $vinyls->transform(function ($collectionVinyl) use ($user) {
+        // Récupérer les filtres avancés
+        $filterTitre = $request->get('filter_titre', '');
+        $filterArtiste = $request->get('filter_artiste', '');
+        $filterAnneeMin = $request->get('filter_annee_min', '');
+        $filterAnneeMax = $request->get('filter_annee_max', '');
+        $filterLabel = $request->get('filter_label', '');
+        $filterFormat = $request->get('filter_format', '');
+        $filterCollection = $request->get('filter_collection', '');
+
+        // Valider que per_page est dans les valeurs autorisées
+        if (!in_array($perPage, [20, 50, 100, 500])) {
+            $perPage = 20;
+        }
+
+        // Construire la requête
+        $query = $user->vinylCollections()->with(['vinyl', 'collection']);
+
+        // Appliquer le filtre par lettre
+        if ($letter) {
+            if ($letter === '#') {
+                $query->whereHas('vinyl', function($q) {
+                    $q->whereRaw("vinyl_nom NOT SIMILAR TO '[A-Za-z]%'");
+                });
+            } else {
+                $query->whereHas('vinyl', function($q) use ($letter) {
+                    $q->whereRaw('UPPER(LEFT(vinyl_nom, 1)) = ?', [strtoupper($letter)]);
+                });
+            }
+        }
+
+        // Appliquer la recherche si un terme est fourni
+        if ($search) {
+            $query->whereHas('vinyl', function($q) use ($search) {
+                $q->where(function($query) use ($search) {
+                    $query->whereRaw('vinyl_nom ILIKE ?', ["%{$search}%"])
+                          ->orWhereRaw('artiste ILIKE ?', ["%{$search}%"])
+                          ->orWhereRaw('vinyl_titre ILIKE ?', ["%{$search}%"])
+                          ->orWhereRaw('label ILIKE ?', ["%{$search}%"]);
+
+                    if (is_numeric($search)) {
+                        $query->orWhere('annee', '=', intval($search));
+                    }
+                });
+            });
+        }
+
+        // Appliquer les filtres avancés
+        if ($filterTitre) {
+            $query->whereHas('vinyl', function($q) use ($filterTitre) {
+                $q->whereRaw('vinyl_nom ILIKE ?', ["%{$filterTitre}%"]);
+            });
+        }
+
+        if ($filterArtiste) {
+            $query->whereHas('vinyl', function($q) use ($filterArtiste) {
+                $q->whereRaw('artiste ILIKE ?', ["%{$filterArtiste}%"]);
+            });
+        }
+
+        if ($filterAnneeMin) {
+            $query->whereHas('vinyl', function($q) use ($filterAnneeMin) {
+                $q->where('annee', '>=', intval($filterAnneeMin));
+            });
+        }
+
+        if ($filterAnneeMax) {
+            $query->whereHas('vinyl', function($q) use ($filterAnneeMax) {
+                $q->where('annee', '<=', intval($filterAnneeMax));
+            });
+        }
+
+        if ($filterLabel) {
+            $query->whereHas('vinyl', function($q) use ($filterLabel) {
+                $q->whereRaw('label ILIKE ?', ["%{$filterLabel}%"]);
+            });
+        }
+
+        if ($filterFormat) {
+            $query->whereHas('vinyl', function($q) use ($filterFormat) {
+                $q->where('vinyl_format', $filterFormat);
+            });
+        }
+
+        if ($filterCollection) {
+            $query->where('collection_id', $filterCollection);
+        }
+
+        // Appliquer le tri
+        switch ($sortBy) {
+            case 'vinyl_nom':
+                $query->join('vinyls', 'collection_vinyls.vinyl_id', '=', 'vinyls.id')
+                      ->orderBy('vinyls.vinyl_nom', $sortOrder)
+                      ->select('collection_vinyls.*');
+                break;
+            case 'artiste':
+                $query->join('vinyls', 'collection_vinyls.vinyl_id', '=', 'vinyls.id')
+                      ->orderBy('vinyls.artiste', $sortOrder)
+                      ->select('collection_vinyls.*');
+                break;
+            case 'annee':
+                $query->join('vinyls', 'collection_vinyls.vinyl_id', '=', 'vinyls.id')
+                      ->orderBy('vinyls.annee', $sortOrder)
+                      ->select('collection_vinyls.*');
+                break;
+            case 'prix_achat':
+                $query->orderBy('prix_achat', $sortOrder);
+                break;
+            case 'note':
+                $query->orderBy('note', $sortOrder);
+                break;
+            case 'date_ajout':
+            default:
+                $query->orderBy('date_ajout', $sortOrder);
+                break;
+        }
+
+        // Paginer les résultats
+        $pagination = $query->paginate($perPage)->appends($request->query());
+
+        // Ajouter les informations de permissions
+        $pagination->getCollection()->transform(function ($collectionVinyl) use ($user) {
             $vinyl = $collectionVinyl->vinyl;
-
-            // L'utilisateur peut toujours éditer son exemplaire
             $collectionVinyl->can_edit_instance = true;
 
-            // Déterminer si l'utilisateur peut éditer les infos du vinyle
             $canEditVinyl = false;
             if ($vinyl) {
-                // Personne ne peut éditer un vinyle Discogs
                 if ($vinyl->discogs_id && $vinyl->discogs_type !== 'manual') {
                     $canEditVinyl = false;
-                }
-                // Pour les vinyles manuels, seul le créateur peut éditer
-                elseif ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
+                } elseif ($vinyl->discogs_type === 'manual' || !$vinyl->discogs_id) {
                     $canEditVinyl = $vinyl->created_by === $user->id;
-                    // Charger le créateur pour l'afficher si nécessaire
                     if ($vinyl->created_by && !$canEditVinyl) {
                         $vinyl->load('creator');
                     }
@@ -54,20 +168,31 @@ class VinylController extends Controller
             }
 
             $collectionVinyl->can_edit_vinyl = $canEditVinyl;
-            // Rétro-compatibilité : can_edit = true si on peut éditer l'exemplaire OU le vinyle
-            $collectionVinyl->can_edit = true; // On peut toujours éditer au moins l'exemplaire
-
-            // On ne vérifie plus l'accessibilité ici pour éviter les problèmes de performance
+            $collectionVinyl->can_edit = true;
 
             return $collectionVinyl;
         });
 
-        // Récupérer toutes les collections de l'utilisateur pour les modales
+        // Récupérer toutes les collections de l'utilisateur pour les modales et filtres
         $allCollections = $user->collections()->orderBy('collection_nom')->get();
 
         return Inertia::render('Vinyls/Index', [
-            'vinyls' => $vinyls,
-            'allCollections' => $allCollections
+            'vinyls' => $pagination,
+            'allCollections' => $allCollections,
+            'filters' => [
+                'search' => $search,
+                'sort' => $sortBy,
+                'order' => $sortOrder,
+                'per_page' => $perPage,
+                'letter' => $letter,
+                'filter_titre' => $filterTitre,
+                'filter_artiste' => $filterArtiste,
+                'filter_annee_min' => $filterAnneeMin,
+                'filter_annee_max' => $filterAnneeMax,
+                'filter_label' => $filterLabel,
+                'filter_format' => $filterFormat,
+                'filter_collection' => $filterCollection,
+            ],
         ]);
     }
 
@@ -99,6 +224,7 @@ class VinylController extends Controller
             'provenance' => 'nullable|integer',
             'commentaires' => 'nullable|string',
             'note' => 'nullable|integer|min:1|max:10',
+            'quantite' => 'nullable|integer|min:1|max:999',
         ]);
 
         $user = Auth::user();
@@ -125,6 +251,7 @@ class VinylController extends Controller
             'provenance' => $request->provenance,
             'commentaires' => $request->commentaires,
             'note' => $request->note,
+            'quantite' => $request->quantite ?? 1,
             'date_ajout' => Carbon::now(),
         ]);
 
@@ -357,6 +484,7 @@ class VinylController extends Controller
                 'provenance' => 'nullable|integer',
                 'commentaires' => 'nullable|string',
                 'note' => 'nullable|integer|min:1|max:10',
+                'quantite' => 'required|integer|min:1|max:999',
                 'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
                 'vinyl_nom' => 'required|string|max:255',
                 'vinyl_titre' => 'nullable|string|max:255',
@@ -383,6 +511,7 @@ class VinylController extends Controller
                 'provenance' => 'nullable|integer',
                 'commentaires' => 'nullable|string',
                 'note' => 'nullable|integer|min:1|max:10',
+                'quantite' => 'required|integer|min:1|max:999',
                 // Pas de validation des champs vinyle pour Discogs car ils ne sont pas modifiables
             ];
         }
@@ -434,6 +563,7 @@ class VinylController extends Controller
             'provenance' => $request->provenance,
             'commentaires' => $request->commentaires,
             'note' => $request->note,
+            'quantite' => $request->quantite,
         ]);
 
         // Mettre à jour la date de modification de la collection
@@ -556,6 +686,7 @@ class VinylController extends Controller
                 'provenance' => $collectionVinyl->provenance,
                 'commentaires' => $collectionVinyl->commentaires,
                 'note' => $collectionVinyl->note,
+                'quantite' => $collectionVinyl->quantite ?? 1,
                 'date_ajout' => Carbon::now(),
             ]);
 
@@ -586,6 +717,7 @@ class VinylController extends Controller
             'provenance' => 'nullable|integer',
             'commentaires' => 'nullable|string',
             'note' => 'nullable|integer|min:1|max:10',
+            'quantite' => 'nullable|integer|min:1|max:999',
         ]);
 
         $user = Auth::user();
@@ -626,6 +758,7 @@ class VinylController extends Controller
             'provenance' => $request->provenance ?? 0,
             'commentaires' => $request->commentaires,
             'note' => $request->note,
+            'quantite' => $request->quantite ?? 1,
             'date_ajout' => Carbon::now(),
         ]);
 
@@ -648,6 +781,7 @@ class VinylController extends Controller
             'prix_achat' => 'nullable|numeric|min:0',
             'commentaires' => 'nullable|string',
             'note' => 'nullable|integer|min:1|max:10',
+            'quantite' => 'nullable|integer|min:1|max:999',
         ]);
 
         $user = Auth::user();
@@ -747,6 +881,7 @@ class VinylController extends Controller
             'prix_achat' => $request->prix_achat,
             'commentaires' => $request->commentaires,
             'note' => $request->note,
+            'quantite' => $request->quantite ?? 1,
             'date_ajout' => Carbon::now(),
         ]);
 
@@ -787,6 +922,7 @@ class VinylController extends Controller
             'user_id' => $user->id,
             'collection_id' => $collection->id,
             'vinyl_id' => $request->vinyl_id,
+            'quantite' => 1,
             'date_ajout' => Carbon::now(),
         ]);
 

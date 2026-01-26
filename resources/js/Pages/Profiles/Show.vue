@@ -92,8 +92,8 @@ const formatDate = (date) => {
                                     {{ user.bio }}
                                 </p>
 
-                                
-                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                                     <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                         <div class="text-2xl font-bold text-purple-600">{{ stats.total_collections }}</div>
                                         <div class="text-sm text-gray-600 dark:text-gray-400">Collection{{ stats.total_collections > 1 ? 's' : '' }}</div>
@@ -107,6 +107,20 @@ const formatDate = (date) => {
                                         <div class="text-sm text-gray-600 dark:text-gray-400">Publique{{ collections.length > 1 ? 's' : '' }}</div>
                                     </div>
                                 </div>
+
+                                <!-- Bouton voir tous les vinyles -->
+                                <Link v-if="stats.total_vinyls > 0"
+                                      :href="`/collectors/${user.id}/vinyls`"
+                                      class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                    </svg>
+                                    Voir tous les vinyles
+                                    <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </Link>
                             </div>
                         </div>
                     </div>

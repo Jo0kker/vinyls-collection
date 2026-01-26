@@ -46,6 +46,7 @@ const form = ref({
     provenance: props.collectionVinyl.provenance || 0,
     commentaires: props.collectionVinyl.commentaires || '',
     note: props.collectionVinyl.note || null,
+    quantite: props.collectionVinyl.quantite || 1,
     
     // Champs vinyles (seulement pour manuels)
     vinyl_nom: props.collectionVinyl.vinyl?.vinyl_nom || '',
@@ -148,6 +149,7 @@ watch(() => props.collectionVinyl, (newValue) => {
             provenance: newValue.provenance || 0,
             commentaires: newValue.commentaires || '',
             note: newValue.note || null,
+            quantite: newValue.quantite || 1,
             vinyl_nom: newValue.vinyl?.vinyl_nom || '',
             vinyl_titre: newValue.vinyl?.vinyl_titre || '',
             vinyl_format: newValue.vinyl?.vinyl_format || 1,
@@ -216,9 +218,9 @@ const clearImage = () => {
 };
 
 const closeModal = () => {
-    const collectionId = props.collectionVinyl.collection_id || 
+    const collectionId = props.collectionVinyl.collection_id ||
                         (props.collections && props.collections.length === 1 ? props.collections[0].id : null);
-    
+
     form.value = {
         collection_id: collectionId,
         prix_achat: props.collectionVinyl.prix_achat || null,
@@ -226,6 +228,7 @@ const closeModal = () => {
         provenance: props.collectionVinyl.provenance || 0,
         commentaires: props.collectionVinyl.commentaires || '',
         note: props.collectionVinyl.note || null,
+        quantite: props.collectionVinyl.quantite || 1,
         vinyl_nom: props.collectionVinyl.vinyl?.vinyl_nom || '',
         vinyl_titre: props.collectionVinyl.vinyl?.vinyl_titre || '',
         vinyl_format: props.collectionVinyl.vinyl?.vinyl_format || 1,
@@ -349,6 +352,7 @@ const saveVinyl = () => {
         provenance: form.value.provenance,
         commentaires: form.value.commentaires,
         note: form.value.note,
+        quantite: form.value.quantite,
     };
     
     // Si on utilise FormData, ajouter _method
@@ -719,7 +723,7 @@ const getFormatLabel = (format) => {
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Provenance
                                     </label>
-                                    <select v-model="form.provenance" 
+                                    <select v-model="form.provenance"
                                             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                                         <option value="0">Inconnue</option>
                                         <option value="1">Magasin de disques</option>
@@ -730,6 +734,18 @@ const getFormatLabel = (format) => {
                                         <option value="6">Concert</option>
                                         <option value="7">Autre</option>
                                     </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Nombre d'exemplaires
+                                    </label>
+                                    <input v-model="form.quantite"
+                                           type="number"
+                                           min="1"
+                                           max="999"
+                                           required
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                                 </div>
                             </div>
 

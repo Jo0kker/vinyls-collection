@@ -5,24 +5,24 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 
 const props = defineProps({
-    user: {
-        type: Object,
-        required: true
-    },
-    collection: {
-        type: Object,
-        required: true
-    },
     vinyls: {
         type: Object,
         required: true
+    },
+    stats: {
+        type: Object,
+        default: () => ({
+            totalVinyls: 0,
+            totalCollectors: 0,
+            totalCollections: 0
+        })
     },
     filters: {
         type: Object,
         default: () => ({
             search: '',
-            sort: 'date_ajout',
-            order: 'desc',
+            sort: 'vinyl_nom',
+            order: 'asc',
             per_page: 30,
             letter: '',
             artiste: '',
@@ -48,7 +48,7 @@ const setViewMode = (mode) => {
     try {
         localStorage.setItem('vinyl-view-mode', mode);
     } catch {
-        // Ignorer les erreurs localStorage (mode privé, etc.)
+        // Ignorer les erreurs localStorage
     }
     viewMode.value = mode;
 };
@@ -64,8 +64,8 @@ watch(viewMode, (newMode) => {
 // État des filtres
 const searchQuery = ref(props.filters.search || '');
 const selectedLetter = ref(props.filters.letter || '');
-const sortBy = ref(props.filters.sort || 'date_ajout');
-const sortOrder = ref(props.filters.order || 'desc');
+const sortBy = ref(props.filters.sort || 'vinyl_nom');
+const sortOrder = ref(props.filters.order || 'asc');
 const perPage = ref(props.filters.per_page || 30);
 const showAdvancedFilters = ref(false);
 
@@ -81,8 +81,7 @@ const alphabet = ['#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L
 
 // Options de tri
 const sortOptions = [
-    { value: 'date_ajout', label: 'Date d\'ajout' },
-    { value: 'titre', label: 'Titre' },
+    { value: 'vinyl_nom', label: 'Titre' },
     { value: 'artiste', label: 'Artiste' },
     { value: 'annee', label: 'Année' }
 ];
@@ -101,8 +100,8 @@ const applyFilters = () => {
 
     if (searchQuery.value) params.search = searchQuery.value;
     if (selectedLetter.value) params.letter = selectedLetter.value;
-    if (sortBy.value !== 'date_ajout') params.sort = sortBy.value;
-    if (sortOrder.value !== 'desc') params.order = sortOrder.value;
+    if (sortBy.value !== 'vinyl_nom') params.sort = sortBy.value;
+    if (sortOrder.value !== 'asc') params.order = sortOrder.value;
     if (perPage.value !== 30) params.per_page = perPage.value;
 
     // Filtres avancés
@@ -112,7 +111,7 @@ const applyFilters = () => {
     if (filterYearFrom.value) params.year_from = filterYearFrom.value;
     if (filterYearTo.value) params.year_to = filterYearTo.value;
 
-    router.get(`/collectors/${props.user.id}/collections/${props.collection.id}`, params, {
+    router.get('/explore', params, {
         preserveState: true,
         preserveScroll: true
     });
@@ -128,8 +127,8 @@ const selectLetter = (letter) => {
 const resetFilters = () => {
     searchQuery.value = '';
     selectedLetter.value = '';
-    sortBy.value = 'date_ajout';
-    sortOrder.value = 'desc';
+    sortBy.value = 'vinyl_nom';
+    sortOrder.value = 'asc';
     filterArtiste.value = '';
     filterLabel.value = '';
     filterFormat.value = '';
@@ -144,15 +143,6 @@ const toggleSortOrder = () => {
     applyFilters();
 };
 
-const formatDate = (date) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-    });
-};
-
 // Fonction pour charger une page
 const loadPage = (url) => {
     if (url) {
@@ -165,66 +155,40 @@ const loadPage = (url) => {
 </script>
 
 <template>
-    <Head :title="`${collection.collection_nom} - ${user.name}`" />
+    <Head title="Vinyles" />
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <div>
-                    <Link :href="`/collectors/${user.id}`" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-                        ← Retour au profil de {{ user.name }}
-                    </Link>
-                    <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                        {{ collection.collection_nom }}
-                    </h2>
-                </div>
-            </div>
+            <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+                Vinyles
+            </h2>
         </template>
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
 
-                <!-- Info collection -->
+                <!-- Statistiques globales -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <div class="flex items-start gap-4 mb-6">
-                            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                                {{ user.name.charAt(0).toUpperCase() }}
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            Catalogue des vinyles
+                        </h1>
+                        <p class="text-gray-600 dark:text-gray-400 mb-6">
+                            Recherchez parmi tous les vinyles référencés sur le site
+                        </p>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.totalVinyls.toLocaleString() }}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Vinyles</div>
                             </div>
-                            <div>
-                                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                                    {{ collection.collection_nom }}
-                                </h1>
-                                <p class="text-gray-600 dark:text-gray-400">
-                                    Collection de <Link :href="`/collectors/${user.id}`" class="text-purple-600 hover:text-purple-800">{{ user.name }}</Link>
-                                </p>
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.totalCollectors.toLocaleString() }}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Collectionneurs</div>
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Nombre de vinyles</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {{ vinyls.total || 0 }}
-                                </p>
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.totalCollections.toLocaleString() }}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Collections</div>
                             </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Créée le</h3>
-                                <p class="text-lg text-gray-900 dark:text-white">
-                                    {{ formatDate(collection.collection_date_crea) }}
-                                </p>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Modifiée le</h3>
-                                <p class="text-lg text-gray-900 dark:text-white">
-                                    {{ formatDate(collection.collection_date_modif) }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div v-if="collection.collection_commentaires" class="mt-4">
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
-                            <p class="text-gray-900 dark:text-white">{{ collection.collection_commentaires }}</p>
                         </div>
                     </div>
                 </div>
@@ -241,8 +205,8 @@ const loadPage = (url) => {
                                         v-model="searchQuery"
                                         @keyup.enter="applyFilters"
                                         type="text"
-                                        placeholder="Rechercher un vinyle..."
-                                        class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        placeholder="Rechercher un vinyle, artiste, label..."
+                                        class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     >
                                     <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -255,7 +219,7 @@ const loadPage = (url) => {
                                 <select
                                     v-model="sortBy"
                                     @change="applyFilters"
-                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                                 >
                                     <option v-for="option in sortOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
@@ -277,7 +241,7 @@ const loadPage = (url) => {
                             <!-- Boutons d'action -->
                             <div class="flex items-center gap-2">
                                 <button @click="applyFilters"
-                                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                                     Rechercher
                                 </button>
 
@@ -285,14 +249,14 @@ const loadPage = (url) => {
                                         :class="[
                                             'px-4 py-2 rounded-lg transition-colors flex items-center gap-2',
                                             hasAdvancedFilters
-                                                ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+                                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                         ]">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
                                     </svg>
                                     Filtres
-                                    <span v-if="hasAdvancedFilters" class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                                    <span v-if="hasAdvancedFilters" class="w-2 h-2 bg-blue-500 rounded-full"></span>
                                 </button>
                             </div>
                         </div>
@@ -304,7 +268,7 @@ const loadPage = (url) => {
                                     :class="[
                                         'w-8 h-8 text-sm font-medium rounded transition-colors',
                                         selectedLetter === letter
-                                            ? 'bg-purple-600 text-white'
+                                            ? 'bg-blue-600 text-white'
                                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                     ]">
                                 {{ letter }}
@@ -325,7 +289,7 @@ const loadPage = (url) => {
                                            @keyup.enter="applyFilters"
                                            type="text"
                                            placeholder="Nom de l'artiste"
-                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Label</label>
@@ -333,7 +297,7 @@ const loadPage = (url) => {
                                            @keyup.enter="applyFilters"
                                            type="text"
                                            placeholder="Nom du label"
-                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
@@ -341,7 +305,7 @@ const loadPage = (url) => {
                                            @keyup.enter="applyFilters"
                                            type="text"
                                            placeholder="LP, 7, 12..."
-                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Année (de)</label>
@@ -351,7 +315,7 @@ const loadPage = (url) => {
                                            placeholder="1950"
                                            min="1900"
                                            max="2030"
-                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Année (à)</label>
@@ -361,7 +325,7 @@ const loadPage = (url) => {
                                            placeholder="2024"
                                            min="1900"
                                            max="2030"
-                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                                 </div>
                             </div>
                             <div class="flex justify-end mt-4">
@@ -379,7 +343,7 @@ const loadPage = (url) => {
                     <div class="p-6">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                Vinyles de la collection
+                                Vinyles
                                 <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
                                     ({{ vinyls.total }} résultat{{ vinyls.total > 1 ? 's' : '' }})
                                 </span>
@@ -402,7 +366,7 @@ const loadPage = (url) => {
                                             :class="[
                                                 'p-2 rounded transition-colors',
                                                 viewMode === 'grid'
-                                                    ? 'bg-purple-600 text-white'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                             ]"
                                             title="Affichage en grille">
@@ -414,7 +378,7 @@ const loadPage = (url) => {
                                             :class="[
                                                 'p-2 rounded transition-colors',
                                                 viewMode === 'list'
-                                                    ? 'bg-purple-600 text-white'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                             ]"
                                             title="Affichage en liste">
@@ -426,7 +390,7 @@ const loadPage = (url) => {
                                             :class="[
                                                 'p-2 rounded transition-colors',
                                                 viewMode === 'compact'
-                                                    ? 'bg-purple-600 text-white'
+                                                    ? 'bg-blue-600 text-white'
                                                     : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                             ]"
                                             title="Affichage compact">
@@ -451,45 +415,46 @@ const loadPage = (url) => {
                             </svg>
                             <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun vinyle trouvé</h3>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {{ searchQuery || selectedLetter || hasAdvancedFilters ? 'Essayez de modifier vos critères de recherche.' : 'Cette collection ne contient pas encore de vinyles.' }}
+                                Essayez de modifier vos critères de recherche.
                             </p>
                             <button v-if="searchQuery || selectedLetter || hasAdvancedFilters"
                                     @click="resetFilters"
-                                    class="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                    class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                                 Réinitialiser les filtres
                             </button>
                         </div>
 
                         <!-- Mode Grille -->
                         <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div v-for="collectionVinyl in vinyls.data" :key="collectionVinyl.id"
+                            <div v-for="vinyl in vinyls.data" :key="vinyl.id"
                                  class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-colors group relative">
                                 <div class="flex items-start space-x-4">
                                     <VinylImage
-                                        :src="collectionVinyl.vinyl?.pochette"
-                                        :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
+                                        :src="vinyl.pochette"
+                                        :alt="vinyl.vinyl_nom || 'Pochette de vinyle'"
                                         size="md"
                                     />
 
                                     <div class="flex-1 min-w-0">
                                         <h4 class="font-medium text-gray-900 dark:text-white text-sm">
-                                            {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
+                                            {{ vinyl.vinyl_nom || 'Nom inconnu' }}
                                         </h4>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
+                                            {{ vinyl.artiste || 'Artiste inconnu' }}
                                         </p>
-                                        <div class="flex items-center mt-2 text-xs text-gray-400">
-                                            <span>
-                                                Ajouté le {{ formatDate(collectionVinyl.date_ajout) }}
-                                            </span>
-                                            <span v-if="collectionVinyl.quantite > 1" class="ml-2 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full font-medium">
-                                                x{{ collectionVinyl.quantite }}
-                                            </span>
+                                        <p v-if="vinyl.annee" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                            {{ vinyl.annee }}
+                                        </p>
+                                        <div v-if="vinyl.collectors_count > 0" class="flex items-center mt-2 text-xs text-blue-600 dark:text-blue-400">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            </svg>
+                                            {{ vinyl.collectors_count }} collectionneur{{ vinyl.collectors_count > 1 ? 's' : '' }}
                                         </div>
                                     </div>
 
                                     <div class="mt-2">
-                                        <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                        <Link :href="route('vinyl.show', vinyl.id)"
                                               class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors inline-block"
                                               title="Voir les détails">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,10 +463,6 @@ const loadPage = (url) => {
                                             </svg>
                                         </Link>
                                     </div>
-                                </div>
-
-                                <div v-if="collectionVinyl.commentaires" class="mt-3 text-xs text-gray-900 dark:text-white">
-                                    {{ collectionVinyl.commentaires }}
                                 </div>
                             </div>
                         </div>
@@ -515,46 +476,39 @@ const loadPage = (url) => {
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Titre</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Artiste</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Année</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Label</th>
-                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Ajouté le</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Collectionneurs</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="collectionVinyl in vinyls.data" :key="collectionVinyl.id"
+                                    <tr v-for="vinyl in vinyls.data" :key="vinyl.id"
                                         class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td class="py-3 px-4">
                                             <VinylImage
-                                                :src="collectionVinyl.vinyl?.pochette"
-                                                :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
+                                                :src="vinyl.pochette"
+                                                :alt="vinyl.vinyl_nom || 'Pochette de vinyle'"
                                                 size="sm"
                                             />
                                         </td>
                                         <td class="py-3 px-4">
-                                            <div class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                                                {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
-                                                <span v-if="collectionVinyl.quantite > 1" class="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
-                                                    x{{ collectionVinyl.quantite }}
-                                                </span>
-                                            </div>
-                                            <div v-if="collectionVinyl.commentaires" class="text-xs text-gray-900 dark:text-white mt-1">
-                                                {{ collectionVinyl.commentaires }}
+                                            <div class="font-medium text-gray-900 dark:text-white">
+                                                {{ vinyl.vinyl_nom || 'Nom inconnu' }}
                                             </div>
                                         </td>
                                         <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
+                                            {{ vinyl.artiste || 'Artiste inconnu' }}
                                         </td>
                                         <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.annee || '-' }}
-                                        </td>
-                                        <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                            {{ collectionVinyl.vinyl?.label || '-' }}
-                                        </td>
-                                        <td class="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                                            {{ formatDate(collectionVinyl.date_ajout) }}
+                                            {{ vinyl.annee || '-' }}
                                         </td>
                                         <td class="py-3 px-4">
-                                            <Link :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                                            <span v-if="vinyl.collectors_count > 0" class="text-blue-600 dark:text-blue-400 text-sm">
+                                                {{ vinyl.collectors_count }}
+                                            </span>
+                                            <span v-else class="text-gray-400">-</span>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <Link :href="route('vinyl.show', vinyl.id)"
                                                   class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors inline-block"
                                                   title="Voir les détails">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,24 +524,24 @@ const loadPage = (url) => {
 
                         <!-- Mode Compact -->
                         <div v-else-if="viewMode === 'compact'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                            <Link v-for="collectionVinyl in vinyls.data" :key="collectionVinyl.id"
-                                  :href="route('vinyl.show', collectionVinyl.vinyl.id)"
+                            <Link v-for="vinyl in vinyls.data" :key="vinyl.id"
+                                  :href="route('vinyl.show', vinyl.id)"
                                   class="relative aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform shadow-md block">
 
-                                <!-- Badge quantité -->
-                                <span v-if="collectionVinyl.quantite > 1" class="absolute top-2 left-2 z-20 px-1.5 py-0.5 bg-purple-600 text-white rounded-full text-xs font-medium shadow">
-                                    x{{ collectionVinyl.quantite }}
+                                <!-- Badge collectionneurs -->
+                                <span v-if="vinyl.collectors_count > 0" class="absolute top-2 left-2 z-20 px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-xs font-medium shadow">
+                                    {{ vinyl.collectors_count }}
                                 </span>
 
                                 <div class="absolute inset-0 bg-gray-200 dark:bg-gray-700">
-                                    <img v-if="collectionVinyl.vinyl?.pochette"
-                                         :src="collectionVinyl.vinyl.pochette"
-                                         :alt="collectionVinyl.vinyl?.vinyl_nom || 'Pochette de vinyle'"
+                                    <img v-if="vinyl.pochette"
+                                         :src="vinyl.pochette"
+                                         :alt="vinyl.vinyl_nom || 'Pochette de vinyle'"
                                          class="w-full h-full object-cover"
                                          @error="$event.target.style.display = 'none'; $event.target.nextElementSibling.style.display = 'flex'"
                                     />
 
-                                    <div :style="{ display: collectionVinyl.vinyl?.pochette ? 'none' : 'flex' }"
+                                    <div :style="{ display: vinyl.pochette ? 'none' : 'flex' }"
                                          class="w-full h-full items-center justify-center">
                                         <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                             <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -602,10 +556,10 @@ const loadPage = (url) => {
                                 <!-- Info en bas -->
                                 <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
                                     <h4 class="font-medium text-sm leading-tight mb-1 line-clamp-2">
-                                        {{ collectionVinyl.vinyl?.vinyl_nom || 'Nom inconnu' }}
+                                        {{ vinyl.vinyl_nom || 'Nom inconnu' }}
                                     </h4>
                                     <p class="text-xs text-gray-200 truncate">
-                                        {{ collectionVinyl.vinyl?.artiste || 'Artiste inconnu' }}
+                                        {{ vinyl.artiste || 'Artiste inconnu' }}
                                     </p>
                                 </div>
                             </Link>
@@ -667,7 +621,7 @@ const loadPage = (url) => {
                                                     :class="[
                                                         'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
                                                         link.active
-                                                            ? 'z-10 bg-purple-50 border-purple-500 text-purple-600 dark:bg-purple-900/50 dark:border-purple-400 dark:text-purple-300'
+                                                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-900/50 dark:border-blue-400 dark:text-blue-300'
                                                             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
                                                     ]">
                                                 {{ link.label }}

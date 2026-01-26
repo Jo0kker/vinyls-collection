@@ -159,7 +159,7 @@ const changeSort = () => {
                                 
                                 <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                                     <span>{{ user.public_collections_count || 0 }} collection{{ (user.public_collections_count || 0) > 1 ? 's' : '' }}</span>
-                                    <span>{{ user.vinyl_collections_count || 0 }} vinyle{{ (user.vinyl_collections_count || 0) > 1 ? 's' : '' }}</span>
+                                    <span>{{ user.vinyl_count || 0 }} vinyle{{ (user.vinyl_count || 0) > 1 ? 's' : '' }}</span>
                                 </div>
                             </Link>
                         </div>

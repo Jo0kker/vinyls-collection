@@ -83,6 +83,7 @@ class CollectionController extends Controller
         $sortBy = $request->get('sort', 'date_ajout');
         $sortOrder = $request->get('order', 'desc');
         $perPage = $request->get('per_page', 20); // Par défaut 20 items
+        $letter = $request->get('letter', '');
 
         // Récupérer les filtres avancés
         $filterTitre = $request->get('filter_titre', '');
@@ -120,6 +121,19 @@ class CollectionController extends Controller
                     }
                 });
             });
+        }
+
+        // Filtre par lettre
+        if ($letter) {
+            if ($letter === '#') {
+                $query->whereHas('vinyl', function($q) {
+                    $q->whereRaw("vinyl_nom NOT SIMILAR TO '[A-Za-z]%'");
+                });
+            } else {
+                $query->whereHas('vinyl', function($q) use ($letter) {
+                    $q->whereRaw('UPPER(LEFT(vinyl_nom, 1)) = ?', [strtoupper($letter)]);
+                });
+            }
         }
 
         // Appliquer les filtres avancés
@@ -271,7 +285,8 @@ class CollectionController extends Controller
                 'search' => $search,
                 'sort' => $sortBy,
                 'order' => $sortOrder,
-                'per_page' => $perPage
+                'per_page' => $perPage,
+                'letter' => $letter
             ]
         ]);
     }
