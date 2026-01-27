@@ -34,6 +34,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'location',
         'avatar',
         'social_links',
+        'discogs_username',
+        'discogs_oauth_token',
+        'discogs_oauth_token_secret',
+        'discogs_connected_at',
     ];
 
     /**
@@ -44,6 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'discogs_oauth_token',
+        'discogs_oauth_token_secret',
     ];
 
     /**
@@ -58,6 +64,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'profile_public' => 'boolean',
             'social_links' => 'array',
+            'discogs_connected_at' => 'datetime',
         ];
     }
 

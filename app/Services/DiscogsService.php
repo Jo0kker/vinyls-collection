@@ -4,15 +4,271 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class DiscogsService
 {
     private $baseUrl = 'https://api.discogs.com';
     private $userAgent;
+    private $rateLimitRemaining = 60;
 
     public function __construct()
     {
         $this->userAgent = config('app.name', 'VinylCollection') . '/1.0';
+    }
+
+    // ==========================================
+    // OAuth Authentication Methods
+    // ==========================================
+
+    /**
+     * Get OAuth request token (Step 1 of OAuth flow)
+     */
+    public function getRequestToken(string $callbackNonce): array
+    {
+        $timestamp = time();
+        $nonce = $timestamp;
+
+        $authHeader = sprintf(
+            'OAuth oauth_consumer_key="%s",oauth_nonce="%s",oauth_signature="%s&",oauth_signature_method="PLAINTEXT",oauth_timestamp="%s",oauth_callback="%s"',
+            config('services.discogs.client_id'),
+            $nonce,
+            config('services.discogs.client_secret'),
+            $timestamp,
+            config('services.discogs.redirect') . '?nonce=' . $callbackNonce
+        );
+
+        $response = Http::withHeaders([
+            'User-Agent' => $this->userAgent,
+            'Authorization' => $authHeader,
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ])->get($this->baseUrl . '/oauth/request_token');
+
+        if ($response->successful()) {
+            $result = [];
+            parse_str($response->body(), $result);
+            return $result;
+        }
+
+        Log::error('Discogs OAuth Request Token Error', [
+            'status' => $response->status(),
+            'body' => $response->body()
+        ]);
+
+        throw new \Exception('Failed to get Discogs request token: ' . $response->body());
+    }
+
+    /**
+     * Get OAuth access token (Step 3 of OAuth flow)
+     */
+    public function getAccessToken(string $oauthToken, string $oauthTokenSecret, string $oauthVerifier): array
+    {
+        $timestamp = time();
+        $nonce = $timestamp;
+
+        $authHeader = sprintf(
+            'OAuth oauth_consumer_key="%s",oauth_nonce="%s",oauth_token="%s",oauth_signature="%s&%s",oauth_signature_method="PLAINTEXT",oauth_timestamp="%s",oauth_verifier="%s"',
+            config('services.discogs.client_id'),
+            $nonce,
+            $oauthToken,
+            config('services.discogs.client_secret'),
+            $oauthTokenSecret,
+            $timestamp,
+            $oauthVerifier
+        );
+
+        $response = Http::withHeaders([
+            'User-Agent' => $this->userAgent,
+            'Authorization' => $authHeader,
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ])->post($this->baseUrl . '/oauth/access_token');
+
+        if ($response->successful()) {
+            $result = [];
+            parse_str($response->body(), $result);
+            return $result;
+        }
+
+        Log::error('Discogs OAuth Access Token Error', [
+            'status' => $response->status(),
+            'body' => $response->body()
+        ]);
+
+        throw new \Exception('Failed to get Discogs access token: ' . $response->body());
+    }
+
+    /**
+     * Get user identity with OAuth tokens
+     */
+    public function getIdentity(string $accessToken, string $accessTokenSecret): array
+    {
+        $response = $this->makeOAuthRequest('oauth/identity', $accessToken, $accessTokenSecret);
+        return $response ?? [];
+    }
+
+    /**
+     * Get user profile data
+     */
+    public function getUserProfile(string $username, string $accessToken, string $accessTokenSecret): array
+    {
+        $response = $this->makeOAuthRequest("users/{$username}", $accessToken, $accessTokenSecret);
+        return $response ?? [];
+    }
+
+    // ==========================================
+    // Collection Methods
+    // ==========================================
+
+    /**
+     * Get user's collection folders
+     * Note: Excludes the "All" folder (id=0) which contains all items from all folders
+     */
+    public function getUserFolders(string $username, string $accessToken, string $accessTokenSecret): array
+    {
+        $response = $this->makeOAuthRequest(
+            "users/{$username}/collection/folders",
+            $accessToken,
+            $accessTokenSecret
+        );
+
+        $folders = $response['folders'] ?? [];
+
+        // Filter out the "All" folder (id=0) which contains duplicates of all items
+        return array_values(array_filter($folders, fn($folder) => $folder['id'] !== 0));
+    }
+
+    /**
+     * Get items from a specific folder with pagination
+     */
+    public function getFolderItems(
+        string $username,
+        int $folderId,
+        string $accessToken,
+        string $accessTokenSecret,
+        int $page = 1,
+        int $perPage = 50
+    ): array {
+        // Respecter le rate limiting
+        $this->respectRateLimit();
+
+        $response = $this->makeOAuthRequest(
+            "users/{$username}/collection/folders/{$folderId}/releases",
+            $accessToken,
+            $accessTokenSecret,
+            ['page' => $page, 'per_page' => $perPage]
+        );
+
+        return $response ?? ['releases' => [], 'pagination' => []];
+    }
+
+    /**
+     * Get all items from a folder (handles pagination automatically)
+     * Yields items one by one to save memory on large collections
+     */
+    public function getAllFolderItems(
+        string $username,
+        int $folderId,
+        string $accessToken,
+        string $accessTokenSecret,
+        callable $progressCallback = null
+    ): \Generator {
+        $page = 1;
+        $perPage = 50;
+
+        do {
+            $response = $this->getFolderItems(
+                $username,
+                $folderId,
+                $accessToken,
+                $accessTokenSecret,
+                $page,
+                $perPage
+            );
+
+            $releases = $response['releases'] ?? [];
+            $pagination = $response['pagination'] ?? [];
+
+            foreach ($releases as $release) {
+                yield $release;
+            }
+
+            if ($progressCallback) {
+                $progressCallback($page, $pagination['pages'] ?? 1, count($releases));
+            }
+
+            $page++;
+            $hasMore = isset($pagination['pages']) && $page <= $pagination['pages'];
+
+        } while ($hasMore);
+    }
+
+    /**
+     * Make an OAuth authenticated request
+     */
+    private function makeOAuthRequest(string $endpoint, string $accessToken, string $accessTokenSecret, array $queryParams = []): ?array
+    {
+        $timestamp = time();
+        $nonce = $timestamp . rand(1000, 9999);
+
+        $authHeader = sprintf(
+            'OAuth oauth_consumer_key="%s",oauth_nonce="%s",oauth_token="%s",oauth_signature="%s&%s",oauth_signature_method="PLAINTEXT",oauth_timestamp="%s"',
+            config('services.discogs.client_id'),
+            $nonce,
+            $accessToken,
+            config('services.discogs.client_secret'),
+            $accessTokenSecret,
+            $timestamp
+        );
+
+        try {
+            $response = Http::withHeaders([
+                'User-Agent' => $this->userAgent,
+                'Authorization' => $authHeader,
+            ])->get($this->baseUrl . '/' . $endpoint, $queryParams);
+
+            // Update rate limit info from headers
+            $this->rateLimitRemaining = (int) ($response->header('X-Discogs-Ratelimit-Remaining') ?? 60);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Discogs OAuth Request Error', [
+                'endpoint' => $endpoint,
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Discogs OAuth Request Exception', [
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Respect Discogs rate limiting (60 requests per minute)
+     */
+    private function respectRateLimit(): void
+    {
+        // If we're running low on requests, wait
+        if ($this->rateLimitRemaining < 5) {
+            Log::info('Discogs rate limit approaching, waiting 60 seconds...');
+            sleep(60);
+            $this->rateLimitRemaining = 60;
+        }
+    }
+
+    /**
+     * Get the authorize URL for user to grant access
+     */
+    public function getAuthorizeUrl(string $requestToken): string
+    {
+        return "https://www.discogs.com/oauth/authorize?oauth_token={$requestToken}";
     }
 
     /**

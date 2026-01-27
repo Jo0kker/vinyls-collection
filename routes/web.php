@@ -88,7 +88,18 @@ Route::middleware('auth')->group(function () {
         Route::get('discogs/release/{id}', [DiscogsController::class, 'getRelease'])->name('api.discogs.release');
         Route::post('check-image-accessibility/{collectionVinyl}', [CollectionController::class, 'checkImageAccessibility'])->name('api.check-image');
     });
-    
+
+});
+
+// Discogs import routes
+Route::middleware('auth')->prefix('discogs')->name('discogs.')->group(function () {
+    Route::get('/', [App\Http\Controllers\DiscogsImportController::class, 'index'])->name('import');
+    Route::get('/connect', [App\Http\Controllers\DiscogsImportController::class, 'connect'])->name('connect');
+    Route::get('/callback', [App\Http\Controllers\DiscogsImportController::class, 'callback'])->name('callback');
+    Route::post('/disconnect', [App\Http\Controllers\DiscogsImportController::class, 'disconnect'])->name('disconnect');
+    Route::post('/import', [App\Http\Controllers\DiscogsImportController::class, 'startImport'])->name('start-import');
+    Route::get('/import/{import}/status', [App\Http\Controllers\DiscogsImportController::class, 'importStatus'])->name('import-status');
+    Route::get('/folder-preview', [App\Http\Controllers\DiscogsImportController::class, 'folderPreview'])->name('folder-preview');
 });
 
 // Forum routes (consultation ouverte, sécurité gérée par les policies)

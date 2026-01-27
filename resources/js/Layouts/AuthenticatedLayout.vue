@@ -136,6 +136,9 @@ const showingNavigationDropdown = ref(false);
                                         <DropdownLink :href="route('profile.edit')">
                                             Profil
                                         </DropdownLink>
+                                        <DropdownLink :href="route('discogs.import')">
+                                            Import Discogs
+                                        </DropdownLink>
                                         <DropdownLink
                                             :href="route('logout')"
                                             method="post"
@@ -165,6 +168,9 @@ const showingNavigationDropdown = ref(false);
                             <div class="space-y-1">
                                 <ResponsiveNavLink :href="route('profile.edit')">
                                     Profil
+                                </ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('discogs.import')">
+                                    Import Discogs
                                 </ResponsiveNavLink>
                                 <ResponsiveNavLink
                                     :href="route('logout')"

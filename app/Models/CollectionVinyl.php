@@ -22,6 +22,7 @@ class CollectionVinyl extends Model
         'commentaires',
         'note',
         'date_ajout',
+        'discogs_folder_id',
     ];
 
     public function collection()
