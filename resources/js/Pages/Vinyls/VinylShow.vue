@@ -732,7 +732,7 @@ onMounted(() => {
                         <button v-if="availableCollections.length > 0"
                                 @click="addToCollection"
                                 :disabled="!selectedCollectionId || isAddingToCollection"
-                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors">
+                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50 text-white font-medium rounded-lg transition-colors">
                             {{ isAddingToCollection ? 'Ajout...' : 'Ajouter' }}
                         </button>
                     </div>

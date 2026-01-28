@@ -448,7 +448,7 @@ onUnmounted(() => {
                             <button
                                 @click="startImport"
                                 :disabled="importForm.processing || (!importForm.collection_id && !importForm.new_collection_name) || currentImportStatus"
-                                class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition flex items-center justify-center gap-2"
+                                class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 text-white font-medium rounded-lg transition flex items-center justify-center gap-2"
                             >
                                 <svg v-if="importForm.processing" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

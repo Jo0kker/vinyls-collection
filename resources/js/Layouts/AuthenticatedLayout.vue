@@ -1,13 +1,43 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Link } from '@inertiajs/vue3';
+import ChatWidget from '@/Components/Chat/ChatWidget.vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { useGlobalMessaging } from '@/composables/useGlobalMessaging';
+import { usePresence } from '@/composables/usePresence';
 
 const showingNavigationDropdown = ref(false);
+
+const page = usePage();
+const { unreadCount, initializeEcho } = useGlobalMessaging();
+const { initPresence, leavePresence } = usePresence();
+
+// Use real-time unread count from useGlobalMessaging
+const unreadMessagesCount = computed(() => unreadCount.value);
+
+const isAdmin = computed(() => {
+    const roles = page.props.auth?.user?.roles || [];
+    return roles.some(role => role.name === 'admin');
+});
+
+// Initialize Echo and Presence when component mounts if user is authenticated
+onMounted(() => {
+    if (page.props.auth?.user?.id) {
+        initializeEcho(page.props.auth.user.id);
+        // Small delay to ensure Echo is ready
+        setTimeout(() => {
+            initPresence();
+        }, 500);
+    }
+});
+
+onUnmounted(() => {
+    leavePresence();
+});
 </script>
 
 <template>
@@ -67,6 +97,21 @@ const showingNavigationDropdown = ref(false);
                                     class="h-full"
                                 >
                                     Mes Collections
+                                </NavLink>
+                            </li>
+                            <li v-if="$page.props.auth.user">
+                                <NavLink
+                                    :href="route('messages.index')"
+                                    :active="route().current('messages.*')"
+                                    class="h-full relative"
+                                >
+                                    Messages
+                                    <span
+                                        v-if="unreadMessagesCount > 0"
+                                        class="absolute -top-1 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-medium text-white"
+                                    >
+                                        {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
+                                    </span>
                                 </NavLink>
                             </li>
                             <li>
@@ -139,6 +184,15 @@ const showingNavigationDropdown = ref(false);
                                         <DropdownLink :href="route('discogs.import')">
                                             Import Discogs
                                         </DropdownLink>
+                                        <template v-if="isAdmin">
+                                            <div class="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                                            <DropdownLink :href="route('admin.support.index')" class="text-orange-600 dark:text-orange-400">
+                                                Admin Support
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('forum.category.manage')" class="text-orange-600 dark:text-orange-400">
+                                                Admin Forum
+                                            </DropdownLink>
+                                        </template>
                                         <DropdownLink
                                             :href="route('logout')"
                                             method="post"
@@ -166,12 +220,30 @@ const showingNavigationDropdown = ref(false);
                                 </div>
                             </div>
                             <div class="space-y-1">
+                                <ResponsiveNavLink :href="route('messages.index')" class="flex items-center justify-between">
+                                    <span>Messages</span>
+                                    <span
+                                        v-if="unreadMessagesCount > 0"
+                                        class="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-medium text-white"
+                                    >
+                                        {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
+                                    </span>
+                                </ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('profile.edit')">
                                     Profil
                                 </ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('discogs.import')">
                                     Import Discogs
                                 </ResponsiveNavLink>
+                                <template v-if="isAdmin">
+                                    <div class="border-t border-gray-200 dark:border-gray-600 my-2"></div>
+                                    <ResponsiveNavLink :href="route('admin.support.index')" class="text-orange-600 dark:text-orange-400">
+                                        Admin Support
+                                    </ResponsiveNavLink>
+                                    <ResponsiveNavLink :href="route('forum.category.manage')" class="text-orange-600 dark:text-orange-400">
+                                        Admin Forum
+                                    </ResponsiveNavLink>
+                                </template>
                                 <ResponsiveNavLink
                                     :href="route('logout')"
                                     method="post"
@@ -221,5 +293,8 @@ const showingNavigationDropdown = ref(false);
                 <slot />
             </main>
         </div>
+
+        <!-- Global Chat Widget -->
+        <ChatWidget />
     </div>
 </template>

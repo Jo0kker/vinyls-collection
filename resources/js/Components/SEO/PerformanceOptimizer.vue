@@ -2,11 +2,9 @@
     <Head>
         <!-- Preconnect to external domains -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link rel="preconnect" href="https://embed.tawk.to">
-        
+
         <!-- Resource hints for better performance -->
         <link rel="dns-prefetch" href="//fonts.bunny.net">
-        <link rel="dns-prefetch" href="//embed.tawk.to">
         
         <!-- Favicon optimizations -->
         <link rel="icon" type="image/x-icon" href="/favicon.ico">

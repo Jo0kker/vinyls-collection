@@ -63,6 +63,9 @@ class HandleInertiaRequests extends Middleware
         // L'avatar contient déjà l'URL complète S3, pas besoin de transformation
         // (contrairement aux autres assets qui pourraient être des paths relatifs)
 
+        // Include unread messages count
+        $userData['unread_messages_count'] = $user->unread_messages_count ?? 0;
+
         return $userData;
     }
 

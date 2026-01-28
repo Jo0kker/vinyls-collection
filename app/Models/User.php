@@ -108,6 +108,25 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Vinyl::class, 'created_by');
     }
 
+    // Messaging relations
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+            ->withPivot(['last_read_at', 'is_admin', 'notifications_enabled'])
+            ->withTimestamps()
+            ->orderByDesc('updated_at');
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function conversationParticipants()
+    {
+        return $this->hasMany(ConversationParticipant::class);
+    }
+
     /**
      * Send the password reset notification.
      *

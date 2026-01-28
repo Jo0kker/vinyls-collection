@@ -1,7 +1,9 @@
 <script setup>
+import { computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import VinylImage from '@/Components/VinylImage.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { useGlobalMessaging } from '@/composables/useGlobalMessaging';
 
 const props = defineProps({
     user: {
@@ -17,6 +19,22 @@ const props = defineProps({
         required: true
     }
 });
+
+const page = usePage();
+const currentUser = computed(() => page.props.auth?.user);
+const isOwnProfile = computed(() => currentUser.value?.id === props.user.id);
+
+const { openChat, setView, createConversation, selectConversation } = useGlobalMessaging();
+
+const startConversation = async () => {
+    openChat();
+
+    // Create or get existing conversation with this user
+    const conversation = await createConversation('direct', [props.user.id]);
+    if (conversation) {
+        selectConversation(conversation);
+    }
+};
 
 const formatDate = (date) => {
     if (!date) return '';
@@ -108,19 +126,34 @@ const formatDate = (date) => {
                                     </div>
                                 </div>
 
-                                <!-- Bouton voir tous les vinyles -->
-                                <Link v-if="stats.total_vinyls > 0"
-                                      :href="`/collectors/${user.id}/vinyls`"
-                                      class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-                                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                                    </svg>
-                                    Voir tous les vinyles
-                                    <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </Link>
+                                <!-- Action buttons -->
+                                <div class="flex flex-wrap gap-3">
+                                    <!-- Bouton voir tous les vinyles -->
+                                    <Link v-if="stats.total_vinyls > 0"
+                                          :href="`/collectors/${user.id}/vinyls`"
+                                          class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                                            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                                        </svg>
+                                        Voir tous les vinyles
+                                        <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </Link>
+
+                                    <!-- Bouton envoyer un message -->
+                                    <button
+                                        v-if="currentUser && !isOwnProfile"
+                                        @click="startConversation"
+                                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                        Envoyer un message
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

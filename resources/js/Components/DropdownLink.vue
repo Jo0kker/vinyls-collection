@@ -12,8 +12,22 @@ defineProps({
 <template>
     <Link
         :href="href"
-        class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none dark:text-gray-300 dark:hover:bg-gray-800 dark:focus:bg-gray-800"
+        class="dropdown-link block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 dark:text-gray-100 focus:outline-none"
     >
         <slot />
     </Link>
 </template>
+
+<style>
+.dropdown-link:hover,
+.dropdown-link:focus {
+    background-color: rgb(243 244 246) !important; /* gray-100 */
+    color: rgb(17 24 39) !important; /* gray-900 */
+}
+
+html.dark .dropdown-link:hover,
+html.dark .dropdown-link:focus {
+    background-color: rgb(75 85 99) !important; /* gray-600 */
+    color: rgb(255 255 255) !important; /* white */
+}
+</style>

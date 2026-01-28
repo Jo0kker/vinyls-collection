@@ -8,12 +8,18 @@ use App\Http\Controllers\VinylController;
 use App\Http\Controllers\CollectionVinylController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Api\DiscogsController;
+use App\Http\Controllers\Api\UserSearchController;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\ForumCategoryController;
 use App\Http\Controllers\ForumThreadController;
 use App\Http\Controllers\ForumPostController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\SupportController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\Admin\SupportAdminController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -87,6 +93,10 @@ Route::middleware('auth')->group(function () {
         Route::get('discogs/search', [DiscogsController::class, 'search'])->name('api.discogs.search');
         Route::get('discogs/release/{id}', [DiscogsController::class, 'getRelease'])->name('api.discogs.release');
         Route::post('check-image-accessibility/{collectionVinyl}', [CollectionController::class, 'checkImageAccessibility'])->name('api.check-image');
+        Route::get('users/search', [UserSearchController::class, 'search'])->name('api.users.search');
+        Route::get('conversations', [ConversationController::class, 'apiIndex'])->name('api.conversations.index');
+        Route::post('conversations', [ConversationController::class, 'apiStore'])->name('api.conversations.store');
+        Route::post('support', [SupportController::class, 'apiCreate'])->name('api.support.create');
     });
 
 });
@@ -155,5 +165,48 @@ Route::middleware('auth')->prefix('forum')->name('forum.')->group(function () {
 
 // SEO Routes
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+
+// Messages (Private messaging system)
+Route::middleware('auth')->prefix('messages')->name('messages.')->group(function () {
+    Route::get('/', [ConversationController::class, 'index'])->name('index');
+    Route::get('/debug', fn () => \Inertia\Inertia::render('Messages/Debug'))->name('debug');
+    Route::post('/', [ConversationController::class, 'store'])->name('store');
+    Route::get('/{conversation}', [ConversationController::class, 'show'])->name('show');
+
+    // Message actions
+    Route::post('/{conversation}/messages', [MessageController::class, 'store'])->name('send');
+    Route::get('/{conversation}/messages', [MessageController::class, 'loadMore'])->name('load-more');
+    Route::post('/{conversation}/typing', [MessageController::class, 'typing'])->name('typing');
+    Route::post('/{conversation}/read', [MessageController::class, 'markAsRead'])->name('read');
+
+    // Group conversation management
+    Route::post('/{conversation}/participants', [ConversationController::class, 'addParticipants'])->name('participants.add');
+    Route::delete('/{conversation}/participants/{participant}', [ConversationController::class, 'removeParticipant'])->name('participants.remove');
+    Route::post('/{conversation}/leave', [ConversationController::class, 'leave'])->name('leave');
+    Route::patch('/{conversation}/group', [ConversationController::class, 'updateGroup'])->name('group.update');
+});
+
+// Support (for logged-in users)
+Route::middleware('auth')->prefix('support')->name('support.')->group(function () {
+    Route::get('/', [SupportController::class, 'index'])->name('index');
+    Route::post('/', [SupportController::class, 'create'])->name('create');
+    Route::get('/{conversation}', [SupportController::class, 'show'])->name('show');
+});
+
+// Contact form (public - no auth required)
+Route::get('/contact', [ContactController::class, 'create'])->name('contact.create');
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::get('/contact/success', [ContactController::class, 'success'])->name('contact.success');
+
+// Admin Support routes
+Route::middleware(['auth', 'role:admin'])->prefix('admin/support')->name('admin.support.')->group(function () {
+    Route::get('/', [SupportAdminController::class, 'index'])->name('index');
+    Route::get('/tickets/{ticket}', [SupportAdminController::class, 'showTicket'])->name('tickets.show');
+    Route::post('/tickets/{ticket}/reply', [SupportAdminController::class, 'replyToTicket'])->name('tickets.reply');
+    Route::patch('/tickets/{ticket}/status', [SupportAdminController::class, 'updateTicketStatus'])->name('tickets.status');
+    Route::patch('/tickets/{ticket}/assign', [SupportAdminController::class, 'assignTicket'])->name('tickets.assign');
+    Route::get('/conversations/{conversation}', [SupportAdminController::class, 'showConversation'])->name('conversations.show');
+    Route::patch('/conversations/{conversation}/status', [SupportAdminController::class, 'updateConversationStatus'])->name('conversations.status');
+});
 
 require __DIR__.'/auth.php';

@@ -253,6 +253,39 @@ class ImageHelper
     }
 
     /**
+     * Upload message image and return the URL
+     *
+     * @param \Illuminate\Http\UploadedFile $file
+     * @return string The URL of the uploaded image
+     * @throws \Exception If upload fails
+     */
+    public static function uploadMessageImage($file): string
+    {
+        try {
+            // Compression et redimensionnement de l'image
+            $compressedImage = self::compressImage($file);
+
+            // Générer un nom unique
+            $imagePath = "messages/" . Str::uuid() . ".jpg";
+
+            // Upload vers S3 (ou le disque configuré)
+            $uploaded = Storage::disk('s3')->put($imagePath, $compressedImage, [
+                'ContentType' => 'image/jpeg',
+                'CacheControl' => 'max-age=31536000',
+                'visibility' => 'public',
+            ]);
+
+            if ($uploaded) {
+                return Storage::disk('s3')->url($imagePath);
+            }
+        } catch (\Exception $e) {
+            throw new \Exception('Upload failed: ' . $e->getMessage());
+        }
+
+        throw new \Exception('Upload failed: uploaded returned false');
+    }
+
+    /**
      * Check if an image URL is accessible
      *
      * @param string|null $imageUrl The URL of the image to check
