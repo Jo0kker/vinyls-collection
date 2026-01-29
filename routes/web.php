@@ -20,10 +20,16 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Admin\SupportAdminController;
+use App\Http\Controllers\LegalController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Legal pages
+Route::get('/mentions-legales', [LegalController::class, 'mentionsLegales'])->name('legal.mentions');
+Route::get('/cgu', [LegalController::class, 'cgu'])->name('legal.cgu');
+Route::get('/confidentialite', [LegalController::class, 'privacyPolicy'])->name('legal.privacy');
 
 // SEO routes - robots.txt
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');

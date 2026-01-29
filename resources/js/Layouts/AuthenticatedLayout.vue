@@ -42,7 +42,7 @@ onUnmounted(() => {
 
 <template>
     <div>
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+        <div class="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
             <nav
                 class="v-navbar shadow py-4 bg-white dark:bg-gray-800"
             >
@@ -289,9 +289,34 @@ onUnmounted(() => {
             </header>
 
 
-            <main>
+            <main class="flex-1">
                 <slot />
             </main>
+
+            <!-- Footer -->
+            <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            &copy; {{ new Date().getFullYear() }} {{ $page.props.app?.name || 'Vinyls Collection' }}
+                        </div>
+                        <nav class="flex flex-wrap justify-center gap-4 text-sm">
+                            <Link :href="route('legal.mentions')" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                Mentions légales
+                            </Link>
+                            <Link :href="route('legal.cgu')" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                CGU
+                            </Link>
+                            <Link :href="route('legal.privacy')" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                Confidentialité
+                            </Link>
+                            <Link :href="route('contact.create')" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                Contact
+                            </Link>
+                        </nav>
+                    </div>
+                </div>
+            </footer>
         </div>
 
         <!-- Global Chat Widget -->
