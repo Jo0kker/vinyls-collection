@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use TeamTeaTime\Forum\Models\Category;
 use TeamTeaTime\Forum\Models\Thread;
@@ -61,6 +62,7 @@ class ForumController extends Controller
                 'id' => $thread->id,
                 'title' => $thread->title,
                 'reply_count' => $thread->reply_count,
+                'visible_posts_count' => $this->getVisiblePostsCount($thread),
                 'locked' => $thread->locked,
                 'pinned' => $thread->pinned,
                 'created_at' => $thread->created_at,
@@ -117,6 +119,7 @@ class ForumController extends Controller
                 'id' => $thread->id,
                 'title' => $thread->title,
                 'reply_count' => $thread->reply_count,
+                'visible_posts_count' => $this->getVisiblePostsCount($thread),
                 'locked' => $thread->locked,
                 'pinned' => $thread->pinned,
                 'created_at' => $thread->created_at,
@@ -184,6 +187,7 @@ class ForumController extends Controller
                 'id' => $thread->id,
                 'title' => $thread->title,
                 'reply_count' => $thread->reply_count,
+                'visible_posts_count' => $this->getVisiblePostsCount($thread),
                 'locked' => $thread->locked,
                 'pinned' => $thread->pinned,
                 'created_at' => $thread->created_at,
@@ -219,22 +223,101 @@ class ForumController extends Controller
         $threads = collect();
 
         if ($query) {
+            // Sanitize and prepare query for PostgreSQL full-text search
+            $searchTerms = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $query);
+            $searchTerms = preg_split('/\s+/', trim($searchTerms), -1, PREG_SPLIT_NO_EMPTY);
+
+            if (empty($searchTerms)) {
+                return Inertia::render('Forum/Search', [
+                    'threads' => $threads,
+                    'query' => $query
+                ]);
+            }
+
+            // Build tsquery with prefix matching for partial words
+            $tsQuery = implode(' & ', array_map(fn($term) => $term . ':*', $searchTerms));
+
+            // Search in thread titles and post content using full-text search
+            // Priority: title matches rank higher than content matches
             $threads = Thread::with(['author', 'category', 'lastPost.author'])
-                ->where('title', 'LIKE', "%{$query}%")
-                ->whereNull('deleted_at')
-                ->orderBy('updated_at', 'desc')
+                ->select('forum_threads.*')
+                ->selectRaw("
+                    GREATEST(
+                        ts_rank(forum_threads.search_vector, plainto_tsquery('french', ?)) * 2,
+                        COALESCE((
+                            SELECT MAX(ts_rank(fp.search_vector, plainto_tsquery('french', ?)))
+                            FROM forum_posts fp
+                            WHERE fp.thread_id = forum_threads.id
+                            AND fp.deleted_at IS NULL
+                        ), 0)
+                    ) as search_rank
+                ", [$query, $query])
+                ->selectRaw("
+                    (
+                        SELECT fp.content
+                        FROM forum_posts fp
+                        WHERE fp.thread_id = forum_threads.id
+                        AND fp.deleted_at IS NULL
+                        AND fp.search_vector @@ to_tsquery('french', ?)
+                        ORDER BY ts_rank(fp.search_vector, to_tsquery('french', ?)) DESC
+                        LIMIT 1
+                    ) as matched_content
+                ", [$tsQuery, $tsQuery])
+                ->selectRaw("
+                    (
+                        SELECT fp.id
+                        FROM forum_posts fp
+                        WHERE fp.thread_id = forum_threads.id
+                        AND fp.deleted_at IS NULL
+                        AND fp.search_vector @@ to_tsquery('french', ?)
+                        ORDER BY ts_rank(fp.search_vector, to_tsquery('french', ?)) DESC
+                        LIMIT 1
+                    ) as matched_post_id
+                ", [$tsQuery, $tsQuery])
+                ->where(function ($q) use ($tsQuery) {
+                    $q->whereRaw("forum_threads.search_vector @@ to_tsquery('french', ?)", [$tsQuery])
+                      ->orWhereExists(function ($subQuery) use ($tsQuery) {
+                          $subQuery->select(\DB::raw(1))
+                              ->from('forum_posts')
+                              ->whereColumn('forum_posts.thread_id', 'forum_threads.id')
+                              ->whereNull('forum_posts.deleted_at')
+                              ->whereRaw("forum_posts.search_vector @@ to_tsquery('french', ?)", [$tsQuery]);
+                      });
+                })
+                ->whereNull('forum_threads.deleted_at')
+                ->orderByDesc('search_rank')
+                ->orderByDesc('forum_threads.updated_at')
                 ->paginate(20);
 
-            // Transform threads data similar to category controller
-            $threads->getCollection()->transform(function ($thread) {
+            // Transform threads data
+            $threads->getCollection()->transform(function ($thread) use ($query) {
+                $excerpt = null;
+                $matchedPost = null;
+
+                if ($thread->matched_content) {
+                    // Create excerpt around matched term
+                    $content = strip_tags($thread->matched_content);
+                    $excerpt = $this->createSearchExcerpt($content, $query, 150);
+                }
+
+                if ($thread->matched_post_id) {
+                    $matchedPost = [
+                        'id' => $thread->matched_post_id,
+                        'page' => $this->getPostPage($thread->id, $thread->matched_post_id),
+                    ];
+                }
+
                 return [
                     'id' => $thread->id,
                     'title' => $thread->title,
                     'reply_count' => $thread->reply_count,
+                    'visible_posts_count' => $this->getVisiblePostsCount($thread),
                     'locked' => $thread->locked,
                     'pinned' => $thread->pinned,
                     'created_at' => $thread->created_at,
                     'updated_at' => $thread->updated_at,
+                    'excerpt' => $excerpt,
+                    'matched_post' => $matchedPost,
                     'author' => [
                         'id' => $thread->author->id,
                         'name' => $thread->author->name,
@@ -260,5 +343,92 @@ class ForumController extends Controller
             'threads' => $threads,
             'query' => $query
         ]);
+    }
+
+    /**
+     * Check if current user can see trashed posts (admin/moderator)
+     */
+    private function canSeeTrashedPosts(): bool
+    {
+        return auth()->check() && auth()->user()->roles()->whereIn('name', ['admin', 'moderator'])->exists();
+    }
+
+    /**
+     * Get the count of visible posts for a thread based on user permissions
+     */
+    private function getVisiblePostsCount($thread): int
+    {
+        $query = DB::table('forum_posts')->where('thread_id', $thread->id);
+
+        if (!$this->canSeeTrashedPosts()) {
+            $query->whereNull('deleted_at');
+        }
+
+        return $query->count();
+    }
+
+    /**
+     * Calculate the page number for a post based on user permissions
+     */
+    private function getPostPage(int $threadId, int $postId, int $perPage = 20): int
+    {
+        $query = DB::table('forum_posts')
+            ->where('thread_id', $threadId)
+            ->where('id', '<=', $postId);
+
+        if (!$this->canSeeTrashedPosts()) {
+            $query->whereNull('deleted_at');
+        }
+
+        $position = $query->count();
+
+        return (int) ceil($position / $perPage);
+    }
+
+    /**
+     * Create an excerpt from content around the search terms
+     */
+    private function createSearchExcerpt(string $content, string $query, int $length = 150): string
+    {
+        $terms = preg_split('/\s+/', trim($query), -1, PREG_SPLIT_NO_EMPTY);
+        $content = preg_replace('/\s+/', ' ', trim($content));
+
+        // Find the first occurrence of any search term
+        $position = 0;
+        foreach ($terms as $term) {
+            $pos = mb_stripos($content, $term);
+            if ($pos !== false) {
+                $position = $pos;
+                break;
+            }
+        }
+
+        // Calculate start position (center the match in the excerpt)
+        $start = max(0, $position - ($length / 2));
+
+        // Adjust to not cut words
+        if ($start > 0) {
+            $spacePos = mb_strpos($content, ' ', $start);
+            if ($spacePos !== false && $spacePos < $start + 20) {
+                $start = $spacePos + 1;
+            }
+        }
+
+        $excerpt = mb_substr($content, $start, $length);
+
+        // Clean up excerpt edges
+        if ($start > 0) {
+            $excerpt = '...' . $excerpt;
+        }
+        if (mb_strlen($content) > $start + $length) {
+            // Try to end at a word boundary
+            $lastSpace = mb_strrpos($excerpt, ' ');
+            if ($lastSpace !== false && $lastSpace > $length - 30) {
+                $excerpt = mb_substr($excerpt, 0, $lastSpace);
+            }
+            $excerpt .= '...';
+        }
+
+        return $excerpt;
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use TeamTeaTime\Forum\Models\Category;
 use TeamTeaTime\Forum\Models\Thread;
@@ -20,11 +21,13 @@ class ForumCategoryController extends Controller
             ->paginate(20);
 
         // Map threads data to ensure all needed properties are available
-        $threads->getCollection()->transform(function ($thread) {
+        $canSeeTrashed = $this->canSeeTrashedPosts();
+        $threads->getCollection()->transform(function ($thread) use ($canSeeTrashed) {
             return [
                 'id' => $thread->id,
                 'title' => $thread->title,
                 'reply_count' => $thread->reply_count,
+                'visible_posts_count' => $this->getVisiblePostsCount($thread, $canSeeTrashed),
                 'locked' => $thread->locked,
                 'pinned' => $thread->pinned,
                 'created_at' => $thread->created_at,
@@ -193,5 +196,21 @@ class ForumCategoryController extends Controller
     {
         // Only admins can manage categories
         return $user->roles()->where('name', 'admin')->exists();
+    }
+
+    private function canSeeTrashedPosts(): bool
+    {
+        return auth()->check() && auth()->user()->roles()->whereIn('name', ['admin', 'moderator'])->exists();
+    }
+
+    private function getVisiblePostsCount($thread, bool $canSeeTrashed): int
+    {
+        $query = DB::table('forum_posts')->where('thread_id', $thread->id);
+
+        if (!$canSeeTrashed) {
+            $query->whereNull('deleted_at');
+        }
+
+        return $query->count();
     }
 }
