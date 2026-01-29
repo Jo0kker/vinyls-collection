@@ -84,7 +84,7 @@ class HomeController extends Controller
                             'id' => $post->author->id,
                             'name' => $post->author->name,
                         ],
-                        'content' => \Str::limit(strip_tags($post->content), 120),
+                        'content' => \Str::limit(strip_tags(html_entity_decode($post->content)), 120),
                         'created_at' => $post->created_at,
                     ];
                 });
@@ -94,7 +94,7 @@ class HomeController extends Controller
         $stats = Cache::remember('home_stats', 3600, function () {
             return [
                 'totalVinyls' => Vinyl::count(),
-                'totalUsers' => User::whereNotNull('email_verified_at')->count(),
+                'totalUsers' => User::count(),
                 'totalCollections' => Collection::where('visibility', 'public')->count(),
                 'totalThreads' => ForumThread::count(),
             ];

@@ -241,7 +241,7 @@ onMounted(() => {
                                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                     ]"
                                 >
-                                    Messages
+                                    Dernières réponses
                                 </button>
                                 <button
                                     @click="activeTab = 'threads'"
@@ -252,7 +252,7 @@ onMounted(() => {
                                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                     ]"
                                 >
-                                    Discussions
+                                    Nouveaux sujets
                                 </button>
                             </div>
                             <Link href="/forum" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
