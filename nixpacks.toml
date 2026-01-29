@@ -221,6 +221,18 @@ stderr_logfile=/var/log/worker-nightwatch.log
 stdout_logfile=/var/log/worker-nightwatch.log
 '''
 
+"worker-reverb.conf" = '''
+[program:reverb]
+process_name=%(program_name)s_%(process_num)02d
+command=bash -c 'exec php /app/artisan reverb:start --host=0.0.0.0 --port=6001'
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stderr_logfile=/var/log/worker-reverb.log
+stdout_logfile=/var/log/worker-reverb.log
+'''
+
 "php-fpm.conf" = '''
 [www]
 listen = 127.0.0.1:9000
