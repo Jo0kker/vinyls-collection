@@ -177,7 +177,7 @@ Route::middleware('auth')->prefix('messages')->name('messages.')->group(function
     Route::get('/', [ConversationController::class, 'index'])->name('index');
     Route::get('/debug', fn () => \Inertia\Inertia::render('Messages/Debug'))->name('debug');
     Route::post('/', [ConversationController::class, 'store'])->name('store');
-    Route::get('/{conversation}', [ConversationController::class, 'show'])->name('show');
+    Route::get('/{conversation}', [ConversationController::class, 'show'])->name('show')->whereNumber('conversation');
 
     // Message actions
     Route::post('/{conversation}/messages', [MessageController::class, 'store'])->name('send');
