@@ -266,7 +266,7 @@ onMounted(() => {
                                 <a
                                     v-for="post in latestPosts"
                                     :key="post.id"
-                                    :href="route('forum.thread.show', { thread_id: post.thread.id }) + '#post-' + post.sequence"
+                                    :href="route('forum.thread.show', { thread_id: post.thread.id }) + '?page=' + Math.ceil(post.sequence / 20) + '#post-' + post.sequence"
                                     class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
                                 >
                                     <div class="flex items-start gap-3">
