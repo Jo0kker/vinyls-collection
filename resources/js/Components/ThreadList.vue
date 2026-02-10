@@ -194,11 +194,11 @@ function getMatchedPostUrl(thread) {
 
     const baseUrl = route('forum.thread.show', { thread_id: thread.id });
     const page = thread.matched_post.page;
-    const postId = thread.matched_post.id;
+    const sequence = thread.matched_post.sequence;
 
     if (page > 1) {
-        return `${baseUrl}?page=${page}#post-${postId}`;
+        return `${baseUrl}?page=${page}#post-${sequence}`;
     }
-    return `${baseUrl}#post-${postId}`;
+    return `${baseUrl}#post-${sequence}`;
 }
 </script>
