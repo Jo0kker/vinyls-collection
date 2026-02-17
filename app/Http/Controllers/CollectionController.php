@@ -196,6 +196,7 @@ class CollectionController extends Controller
             case 'vinyl_titre':
             case 'vinyl_nom':
             case 'annee':
+            case 'pays':
                 $query->orderBy(
                     \DB::table('vinyls')
                         ->select($sortBy)

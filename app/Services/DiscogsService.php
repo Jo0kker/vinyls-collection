@@ -452,6 +452,7 @@ class DiscogsService
             'reference' => $reference,
             'label' => $label,
             'annee' => $annee,
+            'pays' => $discogsData['country'] ?? null,
             'discogs_id' => $discogsId,
             'discogs_type' => $discogsType,
             'discogs_updated_at' => now(),

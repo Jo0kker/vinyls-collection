@@ -492,7 +492,7 @@ class VinylController extends Controller
                 'label' => 'nullable|string|max:255',
                 'reference' => 'nullable|string|max:255',
                 'annee' => 'nullable|integer|min:1900|max:' . date('Y'),
-                'pays' => 'nullable|integer',
+                'pays' => 'nullable|string|max:255',
                 'tracks' => 'nullable|string',
                 'specificite' => 'nullable|string',
                 'refMatrice' => 'nullable|string|max:255',

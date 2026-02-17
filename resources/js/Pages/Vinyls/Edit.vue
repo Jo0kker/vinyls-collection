@@ -424,7 +424,8 @@ const getFormatLabel = (format) => {
                                             Pays
                                         </label>
                                         <input v-model="form.pays"
-                                               type="number"
+                                               type="text"
+                                               placeholder="France, UK, US..."
                                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
                                         <p class="text-xs text-red-500 mt-1" v-if="form.errors.pays">
                                             {{ form.errors.pays }}
