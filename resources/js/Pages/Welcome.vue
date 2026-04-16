@@ -95,32 +95,6 @@ onMounted(() => {
     </div>
 
     <AuthenticatedLayout v-else>
-        <!-- Bannière info -->
-        <div class="bg-gradient-to-r from-green-500 to-green-600 border-b border-green-600">
-            <div class="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between flex-wrap">
-                    <div class="w-0 flex-1 flex items-center">
-                        <span class="flex p-2 rounded-lg bg-green-800">
-                            <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                        <p class="ml-3 font-medium text-white truncate">
-                            <span class="md:hidden">
-                                Nouveau site ! Récupérez votre ancien compte.
-                            </span>
-                            <span class="hidden md:inline">
-                                Bienvenue sur le nouveau site Vinyls Collection ! Pour récupérer votre ancien compte,
-                                <Link href="/forgot-password" class="underline font-semibold hover:text-green-100">
-                                    faites une demande de réinitialisation de mot de passe
-                                </Link>.
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             <!-- Hero Section -->
             <div class="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-800 to-blue-900">

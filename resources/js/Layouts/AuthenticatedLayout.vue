@@ -6,6 +6,7 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import ChatWidget from '@/Components/Chat/ChatWidget.vue';
+import DomainChangeBanner from '@/Components/DomainChangeBanner.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useGlobalMessaging } from '@/composables/useGlobalMessaging';
 import { usePresence } from '@/composables/usePresence';
@@ -43,6 +44,7 @@ onUnmounted(() => {
 <template>
     <div>
         <div class="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
+            <DomainChangeBanner />
             <nav
                 class="v-navbar shadow py-4 bg-white dark:bg-gray-800"
             >

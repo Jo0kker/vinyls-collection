@@ -1,6 +1,7 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import VinylIcon from '@/Components/VinylIcon.vue';
+import DomainChangeBanner from '@/Components/DomainChangeBanner.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -108,34 +109,10 @@ const formatNumber = (num) => {
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex relative overflow-hidden">
         
-        <div class="absolute top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-500 to-green-600 border-b border-green-600">
-            <div class="max-w-7xl mx-auto py-2 px-3 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-center">
-                    <div class="flex items-center">
-                        <span class="flex p-1 rounded-lg bg-green-800 mr-2">
-                            <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                        <p class="text-sm font-medium text-white">
-                            <span class="sm:hidden">
-                                Nouveau site ! 
-                                <Link href="/forgot-password" class="underline font-semibold hover:text-green-100">
-                                    Récupérez votre compte
-                                </Link>
-                            </span>
-                            <span class="hidden sm:inline">
-                                🎉 Bienvenue sur le nouveau site ! Pour récupérer votre ancien compte, 
-                                <Link href="/forgot-password" class="underline font-semibold hover:text-green-100">
-                                    faites une demande de réinitialisation de mot de passe
-                                </Link>.
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
+        <div class="absolute top-0 left-0 right-0 z-50">
+            <DomainChangeBanner />
         </div>
-        
+
         <div class="absolute inset-0 overflow-hidden">
             
             <div class="absolute top-10 left-10 floating-vinyl opacity-10 dark:opacity-20">
