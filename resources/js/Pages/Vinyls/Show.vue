@@ -2,6 +2,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { useVinylFormats } from '@/composables/useVinylFormats';
+import VinylFormatWarning from '@/Components/VinylFormatWarning.vue';
 
 const props = defineProps({
     collectionVinyl: {
@@ -34,20 +36,7 @@ const formatDate = (date) => {
     });
 };
 
-const getFormatLabel = (format) => {
-    const formats = {
-        1: 'LP (33 tours)',
-        2: '45 tours',
-        3: 'CD',
-        4: 'Cassette',
-        5: 'DVD',
-        6: 'Blu-ray',
-        7: 'Box Set',
-        8: '78 tours',
-        9: 'Digital'
-    };
-    return formats[format] || 'Format inconnu';
-};
+const { getFormatLabel } = useVinylFormats();
 
 const getProvenanceLabel = (provenance) => {
     const provenances = {
@@ -119,6 +108,7 @@ const getProvenanceLabel = (provenance) => {
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
+                        <VinylFormatWarning :vinyl="vinyl" />
                         <!-- Header avec image et infos principales -->
                         <div class="flex flex-col lg:flex-row gap-8 mb-8">
                             <!-- Image de pochette -->

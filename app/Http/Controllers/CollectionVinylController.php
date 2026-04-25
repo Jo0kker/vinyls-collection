@@ -80,7 +80,7 @@ class CollectionVinylController extends Controller
             $validation = array_merge($validation, [
                 'vinyl_nom' => 'required|string|max:255',
                 'vinyl_titre' => 'nullable|string|max:255',
-                'vinyl_format' => 'required|integer|min:1|max:9',
+                'vinyl_format' => 'required|integer|exists:vinyl_formats,id',
                 'artiste' => 'required|string|max:255',
                 'label' => 'nullable|string|max:255',
                 'reference' => 'nullable|string|max:255',

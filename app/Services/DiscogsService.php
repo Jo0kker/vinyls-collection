@@ -444,7 +444,7 @@ class DiscogsService
         return [
             'vinyl_nom' => $discogsData['title'] ?? 'Titre inconnu',
             'vinyl_titre' => $discogsData['title'] ?? 'Titre inconnu',
-            'vinyl_format' => 1, // 1 pour Vinyl par défaut, à adapter selon votre système de codes
+            'vinyl_format' => \App\Models\VinylFormat::fromDiscogsFormats($discogsData['formats'] ?? null),
             'artiste' => $artisteName,
             'pochette' => $pochette,
             'vinyl_alias' => 0,

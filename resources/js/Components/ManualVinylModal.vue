@@ -1,6 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, watch, computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const vinylFormats = computed(() => page.props.vinylFormats || []);
 
 const props = defineProps({
     show: {
@@ -29,6 +32,7 @@ const manualVinyl = ref({
     annee: null,
     pochette: '',
     discogs_type: '',
+    vinyl_format: 3,
     collection_id: props.collectionId,
     prix_achat: null,
     annee_achat: null,
@@ -58,6 +62,7 @@ const closeModal = () => {
         annee: null,
         pochette: '',
         discogs_type: '',
+        vinyl_format: 3,
         collection_id: props.collectionId,
         prix_achat: null,
         annee_achat: null,
@@ -239,6 +244,22 @@ const saveManualVinyl = () => {
                                        min="1900"
                                        :max="new Date().getFullYear()"
                                        class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-base">
+                            </div>
+
+                            <!-- Format -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Format <span class="text-red-500">*</span>
+                                </label>
+                                <select v-model.number="manualVinyl.vinyl_format"
+                                        required
+                                        class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-base">
+                                    <option v-for="format in vinylFormats"
+                                            :key="format.id"
+                                            :value="format.id">
+                                        {{ format.label }}
+                                    </option>
+                                </select>
                             </div>
                         </div>
 

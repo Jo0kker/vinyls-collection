@@ -3,6 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { useVinylFormats } from '@/composables/useVinylFormats';
+import VinylFormatWarning from '@/Components/VinylFormatWarning.vue';
 
 const props = defineProps({
     collectionVinyl: {
@@ -120,20 +122,7 @@ const confirmDuplicate = () => {
     showDuplicateModal.value = false;
 };
 
-const getFormatLabel = (format) => {
-    const formats = {
-        1: 'LP (33 tours)',
-        2: '45 tours',
-        3: 'CD',
-        4: 'Cassette',
-        5: 'DVD',
-        6: 'Blu-ray',
-        7: 'Box Set',
-        8: '78 tours',
-        9: 'Digital'
-    };
-    return formats[format] || 'Format inconnu';
-};
+const { vinylFormats, getFormatLabel } = useVinylFormats();
 </script>
 
 <template>
@@ -177,6 +166,7 @@ const getFormatLabel = (format) => {
             <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
+                        <VinylFormatWarning :vinyl="vinyl" />
                         <form @submit.prevent="submit">
                             <!-- Image Section pour vinyles manuels avec permissions -->
                             <div v-if="isManualVinyl && canEditVinylFields" class="mb-8">
@@ -345,18 +335,14 @@ const getFormatLabel = (format) => {
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Format <span class="text-red-500">*</span>
                                         </label>
-                                        <select v-model="form.vinyl_format" 
+                                        <select v-model.number="form.vinyl_format"
                                                 required
                                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                                            <option value="1">LP (33 tours)</option>
-                                            <option value="2">45 tours</option>
-                                            <option value="3">CD</option>
-                                            <option value="4">Cassette</option>
-                                            <option value="5">DVD</option>
-                                            <option value="6">Blu-ray</option>
-                                            <option value="7">Box Set</option>
-                                            <option value="8">78 tours</option>
-                                            <option value="9">Digital</option>
+                                            <option v-for="format in vinylFormats"
+                                                    :key="format.id"
+                                                    :value="format.id">
+                                                {{ format.label }}
+                                            </option>
                                         </select>
                                         <p class="text-xs text-red-500 mt-1" v-if="form.errors.vinyl_format">
                                             {{ form.errors.vinyl_format }}

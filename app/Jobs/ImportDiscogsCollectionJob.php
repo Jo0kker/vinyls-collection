@@ -271,7 +271,7 @@ class ImportDiscogsCollectionJob implements ShouldQueue
         return [
             'vinyl_nom' => $basicInfo['title'] ?? 'Titre inconnu',
             'vinyl_titre' => $basicInfo['title'] ?? 'Titre inconnu',
-            'vinyl_format' => 1,
+            'vinyl_format' => \App\Models\VinylFormat::fromDiscogsFormats($basicInfo['formats'] ?? null),
             'vinyl_nbcollect' => 1,
             'vinyl_alias' => 0,
             'artiste' => !empty($artists) ? implode(', ', $artists) : 'Artiste inconnu',

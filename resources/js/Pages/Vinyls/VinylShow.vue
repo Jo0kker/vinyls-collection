@@ -3,6 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import YouTubeAudioPlayer from '@/Components/YouTubeAudioPlayer.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
+import { useVinylFormats } from '@/composables/useVinylFormats';
+import VinylFormatWarning from '@/Components/VinylFormatWarning.vue';
 
 const props = defineProps({
     vinyl: {
@@ -97,20 +99,7 @@ const formatDate = (date) => {
     });
 };
 
-const getFormatLabel = (format) => {
-    const formats = {
-        1: 'LP (33 tours)',
-        2: '45 tours',
-        3: 'CD',
-        4: 'Cassette',
-        5: 'DVD',
-        6: 'Blu-ray',
-        7: 'Box Set',
-        8: '78 tours',
-        9: 'Digital'
-    };
-    return formats[format] || 'Format inconnu';
-};
+const { getFormatLabel } = useVinylFormats();
 
 const getYouTubeId = (url) => {
     if (!url) return null;
@@ -222,12 +211,13 @@ onMounted(() => {
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
+                        <VinylFormatWarning :vinyl="vinyl" />
                         <!-- Header avec image et infos principales -->
                         <div class="flex flex-col lg:flex-row gap-8 mb-8">
                             <!-- Image de pochette -->
                             <div class="w-full lg:w-80 flex-shrink-0">
                                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                                    <img v-if="vinyl.pochette" 
+                                    <img v-if="vinyl.pochette"
                                          :src="vinyl.pochette" 
                                          :alt="vinyl.vinyl_nom"
                                          class="w-full h-full object-cover">

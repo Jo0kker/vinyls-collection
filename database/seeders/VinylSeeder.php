@@ -14,7 +14,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'Pink Floyd',
                 'vinyl_titre' => 'The Dark Side of the Moon',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'Pink Floyd',
                 'label' => 'Harvest',
                 'annee' => 1973,
@@ -26,7 +26,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'The Beatles',
                 'vinyl_titre' => 'Abbey Road',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'The Beatles',
                 'label' => 'Apple',
                 'annee' => 1969,
@@ -37,7 +37,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'Led Zeppelin',
                 'vinyl_titre' => 'Led Zeppelin IV',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'Led Zeppelin',
                 'label' => 'Atlantic',
                 'annee' => 1971,
@@ -48,7 +48,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'Queen',
                 'vinyl_titre' => 'A Night at the Opera',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'Queen',
                 'label' => 'EMI',
                 'annee' => 1975,
@@ -59,7 +59,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'Fleetwood Mac',
                 'vinyl_titre' => 'Rumours',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'Fleetwood Mac',
                 'label' => 'Warner Bros',
                 'annee' => 1977,
@@ -70,7 +70,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'The Rolling Stones',
                 'vinyl_titre' => 'Sticky Fingers',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'The Rolling Stones',
                 'label' => 'Rolling Stones Records',
                 'annee' => 1971,
@@ -81,7 +81,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'David Bowie',
                 'vinyl_titre' => 'The Rise and Fall of Ziggy Stardust',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'David Bowie',
                 'label' => 'RCA',
                 'annee' => 1972,
@@ -92,7 +92,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'The Doors',
                 'vinyl_titre' => 'L.A. Woman',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'The Doors',
                 'label' => 'Elektra',
                 'annee' => 1971,
@@ -103,7 +103,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'Miles Davis',
                 'vinyl_titre' => 'Kind of Blue',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'Miles Davis',
                 'label' => 'Columbia',
                 'annee' => 1959,
@@ -114,7 +114,7 @@ class VinylSeeder extends Seeder
             [
                 'vinyl_nom' => 'John Coltrane',
                 'vinyl_titre' => 'A Love Supreme',
-                'vinyl_format' => 1, // LP
+                'vinyl_format' => 3, // LP
                 'artiste' => 'John Coltrane',
                 'label' => 'Impulse!',
                 'annee' => 1965,

@@ -36,8 +36,8 @@ class VinylFactory extends Factory
             'Head Hunters', 'Heavy Weather', 'Autobahn', 'Phaedra', 'Oxygène', 'I Feel Love'
         ];
 
-        // Les formats sont stockés comme des entiers dans la base (1=LP, 2=45T, etc.)
-        $formatIds = [1, 2, 3, 4, 5, 6];
+        // Voir table vinyl_formats : 1=45T, 2=Maxi 45T, 3=LP, 9=78T, 10=CD, 11=K7, etc.
+        $formatIds = [1, 2, 3, 9, 10, 11];
         $labels = [
             'EMI', 'Columbia', 'Atlantic', 'Polydor', 'Warner Bros', 'Capitol',
             'Decca', 'RCA', 'Motown', 'Stax', 'Blue Note', 'Prestige',

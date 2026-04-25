@@ -6,6 +6,7 @@ import EditVinylModal from '@/Components/EditVinylModal.vue';
 import VinylImage from '@/Components/VinylImage.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
+import { useVinylFormats } from '@/composables/useVinylFormats';
 
 const props = defineProps({
     vinyls: {
@@ -176,18 +177,7 @@ const handleImageUpdated = (data) => {
     router.reload();
 };
 
-// Formats de vinyle
-const formatLabels = {
-    1: 'LP (33 tours)',
-    2: '45 tours',
-    3: 'CD',
-    4: 'Cassette',
-    5: 'DVD',
-    6: 'Blu-ray',
-    7: 'Box Set',
-    8: '78 tours',
-    9: 'Digital'
-};
+const { vinylFormats } = useVinylFormats();
 </script>
 
 <template>
@@ -382,7 +372,7 @@ const formatLabels = {
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
                                 <select v-model="advancedFilters.format" class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm dark:bg-gray-700 dark:text-white">
                                     <option value="">Tous</option>
-                                    <option v-for="(label, key) in formatLabels" :key="key" :value="key">{{ label }}</option>
+                                    <option v-for="format in vinylFormats" :key="format.id" :value="format.id">{{ format.label }}</option>
                                 </select>
                             </div>
                             <div>

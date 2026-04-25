@@ -1,7 +1,6 @@
 <script setup>
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import VinylIcon from '@/Components/VinylIcon.vue';
-import DomainChangeBanner from '@/Components/DomainChangeBanner.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -109,9 +108,6 @@ const formatNumber = (num) => {
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex relative overflow-hidden">
         
-        <div class="absolute top-0 left-0 right-0 z-50">
-            <DomainChangeBanner />
-        </div>
 
         <div class="absolute inset-0 overflow-hidden">
             

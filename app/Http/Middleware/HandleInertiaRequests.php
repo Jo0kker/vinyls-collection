@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 use App\Models\Vinyl;
+use App\Models\VinylFormat;
 use App\Models\User;
 use App\Models\Collection;
 
@@ -50,6 +51,7 @@ class HandleInertiaRequests extends Middleware
                 ]);
             },
             'globalStats' => fn () => $this->getGlobalStats(),
+            'vinylFormats' => fn () => VinylFormat::allCached(),
         ]);
     }
 

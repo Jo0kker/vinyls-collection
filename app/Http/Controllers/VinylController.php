@@ -217,7 +217,7 @@ class VinylController extends Controller
         $request->validate([
             'vinyl_nom' => 'required|string|max:255',
             'vinyl_titre' => 'required|string|max:255',
-            'vinyl_format' => 'required|integer',
+            'vinyl_format' => 'required|integer|exists:vinyl_formats,id',
             'collection_id' => 'required|exists:collections,id',
             'prix_achat' => 'nullable|numeric|min:0',
             'annee_achat' => 'nullable|integer|min:1900|max:' . date('Y'),
@@ -499,7 +499,7 @@ class VinylController extends Controller
                 'distribution' => 'nullable|string|max:255',
                 'edition' => 'nullable|integer',
                 'anneeOriginal' => 'nullable|integer|min:1900|max:' . date('Y'),
-                'vinyl_format' => 'required|integer',
+                'vinyl_format' => 'required|integer|exists:vinyl_formats,id',
                 'pochette_url' => 'nullable|url',
             ];
         } else {
@@ -712,6 +712,7 @@ class VinylController extends Controller
             'pochette_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
             'discogs_type' => 'nullable|in:release,master',
             'collection_id' => 'required|exists:collections,id',
+            'vinyl_format' => 'required|integer|exists:vinyl_formats,id',
             'prix_achat' => 'nullable|numeric|min:0',
             'annee_achat' => 'nullable|integer|min:1900|max:' . date('Y'),
             'provenance' => 'nullable|integer',
@@ -740,7 +741,7 @@ class VinylController extends Controller
             'reference' => $request->reference,
             'annee' => $request->annee,
             'pochette' => $pochetteUrl,
-            'vinyl_format' => 1, // Format par défaut (LP)
+            'vinyl_format' => $request->vinyl_format,
             'vinyl_nbcollect' => 1,
             'vinyl_alias' => 0,
             'discogs_id' => null, // Pas de Discogs ID pour un vinyle manuel

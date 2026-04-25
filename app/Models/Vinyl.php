@@ -44,4 +44,9 @@ class Vinyl extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function format()
+    {
+        return $this->belongsTo(VinylFormat::class, 'vinyl_format');
+    }
 }
