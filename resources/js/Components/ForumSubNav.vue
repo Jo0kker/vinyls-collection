@@ -190,6 +190,7 @@ function search() {
 }
 
 function getCurrentPageLabel() {
+    if (typeof route === 'undefined') return 'Forum';
     const routeName = route().current();
 
     switch (routeName) {

@@ -17,7 +17,7 @@ const props = defineProps({
     },
     baseUrl: {
         type: String,
-        default: window.location.origin
+        default: () => (typeof window !== 'undefined' ? window.location.origin : '')
     }
 });
 
