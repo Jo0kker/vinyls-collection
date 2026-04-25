@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\DiscogsRateLimitException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -11,6 +12,12 @@ class DiscogsService
     private $baseUrl = 'https://api.discogs.com';
     private $userAgent;
     private $rateLimitRemaining = 60;
+    private int $lastStatusCode = 0;
+
+    public function getLastStatusCode(): int
+    {
+        return $this->lastStatusCode;
+    }
 
     public function __construct()
     {
@@ -348,13 +355,28 @@ class DiscogsService
                 'Authorization' => 'Discogs token=' . config('services.discogs.token', ''),
             ])->get($this->baseUrl . '/releases/' . $releaseId);
 
+            $this->lastStatusCode = $response->status();
+            $this->rateLimitRemaining = (int) ($response->header('X-Discogs-Ratelimit-Remaining') ?? $this->rateLimitRemaining);
+
             if ($response->successful()) {
                 return $response->json();
             }
 
+            if ($response->status() === 429) {
+                throw new DiscogsRateLimitException("releases/{$releaseId}");
+            }
+
+            Log::warning('Discogs Get Release: HTTP ' . $response->status(), [
+                'release_id' => $releaseId,
+                'rate_remaining' => $response->header('X-Discogs-Ratelimit-Remaining'),
+            ]);
+
             return null;
 
+        } catch (DiscogsRateLimitException $e) {
+            throw $e;
         } catch (\Exception $e) {
+            $this->lastStatusCode = 0;
             Log::error('Discogs Get Release Error: ' . $e->getMessage());
             return null;
         }
@@ -371,6 +393,9 @@ class DiscogsService
                 'Authorization' => 'Discogs token=' . config('services.discogs.token', ''),
             ])->get($this->baseUrl . '/masters/' . $masterId);
 
+            $this->lastStatusCode = $response->status();
+            $this->rateLimitRemaining = (int) ($response->header('X-Discogs-Ratelimit-Remaining') ?? $this->rateLimitRemaining);
+
             if ($response->successful()) {
                 $data = $response->json();
                 // Forcer le type à 'master' car l'API Discogs ne le retourne pas toujours
@@ -378,9 +403,21 @@ class DiscogsService
                 return $data;
             }
 
+            if ($response->status() === 429) {
+                throw new DiscogsRateLimitException("masters/{$masterId}");
+            }
+
+            Log::warning('Discogs Get Master: HTTP ' . $response->status(), [
+                'master_id' => $masterId,
+                'rate_remaining' => $response->header('X-Discogs-Ratelimit-Remaining'),
+            ]);
+
             return null;
 
+        } catch (DiscogsRateLimitException $e) {
+            throw $e;
         } catch (\Exception $e) {
+            $this->lastStatusCode = 0;
             Log::error('Discogs Get Master Error: ' . $e->getMessage());
             return null;
         }

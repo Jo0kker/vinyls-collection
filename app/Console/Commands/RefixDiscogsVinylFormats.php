@@ -13,7 +13,7 @@ class RefixDiscogsVinylFormats extends Command
     protected $signature = 'vinyls:refix-discogs-formats
         {--start-id=0 : Reprendre à partir de cet ID (0 = depuis le début)}
         {--chunk=50 : Nombre de vinyles traités par job (chaque job se redispatche)}
-        {--sleep=1100 : Délai entre requêtes Discogs en ms (mini 1000 pour rester sous 60/min)}
+        {--sleep=2500 : Délai entre requêtes Discogs en ms (default 2500 = 24/min, marge pour usage parallèle)}
         {--all : Traiter tous les vinyles Discogs (par défaut: seulement vinyl_format=1)}
         {--force : Ne pas demander de confirmation}';
 

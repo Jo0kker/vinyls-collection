@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\DiscogsRateLimitException;
 use App\Models\Vinyl;
 use App\Models\VinylFormat;
 use App\Services\DiscogsService;
@@ -12,6 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
 {
@@ -22,11 +24,13 @@ class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
     public int $backoff = 120;
 
     private const PROGRESS_KEY = 'vinyls:refix-discogs:progress';
+    private const RATE_KEY = 'discogs-api';
+    private const RATE_MAX_PER_MIN = 50;
 
     public function __construct(
         public int $startId = 0,
         public int $chunkSize = 50,
-        public int $sleepMs = 1100,
+        public int $sleepMs = 2500,
         public bool $all = false,
     ) {}
 
@@ -58,7 +62,21 @@ class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
         $lastId = $this->startId;
 
         foreach ($vinyls as $vinyl) {
-            $result = $this->processOne($vinyl, $discogs);
+            $this->throttle();
+
+            try {
+                $result = $this->processOne($vinyl, $discogs);
+            } catch (DiscogsRateLimitException $e) {
+                $this->updateProgress($lastId, $stats, 'rate_limited');
+                Log::warning('RefixDiscogsVinylFormatChunkJob: rate limit hit, pause 70s', [
+                    'last_id' => $lastId,
+                    'next_vinyl' => $vinyl->id,
+                ]);
+                self::dispatch($lastId, $this->chunkSize, $this->sleepMs, $this->all)
+                    ->delay(now()->addSeconds(70));
+                return;
+            }
+
             $stats[$result]++;
             $lastId = $vinyl->id;
 
@@ -73,6 +91,15 @@ class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
             ->delay(now()->addSeconds(2));
     }
 
+    private function throttle(): void
+    {
+        while (RateLimiter::tooManyAttempts(self::RATE_KEY, self::RATE_MAX_PER_MIN)) {
+            $wait = max(1, RateLimiter::availableIn(self::RATE_KEY));
+            sleep($wait);
+        }
+        RateLimiter::hit(self::RATE_KEY, 60);
+    }
+
     private function processOne(Vinyl $vinyl, DiscogsService $discogs): string
     {
         try {
@@ -85,6 +112,7 @@ class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
                     'vinyl_id' => $vinyl->id,
                     'discogs_id' => $vinyl->discogs_id,
                     'discogs_type' => $vinyl->discogs_type,
+                    'http_status' => $discogs->getLastStatusCode(),
                 ]);
                 return 'not_found';
             }
@@ -97,6 +125,8 @@ class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
 
             $vinyl->forceFill(['vinyl_format' => $newFormat])->saveQuietly();
             return 'updated';
+        } catch (DiscogsRateLimitException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('RefixDiscogsVinylFormatChunkJob: exception', [
                 'vinyl_id' => $vinyl->id,
@@ -106,14 +136,14 @@ class RefixDiscogsVinylFormatChunkJob implements ShouldQueue
         }
     }
 
-    private function updateProgress(int $lastId, array $stats): void
+    private function updateProgress(int $lastId, array $stats, string $status = 'running'): void
     {
         $previous = Cache::get(self::PROGRESS_KEY, [
             'updated' => 0, 'unchanged' => 0, 'not_found' => 0, 'failed' => 0,
         ]);
 
         Cache::forever(self::PROGRESS_KEY, [
-            'status' => 'running',
+            'status' => $status,
             'last_id' => $lastId,
             'updated' => ($previous['updated'] ?? 0) + $stats['updated'],
             'unchanged' => ($previous['unchanged'] ?? 0) + $stats['unchanged'],
