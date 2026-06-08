@@ -30,7 +30,7 @@ return [
     | your mailers below. You may also add additional mailers if needed.
     |
     | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
+    |            "postmark", "resend", "mailreacher", "log", "array",
     |            "failover", "roundrobin"
     |
     */
@@ -65,8 +65,8 @@ return [
             'transport' => 'resend',
         ],
 
-        'brevo' => [
-            'transport' => 'brevo',
+        'mailreacher' => [
+            'transport' => 'mailreacher',
         ],
 
         'sendmail' => [
