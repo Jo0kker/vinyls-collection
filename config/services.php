@@ -42,8 +42,4 @@ return [
         'redirect' => env('DISCOGS_REDIRECT_URI'),
     ],
 
-    'brevo' => [
-        'key' => env('BREVO_API_KEY'),
-    ],
-
 ];
