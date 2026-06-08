@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -12,8 +11,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Events\Registered;
 use Laravel\Pulse\Facades\Pulse;
-use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
-use Symfony\Component\Mailer\Transport\Dsn;
 use App\Models\Collection;
 use App\Models\CollectionVinyl;
 use App\Observers\CollectionObserver;
@@ -36,16 +33,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
-
-        Mail::extend('brevo', function () {
-            return (new BrevoTransportFactory)->create(
-                new Dsn(
-                    'brevo+api',
-                    'default',
-                    config('services.brevo.key')
-                )
-            );
-        });
 
         // Rate limiter pour les exports Excel
         RateLimiter::for('export', function (Request $request) {
