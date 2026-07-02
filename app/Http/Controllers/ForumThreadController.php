@@ -155,6 +155,8 @@ class ForumThreadController extends Controller
             'last_post_id' => $post->id,
         ]);
 
+        $this->subscribeUserToThreadNotifications(auth()->id(), $thread->id);
+
         return redirect()->route('forum.thread.show', $thread->id);
     }
 
@@ -383,5 +385,19 @@ class ForumThreadController extends Controller
         $subscription->delete();
 
         return redirect()->back()->with('success', 'Vous ne suivez plus cette discussion.');
+    }
+
+    private function subscribeUserToThreadNotifications(?int $userId, int $threadId): void
+    {
+        if (! $userId) {
+            return;
+        }
+
+        ThreadSubscription::firstOrCreate([
+            'user_id' => $userId,
+            'thread_id' => $threadId,
+        ], [
+            'email_notifications' => true,
+        ]);
     }
 }

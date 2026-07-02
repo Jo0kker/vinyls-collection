@@ -4,15 +4,11 @@ namespace App\Notifications;
 
 use App\Models\ForumPost;
 use App\Models\ForumThread;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NewForumPostNotification extends Notification implements ShouldQueue
+class NewForumPostNotification extends Notification
 {
-    use Queueable;
-
     protected ForumThread $thread;
     protected ForumPost $post;
 

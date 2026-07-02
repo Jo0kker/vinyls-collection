@@ -51,6 +51,8 @@ class ForumPostController extends Controller
         // Notify subscribers (except the post author)
         $this->notifySubscribers($thread, $newPost);
 
+        $this->subscribeUserToThreadNotifications(auth()->id(), $thread->id);
+
         return back();
     }
 
@@ -79,6 +81,20 @@ class ForumPostController extends Controller
                 $subscription->user->notify(new NewForumPostNotification($forumThread, $forumPost));
             }
         }
+    }
+
+    private function subscribeUserToThreadNotifications(?int $userId, int $threadId): void
+    {
+        if (! $userId) {
+            return;
+        }
+
+        ThreadSubscription::firstOrCreate([
+            'user_id' => $userId,
+            'thread_id' => $threadId,
+        ], [
+            'email_notifications' => true,
+        ]);
     }
 
     public function edit($post_id)
