@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\RecaptchaVerifier;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,13 +33,20 @@ class NewPasswordController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, RecaptchaVerifier $recaptcha): RedirectResponse
     {
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'recaptcha_token' => $recaptcha->enabled() ? ['required', 'string'] : ['nullable', 'string'],
         ]);
+
+        if (! $recaptcha->verify($request->string('recaptcha_token')->toString(), 'reset_password', $request->ip())) {
+            return back()
+                ->withErrors(['recaptcha_token' => 'La vérification anti-spam a échoué. Merci de réessayer.'])
+                ->withInput($request->except('password', 'password_confirmation', 'recaptcha_token'));
+        }
 
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the

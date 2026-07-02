@@ -189,6 +189,9 @@ onUnmounted(() => {
                                             <DropdownLink :href="route('admin.support.index')" class="text-orange-600 dark:text-orange-400">
                                                 Admin Support
                                             </DropdownLink>
+                                            <DropdownLink :href="route('admin.users.index')" class="text-orange-600 dark:text-orange-400">
+                                                Admin Utilisateurs
+                                            </DropdownLink>
                                             <DropdownLink :href="route('forum.category.manage')" class="text-orange-600 dark:text-orange-400">
                                                 Admin Forum
                                             </DropdownLink>

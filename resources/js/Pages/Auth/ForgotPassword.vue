@@ -4,7 +4,10 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import { Head, useForm } from '@inertiajs/vue3';
+
+const { executeRecaptcha } = useRecaptcha();
 
 defineProps({
     status: {
@@ -14,10 +17,15 @@ defineProps({
 
 const form = useForm({
     email: '',
+    recaptcha_token: '',
 });
 
-const submit = () => {
-    form.post(route('password.email'));
+const submit = async () => {
+    form.recaptcha_token = (await executeRecaptcha('forgot_password')) ?? '';
+
+    form.post(route('password.email'), {
+        onFinish: () => form.reset('recaptcha_token'),
+    });
 };
 </script>
 
@@ -54,6 +62,12 @@ const submit = () => {
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
+
+            <InputError class="mt-4" :message="form.errors.recaptcha_token" />
+
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Ce formulaire est protégé par Google reCAPTCHA.
+            </p>
 
             <div class="mt-4 flex items-center justify-end">
                 <PrimaryButton

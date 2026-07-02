@@ -10,6 +10,8 @@ use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use TeamTeaTime\Forum\Models\Post;
+use TeamTeaTime\Forum\Models\Thread;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -38,6 +40,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'discogs_oauth_token',
         'discogs_oauth_token_secret',
         'discogs_connected_at',
+        'banned_at',
+        'banned_reason',
+        'banned_by',
     ];
 
     /**
@@ -65,7 +70,28 @@ class User extends Authenticatable implements MustVerifyEmail
             'profile_public' => 'boolean',
             'social_links' => 'array',
             'discogs_connected_at' => 'datetime',
+            'banned_at' => 'datetime',
         ];
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->banned_at !== null;
+    }
+
+    public function bannedBy()
+    {
+        return $this->belongsTo(User::class, 'banned_by');
+    }
+
+    public function forumPosts()
+    {
+        return $this->hasMany(Post::class, 'author_id');
+    }
+
+    public function forumThreads()
+    {
+        return $this->hasMany(Thread::class, 'author_id');
     }
 
     public function collections()

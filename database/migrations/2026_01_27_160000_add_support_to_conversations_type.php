@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // PostgreSQL: drop the old check constraint and create a new one with 'support'
         DB::statement("ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_type_check");
         DB::statement("ALTER TABLE conversations ADD CONSTRAINT conversations_type_check CHECK (type::text = ANY (ARRAY['direct'::text, 'group'::text, 'support'::text]))");
@@ -14,6 +18,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_type_check");
         DB::statement("ALTER TABLE conversations ADD CONSTRAINT conversations_type_check CHECK (type::text = ANY (ARRAY['direct'::text, 'group'::text]))");
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\RecaptchaVerifier;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, RecaptchaVerifier $recaptcha): RedirectResponse
     {
         // Vérification manuelle case-insensitive pour le name
         if (User::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->exists()) {
@@ -39,7 +40,14 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255|unique:'.User::class,
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'recaptcha_token' => $recaptcha->enabled() ? ['required', 'string'] : ['nullable', 'string'],
         ]);
+
+        if (! $recaptcha->verify($request->string('recaptcha_token')->toString(), 'register', $request->ip())) {
+            return back()
+                ->withErrors(['recaptcha_token' => 'La vérification anti-spam a échoué. Merci de réessayer.'])
+                ->withInput($request->except('password', 'password_confirmation', 'recaptcha_token'));
+        }
 
         $user = User::create([
             'name' => $request->name,

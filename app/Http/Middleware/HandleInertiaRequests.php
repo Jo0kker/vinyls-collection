@@ -2,14 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Collection;
+use App\Models\User;
+use App\Models\Vinyl;
+use App\Models\VinylFormat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
-use App\Models\Vinyl;
-use App\Models\VinylFormat;
-use App\Models\User;
-use App\Models\Collection;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -52,6 +52,12 @@ class HandleInertiaRequests extends Middleware
             },
             'globalStats' => fn () => $this->getGlobalStats(),
             'vinylFormats' => fn () => VinylFormat::allCached(),
+            'recaptcha' => fn () => [
+                'enabled' => (bool) config('services.recaptcha.enabled', false)
+                    && filled(config('services.recaptcha.site_key'))
+                    && filled(config('services.recaptcha.secret_key')),
+                'siteKey' => config('services.recaptcha.site_key'),
+            ],
         ]);
     }
 

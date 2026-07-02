@@ -6,6 +6,7 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Notifications\SupportTicketConfirmationNotification;
 use App\Notifications\SupportTicketCreatedNotification;
+use App\Services\RecaptchaVerifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -24,13 +25,22 @@ class ContactController extends Controller
     /**
      * Store new support ticket
      */
-    public function store(Request $request)
+    public function store(Request $request, RecaptchaVerifier $recaptcha)
     {
         $validated = $request->validate([
             'email' => 'required|email|max:255',
             'subject' => 'required|string|max:255',
             'message' => 'required|string|max:10000',
+            'recaptcha_token' => $recaptcha->enabled() && ! $request->user() ? ['required', 'string'] : ['nullable', 'string'],
         ]);
+
+        if (! $request->user() && ! $recaptcha->verify($request->string('recaptcha_token')->toString(), 'contact', $request->ip())) {
+            return back()
+                ->withErrors(['recaptcha_token' => 'La vérification anti-spam a échoué. Merci de réessayer.'])
+                ->withInput($request->except('recaptcha_token'));
+        }
+
+        unset($validated['recaptcha_token']);
 
         $ticket = SupportTicket::create($validated);
 

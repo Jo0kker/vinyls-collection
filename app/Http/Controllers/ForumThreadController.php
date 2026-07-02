@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ThreadSubscription;
+use App\Services\RecaptchaVerifier;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use TeamTeaTime\Forum\Models\Category;
-use TeamTeaTime\Forum\Models\Thread;
 use TeamTeaTime\Forum\Models\Post;
-use App\Models\ThreadSubscription;
-use App\Models\ForumThread;
+use TeamTeaTime\Forum\Models\Thread;
 
 class ForumThreadController extends Controller
 {
@@ -18,20 +18,20 @@ class ForumThreadController extends Controller
          * @var Thread $thread
          */
         $thread = Thread::withTrashed()->with('category', 'author')->findOrFail($thread_id);
-        
+
         // Les utilisateurs non connectés ne voient que les posts non supprimés
         // Les modérateurs/admins voient tous les posts (y compris supprimés)
         $postsQuery = Post::where('thread_id', $thread->id)
             ->with(['author.roles'])
             ->orderBy('created_at', 'asc');
-            
+
         // Si l'utilisateur est modérateur/admin, inclure les posts supprimés
         if (auth()->check() && auth()->user()->roles()->whereIn('name', ['admin', 'moderator'])->exists()) {
             $postsQuery = $postsQuery->withTrashed();
         }
-        
+
         $posts = $postsQuery->paginate(20);
-        
+
         // Optimisation : récupérer les counts en une seule requête pour tous les auteurs
         $authorIds = $posts->getCollection()->pluck('author.id')->filter()->unique();
         $vinylCounts = \DB::table('collection_vinyls')
@@ -40,14 +40,14 @@ class ForumThreadController extends Controller
             ->select('collections.user_id', \DB::raw('count(*) as vinyl_count'))
             ->groupBy('collections.user_id')
             ->pluck('vinyl_count', 'user_id');
-            
+
         // Transform posts data to include user information
         $posts->getCollection()->transform(function ($post) use ($vinylCounts) {
             // Add vinyl count for the author (from cache)
             if ($post->author) {
                 $post->author->vinyl_count = $vinylCounts[$post->author->id] ?? 0;
             }
-            
+
             return $post;
         });
 
@@ -60,7 +60,7 @@ class ForumThreadController extends Controller
         $allCategories = Category::where('accepts_threads', true)
             ->where('id', '!=', $thread->category_id)
             ->get(['id', 'title']);
-        
+
         // Check if user is subscribed
         $isSubscribed = false;
         if (auth()->check()) {
@@ -90,20 +90,20 @@ class ForumThreadController extends Controller
                 'is_subscribed' => $isSubscribed,
             ],
             'posts' => $posts,
-            'categories' => $allCategories
+            'categories' => $allCategories,
         ];
-        
+
         return Inertia::render('Forum/Thread/Show', $data)->with([
             'auth' => [
                 'user' => auth()->user() ? [
                     'id' => auth()->user()->id,
                     'name' => auth()->user()->name,
-                    'roles' => auth()->user()->roles->map(fn($role) => [
+                    'roles' => auth()->user()->roles->map(fn ($role) => [
                         'name' => $role->name,
-                        'color' => $role->color ?? '#3b82f6'
-                    ])
-                ] : null
-            ]
+                        'color' => $role->color ?? '#3b82f6',
+                    ]),
+                ] : null,
+            ],
         ]);
     }
 
@@ -116,18 +116,25 @@ class ForumThreadController extends Controller
                 'id' => $category->id,
                 'title' => $category->title,
                 'color_light_mode' => $category->color_light_mode,
-            ]
+            ],
         ]);
     }
 
-    public function store(Request $request, $category_id)
+    public function store(Request $request, RecaptchaVerifier $recaptcha, $category_id)
     {
         $category = Category::findOrFail($category_id);
 
         $request->validate([
             'title' => 'required|string|max:255',
-            'content' => 'required|string'
+            'content' => 'required|string',
+            'recaptcha_token' => $recaptcha->enabled() ? ['required', 'string'] : ['nullable', 'string'],
         ]);
+
+        if (! $recaptcha->verify($request->string('recaptcha_token')->toString(), 'forum_thread_create', $request->ip())) {
+            return back()
+                ->withErrors(['recaptcha_token' => 'La vérification anti-spam a échoué. Merci de réessayer.'])
+                ->withInput($request->except('recaptcha_token'));
+        }
 
         $thread = Thread::create([
             'category_id' => $category->id,
@@ -139,7 +146,7 @@ class ForumThreadController extends Controller
             'thread_id' => $thread->id,
             'author_id' => auth()->id(),
             'content' => $request->get('content'),
-            'sequence' => 1
+            'sequence' => 1,
         ]);
 
         // Update thread with first post id
@@ -154,10 +161,10 @@ class ForumThreadController extends Controller
     public function lock($thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canModerateThread($user, $thread)) {
+        if (! $user || ! $this->canModerateThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -169,10 +176,10 @@ class ForumThreadController extends Controller
     public function unlock($thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canModerateThread($user, $thread)) {
+        if (! $user || ! $this->canModerateThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -184,10 +191,10 @@ class ForumThreadController extends Controller
     public function pin($thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canModerateThread($user, $thread)) {
+        if (! $user || ! $this->canModerateThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -199,10 +206,10 @@ class ForumThreadController extends Controller
     public function unpin($thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canModerateThread($user, $thread)) {
+        if (! $user || ! $this->canModerateThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -214,15 +221,15 @@ class ForumThreadController extends Controller
     public function rename(Request $request, $thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canModerateThread($user, $thread)) {
+        if (! $user || ! $this->canModerateThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
         $request->validate([
-            'title' => 'required|string|max:255'
+            'title' => 'required|string|max:255',
         ]);
 
         $thread->update(['title' => $request->title]);
@@ -233,15 +240,15 @@ class ForumThreadController extends Controller
     public function move(Request $request, $thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canModerateThread($user, $thread)) {
+        if (! $user || ! $this->canModerateThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
         $request->validate([
-            'category_id' => 'required|integer|exists:forum_categories,id'
+            'category_id' => 'required|integer|exists:forum_categories,id',
         ]);
 
         $thread->update(['category_id' => $request->category_id]);
@@ -252,10 +259,10 @@ class ForumThreadController extends Controller
     public function destroy($thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canDeleteThread($user, $thread)) {
+        if (! $user || ! $this->canDeleteThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -263,20 +270,20 @@ class ForumThreadController extends Controller
 
         if ($thread->category_id) {
             return redirect()->route('forum.category.show', $thread->category_id)
-                            ->with('success', 'Thread supprimé avec succès.');
+                ->with('success', 'Thread supprimé avec succès.');
         }
-        
+
         return redirect()->route('forum.index')
-                        ->with('success', 'Thread supprimé avec succès.');
+            ->with('success', 'Thread supprimé avec succès.');
     }
 
     public function restore($thread_id)
     {
         $thread = Thread::withTrashed()->findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canRestoreThread($user, $thread)) {
+        if (! $user || ! $this->canRestoreThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -288,10 +295,10 @@ class ForumThreadController extends Controller
     public function forceDestroy($thread_id)
     {
         $thread = Thread::withTrashed()->findOrFail($thread_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canForceDeleteThread($user, $thread)) {
+        if (! $user || ! $this->canForceDeleteThread($user, $thread)) {
             abort(403, 'Unauthorized');
         }
 
@@ -299,11 +306,11 @@ class ForumThreadController extends Controller
 
         if ($thread->category_id) {
             return redirect()->route('forum.category.show', $thread->category_id)
-                            ->with('success', 'Thread supprimé définitivement.');
+                ->with('success', 'Thread supprimé définitivement.');
         }
-        
+
         return redirect()->route('forum.index')
-                        ->with('success', 'Thread supprimé définitivement.');
+            ->with('success', 'Thread supprimé définitivement.');
     }
 
     private function canModerateThread($user, $thread)
@@ -315,7 +322,7 @@ class ForumThreadController extends Controller
     private function canDeleteThread($user, $thread)
     {
         // Author can delete their own thread or moderators/admins can delete any thread
-        return ($thread->author_id === $user->id) || 
+        return ($thread->author_id === $user->id) ||
                $user->roles()->whereIn('name', ['admin', 'moderator'])->exists();
     }
 
@@ -369,7 +376,7 @@ class ForumThreadController extends Controller
             ->where('thread_id', $thread->id)
             ->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return redirect()->back()->with('info', 'Vous ne suiviez pas cette discussion.');
         }
 

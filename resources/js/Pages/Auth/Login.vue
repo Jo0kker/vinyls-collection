@@ -5,7 +5,10 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+
+const { executeRecaptcha } = useRecaptcha();
 
 defineProps({
     canResetPassword: {
@@ -20,11 +23,14 @@ const form = useForm({
     email: '',
     password: '',
     remember: false,
+    recaptcha_token: '',
 });
 
-const submit = () => {
+const submit = async () => {
+    form.recaptcha_token = (await executeRecaptcha('login')) ?? '';
+
     form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+        onFinish: () => form.reset('password', 'recaptcha_token'),
     });
 };
 </script>
@@ -77,6 +83,12 @@ const submit = () => {
                     >
                 </label>
             </div>
+
+            <InputError class="mt-4" :message="form.errors.recaptcha_token" />
+
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Ce formulaire est protégé par Google reCAPTCHA.
+            </p>
 
             <div class="mt-4 flex items-center justify-end">
                 <Link

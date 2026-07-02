@@ -2,23 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use TeamTeaTime\Forum\Models\Thread;
-use TeamTeaTime\Forum\Models\Post;
-use App\Models\ForumThread;
 use App\Models\ForumPost;
+use App\Models\ForumThread;
 use App\Models\ThreadSubscription;
 use App\Notifications\NewForumPostNotification;
+use App\Services\RecaptchaVerifier;
+use Illuminate\Http\Request;
+use TeamTeaTime\Forum\Models\Post;
+use TeamTeaTime\Forum\Models\Thread;
 
 class ForumPostController extends Controller
 {
-    public function store(Request $request, $thread_id)
+    public function store(Request $request, RecaptchaVerifier $recaptcha, $thread_id)
     {
         $thread = Thread::findOrFail($thread_id);
 
         $request->validate([
-            'content' => 'required|string'
+            'content' => 'required|string',
+            'recaptcha_token' => $recaptcha->enabled() ? ['required', 'string'] : ['nullable', 'string'],
         ]);
+
+        if (! $recaptcha->verify($request->string('recaptcha_token')->toString(), 'forum_post_reply', $request->ip())) {
+            return back()
+                ->withErrors(['recaptcha_token' => 'La vérification anti-spam a échoué. Merci de réessayer.'])
+                ->withInput($request->except('recaptcha_token'));
+        }
 
         $lastPost = Post::where('thread_id', $thread->id)
             ->orderBy('sequence', 'desc')
@@ -28,7 +36,7 @@ class ForumPostController extends Controller
             'thread_id' => $thread->id,
             'author_id' => auth()->id(),
             'content' => $request->content,
-            'sequence' => $lastPost ? $lastPost->sequence + 1 : 1
+            'sequence' => $lastPost ? $lastPost->sequence + 1 : 1,
         ]);
 
         // Update thread's reply count and last post
@@ -62,7 +70,7 @@ class ForumPostController extends Controller
         $forumThread = ForumThread::find($thread->id);
         $forumPost = ForumPost::find($post->id);
 
-        if (!$forumThread || !$forumPost) {
+        if (! $forumThread || ! $forumPost) {
             return;
         }
 
@@ -76,35 +84,35 @@ class ForumPostController extends Controller
     public function edit($post_id)
     {
         $post = Post::findOrFail($post_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canEditPost($user, $post)) {
+        if (! $user || ! $this->canEditPost($user, $post)) {
             abort(403, 'Unauthorized');
         }
 
         return response()->json([
             'id' => $post->id,
-            'content' => $post->content
+            'content' => $post->content,
         ]);
     }
 
     public function update(Request $request, $post_id)
     {
         $post = Post::findOrFail($post_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canEditPost($user, $post)) {
+        if (! $user || ! $this->canEditPost($user, $post)) {
             abort(403, 'Unauthorized');
         }
 
         $request->validate([
-            'content' => 'required|string'
+            'content' => 'required|string',
         ]);
 
         $post->update([
-            'content' => $request->content
+            'content' => $request->content,
         ]);
 
         return redirect()->back()->with('success', 'Post modifié avec succès.');
@@ -113,28 +121,28 @@ class ForumPostController extends Controller
     public function destroy($post_id)
     {
         $post = Post::findOrFail($post_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || (!$this->canDeletePost($user, $post))) {
+        if (! $user || (! $this->canDeletePost($user, $post))) {
             abort(403, 'Unauthorized');
         }
 
         $thread = $post->thread;
-        
+
         // Vérifier si c'est le premier post du thread (sequence = 1)
         $isFirstPost = $post->sequence === 1;
-        
+
         if ($isFirstPost) {
             // Si c'est le premier post, supprimer tout le thread
             // Cela supprimera en cascade tous les posts du thread
             $thread->delete();
-            
+
             // Rediriger vers la catégorie du thread
             return redirect()->route('forum.category.show', $thread->category_id)
                 ->with('success', 'Discussion supprimée avec succès.');
         }
-        
+
         // Sinon, supprimer seulement le post
         $post->delete(); // Soft delete
 
@@ -144,12 +152,12 @@ class ForumPostController extends Controller
                 ->whereNull('deleted_at')  // Exclure les posts supprimés
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             $thread->update([
-                'last_post_id' => $lastActivePost ? $lastActivePost->id : null
+                'last_post_id' => $lastActivePost ? $lastActivePost->id : null,
             ]);
         }
-        
+
         // Décrémenter le compteur de réponses
         $thread->decrement('reply_count');
 
@@ -159,10 +167,10 @@ class ForumPostController extends Controller
     public function restore($post_id)
     {
         $post = Post::withTrashed()->findOrFail($post_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canRestorePost($user, $post)) {
+        if (! $user || ! $this->canRestorePost($user, $post)) {
             abort(403, 'Unauthorized');
         }
 
@@ -175,10 +183,10 @@ class ForumPostController extends Controller
                 ->whereNull('deleted_at')  // Exclure les posts supprimés
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             if ($lastActivePost && $lastActivePost->id == $post->id) {
                 $thread->update([
-                    'last_post_id' => $post->id
+                    'last_post_id' => $post->id,
                 ]);
             }
         }
@@ -189,10 +197,10 @@ class ForumPostController extends Controller
     public function forceDestroy($post_id)
     {
         $post = Post::withTrashed()->findOrFail($post_id);
-        
+
         // Check permissions
         $user = auth()->user();
-        if (!$user || !$this->canForceDeletePost($user, $post)) {
+        if (! $user || ! $this->canForceDeletePost($user, $post)) {
             abort(403, 'Unauthorized');
         }
 
@@ -207,16 +215,16 @@ class ForumPostController extends Controller
             'posts' => 'required|array',
             'posts.*' => 'integer|exists:forum_posts,id',
             'action' => 'required|in:delete,restore',
-            'force' => 'sometimes|boolean'
+            'force' => 'sometimes|boolean',
         ]);
 
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             abort(403, 'Unauthorized');
         }
 
         $posts = Post::withTrashed()->whereIn('id', $request->posts)->get();
-        
+
         foreach ($posts as $post) {
             if ($request->action === 'delete') {
                 if ($this->canDeletePost($user, $post)) {
@@ -233,8 +241,8 @@ class ForumPostController extends Controller
             }
         }
 
-        $message = $request->action === 'delete' 
-            ? ($request->boolean('force') ? 'Posts supprimés définitivement.' : 'Posts supprimés.') 
+        $message = $request->action === 'delete'
+            ? ($request->boolean('force') ? 'Posts supprimés définitivement.' : 'Posts supprimés.')
             : 'Posts restaurés.';
 
         return redirect()->back()->with('success', $message);
@@ -246,7 +254,7 @@ class ForumPostController extends Controller
         if ($post->author_id === $user->id) {
             return true;
         }
-        
+
         // Moderators and admins can delete any post
         return $user->roles()->whereIn('name', ['admin', 'moderator'])->exists();
     }
@@ -263,7 +271,7 @@ class ForumPostController extends Controller
         if ($post->author_id === $user->id && $post->created_at->diffInHours(now()) <= 24) {
             return true;
         }
-        
+
         // Moderators and admins can edit any post
         return $user->roles()->whereIn('name', ['admin', 'moderator'])->exists();
     }

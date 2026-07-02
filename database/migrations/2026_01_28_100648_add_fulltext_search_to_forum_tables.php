@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -12,6 +10,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Add search_vector column to forum_threads using raw SQL (Laravel doesn't support tsvector type)
         DB::statement('ALTER TABLE forum_threads ADD COLUMN search_vector tsvector');
 
@@ -66,6 +68,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Drop triggers
         DB::statement('DROP TRIGGER IF EXISTS forum_threads_search_vector_trigger ON forum_threads');
         DB::statement('DROP TRIGGER IF EXISTS forum_posts_search_vector_trigger ON forum_posts');

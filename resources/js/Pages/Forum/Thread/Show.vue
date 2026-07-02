@@ -935,6 +935,7 @@
             :show="showReplyModal"
             v-model:content="replyForm.content"
             :disabled="replyForm.processing"
+            :error="replyForm.errors.recaptcha_token"
             @close="showReplyModal = false"
             @submit="submitReply"
         />
@@ -951,12 +952,14 @@ import TinyMCEEditor from '@/Components/TinyMCEEditor.vue';
 import NotificationContainer from '@/Components/NotificationContainer.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import ReplyModal from '@/Components/Forum/ReplyModal.vue';
-import { useNotifications } from '@/composables/useNotifications.js';
 import { useForumContent } from '@/composables/useForumContent.js';
+import { useNotifications } from '@/composables/useNotifications.js';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 
 const $page = usePage();
 const { warning } = useNotifications();
 const { processForumContent } = useForumContent();
+const { executeRecaptcha } = useRecaptcha();
 
 const props = defineProps({
     thread: Object,
@@ -966,7 +969,8 @@ const props = defineProps({
 
 
 const replyForm = useForm({
-    content: ''
+    content: '',
+    recaptcha_token: '',
 });
 
 // Reactive data for bulk actions
@@ -1205,7 +1209,9 @@ function replyTo(post) {
     scrollToReply();
 }
 
-function submitReply() {
+async function submitReply() {
+    replyForm.recaptcha_token = (await executeRecaptcha('forum_post_reply')) ?? '';
+
     replyForm.post(route('forum.post.store', { thread_id: props.thread.id }), {
         onSuccess: () => {
             // Arrêter toutes les vidéos dans l'éditeur avant de reset
@@ -1216,7 +1222,8 @@ function submitReply() {
 
             replyForm.reset();
             showReplyModal.value = false;
-        }
+        },
+        onFinish: () => replyForm.reset('recaptcha_token'),
     });
 }
 

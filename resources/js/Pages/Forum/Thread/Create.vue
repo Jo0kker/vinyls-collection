@@ -70,6 +70,14 @@
                                 </div>
                             </div>
 
+                            <div v-if="form.errors.recaptcha_token" class="text-sm text-red-600 dark:text-red-400">
+                                {{ form.errors.recaptcha_token }}
+                            </div>
+
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                Ce formulaire est protégé par Google reCAPTCHA.
+                            </p>
+
                             
                             <div class="flex items-center justify-end space-x-4">
                                 <Link v-if="category?.id" 
@@ -100,7 +108,10 @@
 
 <script setup>
 import ForumLayout from '@/Layouts/ForumLayout.vue';
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+
+const { executeRecaptcha } = useRecaptcha();
 
 const props = defineProps({
     category: Object
@@ -108,10 +119,15 @@ const props = defineProps({
 
 const form = useForm({
     title: '',
-    content: ''
+    content: '',
+    recaptcha_token: '',
 });
 
-function submit() {
-    form.post(route('forum.thread.store', { category_id: props.category.id }));
+async function submit() {
+    form.recaptcha_token = (await executeRecaptcha('forum_thread_create')) ?? '';
+
+    form.post(route('forum.thread.store', { category_id: props.category.id }), {
+        onFinish: () => form.reset('recaptcha_token'),
+    });
 }
 </script>

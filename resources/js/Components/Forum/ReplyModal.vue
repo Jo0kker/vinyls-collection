@@ -27,6 +27,14 @@
                     :disabled="disabled"
                 />
 
+                <p v-if="error" class="text-sm text-red-600 dark:text-red-400">
+                    {{ error }}
+                </p>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Ce formulaire est protégé par Google reCAPTCHA.
+                </p>
+
                 <div class="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
                     <button type="button"
                             @click="close"
@@ -60,6 +68,10 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    error: {
+        type: String,
+        default: ''
     }
 });
 

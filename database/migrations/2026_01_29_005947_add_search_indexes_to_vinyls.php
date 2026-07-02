@@ -12,13 +12,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Enable pg_trgm extension for ILIKE searches (if not already enabled)
-        DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            // Enable pg_trgm extension for ILIKE searches (if not already enabled)
+            DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
 
-        // GIN indexes for ILIKE pattern matching - much faster than seq scan
-        DB::statement('CREATE INDEX vinyls_vinyl_nom_trgm_idx ON vinyls USING GIN (vinyl_nom gin_trgm_ops)');
-        DB::statement('CREATE INDEX vinyls_artiste_trgm_idx ON vinyls USING GIN (artiste gin_trgm_ops)');
-        DB::statement('CREATE INDEX vinyls_label_trgm_idx ON vinyls USING GIN (label gin_trgm_ops)');
+            // GIN indexes for ILIKE pattern matching - much faster than seq scan
+            DB::statement('CREATE INDEX vinyls_vinyl_nom_trgm_idx ON vinyls USING GIN (vinyl_nom gin_trgm_ops)');
+            DB::statement('CREATE INDEX vinyls_artiste_trgm_idx ON vinyls USING GIN (artiste gin_trgm_ops)');
+            DB::statement('CREATE INDEX vinyls_label_trgm_idx ON vinyls USING GIN (label gin_trgm_ops)');
+        }
 
         // B-tree indexes for sorting and exact matches
         Schema::table('vinyls', function (Blueprint $table) {
@@ -33,9 +35,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('DROP INDEX IF EXISTS vinyls_vinyl_nom_trgm_idx');
-        DB::statement('DROP INDEX IF EXISTS vinyls_artiste_trgm_idx');
-        DB::statement('DROP INDEX IF EXISTS vinyls_label_trgm_idx');
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement('DROP INDEX IF EXISTS vinyls_vinyl_nom_trgm_idx');
+            DB::statement('DROP INDEX IF EXISTS vinyls_artiste_trgm_idx');
+            DB::statement('DROP INDEX IF EXISTS vinyls_label_trgm_idx');
+        }
 
         Schema::table('vinyls', function (Blueprint $table) {
             $table->dropIndex('vinyls_vinyl_nom_idx');

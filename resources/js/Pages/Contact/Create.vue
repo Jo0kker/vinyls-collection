@@ -1,18 +1,25 @@
 <script setup>
+import { useRecaptcha } from '@/composables/useRecaptcha';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const page = usePage();
+const { executeRecaptcha } = useRecaptcha();
 const isAuthenticated = computed(() => !!page.props.auth?.user);
 
 const form = useForm({
     email: page.props.auth?.user?.email || '',
     subject: '',
     message: '',
+    recaptcha_token: '',
 });
 
-const submit = () => {
-    form.post(route('contact.store'));
+const submit = async () => {
+    form.recaptcha_token = isAuthenticated.value ? '' : ((await executeRecaptcha('contact')) ?? '');
+
+    form.post(route('contact.store'), {
+        onFinish: () => form.reset('recaptcha_token'),
+    });
 };
 </script>
 
@@ -115,6 +122,14 @@ const submit = () => {
                                     {{ form.errors.message }}
                                 </p>
                             </div>
+
+                            <p v-if="form.errors.recaptcha_token" class="text-sm text-red-600 dark:text-red-400">
+                                {{ form.errors.recaptcha_token }}
+                            </p>
+
+                            <p v-if="!isAuthenticated" class="text-xs text-gray-500 dark:text-gray-400">
+                                Ce formulaire est protégé par Google reCAPTCHA.
+                            </p>
 
                             <button
                                 type="submit"

@@ -20,6 +20,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Admin\SupportAdminController;
+use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\LegalController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -213,6 +214,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/support')->name('admin.
     Route::patch('/tickets/{ticket}/assign', [SupportAdminController::class, 'assignTicket'])->name('tickets.assign');
     Route::get('/conversations/{conversation}', [SupportAdminController::class, 'showConversation'])->name('conversations.show');
     Route::patch('/conversations/{conversation}/status', [SupportAdminController::class, 'updateConversationStatus'])->name('conversations.status');
+});
+
+// Admin Users routes
+Route::middleware(['auth', 'role:admin'])->prefix('admin/users')->name('admin.users.')->group(function () {
+    Route::get('/', [UserAdminController::class, 'index'])->name('index');
+    Route::patch('/{user}/ban', [UserAdminController::class, 'ban'])->name('ban');
+    Route::patch('/{user}/unban', [UserAdminController::class, 'unban'])->name('unban');
+    Route::delete('/{user}', [UserAdminController::class, 'destroy'])->name('destroy');
 });
 
 require __DIR__.'/auth.php';
