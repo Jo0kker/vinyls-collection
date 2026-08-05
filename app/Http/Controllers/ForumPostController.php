@@ -10,6 +10,7 @@ use App\Services\RecaptchaVerifier;
 use Illuminate\Http\Request;
 use TeamTeaTime\Forum\Models\Post;
 use TeamTeaTime\Forum\Models\Thread;
+use Throwable;
 
 class ForumPostController extends Controller
 {
@@ -77,8 +78,14 @@ class ForumPostController extends Controller
         }
 
         foreach ($subscriptions as $subscription) {
-            if ($subscription->user) {
+            if (! $subscription->user) {
+                continue;
+            }
+
+            try {
                 $subscription->user->notify(new NewForumPostNotification($forumThread, $forumPost));
+            } catch (Throwable $exception) {
+                report($exception);
             }
         }
     }

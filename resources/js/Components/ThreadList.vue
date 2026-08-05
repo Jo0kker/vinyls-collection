@@ -138,6 +138,9 @@
 
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { inject } from 'vue';
+
+const route = inject('route');
 
 defineProps({
     threads: Object

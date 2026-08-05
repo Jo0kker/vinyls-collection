@@ -3,6 +3,7 @@
 use App\Models\ThreadSubscription;
 use App\Models\User;
 use App\Notifications\NewForumPostNotification;
+use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use TeamTeaTime\Forum\Models\Category;
@@ -109,5 +110,58 @@ test('new forum replies notify subscribed users except the reply author and subs
         'user_id' => $replyAuthor->id,
         'thread_id' => $thread->id,
         'email_notifications' => true,
+    ]);
+});
+
+test('a mail delivery failure does not turn a successfully stored forum reply into a 500 response', function () {
+    config()->set('services.recaptcha.enabled', false);
+
+    $threadAuthor = forumNotificationUser(['email' => 'thread-author@example.com']);
+    $replyAuthor = forumNotificationUser(['email' => 'reply-author@example.com']);
+    $category = forumNotificationCategory();
+
+    $thread = Thread::create([
+        'category_id' => $category->id,
+        'author_id' => $threadAuthor->id,
+        'title' => 'Discussion avec mail indisponible',
+        'pinned' => false,
+        'locked' => false,
+    ]);
+
+    $firstPost = Post::create([
+        'thread_id' => $thread->id,
+        'author_id' => $threadAuthor->id,
+        'content' => 'Message initial',
+        'sequence' => 1,
+    ]);
+
+    $thread->update([
+        'first_post_id' => $firstPost->id,
+        'last_post_id' => $firstPost->id,
+    ]);
+
+    ThreadSubscription::create([
+        'user_id' => $threadAuthor->id,
+        'thread_id' => $thread->id,
+        'email_notifications' => true,
+    ]);
+
+    $mailChannel = Mockery::mock(MailChannel::class);
+    $mailChannel->shouldReceive('send')
+        ->once()
+        ->andThrow(new RuntimeException('Service email indisponible'));
+    app()->instance(MailChannel::class, $mailChannel);
+
+    $this->actingAs($replyAuthor)
+        ->post(route('forum.post.store', $thread->id), [
+            'content' => 'Réponse conservée même si le mail échoue',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('forum_posts', [
+        'thread_id' => $thread->id,
+        'author_id' => $replyAuthor->id,
+        'content' => 'Réponse conservée même si le mail échoue',
+        'sequence' => 2,
     ]);
 });
