@@ -274,6 +274,17 @@ class ForumController extends Controller
                         LIMIT 1
                     ) as matched_post_id
                 ", [$tsQuery, $tsQuery])
+                ->selectRaw("
+                    (
+                        SELECT fp.sequence
+                        FROM forum_posts fp
+                        WHERE fp.thread_id = forum_threads.id
+                        AND fp.deleted_at IS NULL
+                        AND fp.search_vector @@ to_tsquery('french', ?)
+                        ORDER BY ts_rank(fp.search_vector, to_tsquery('french', ?)) DESC
+                        LIMIT 1
+                    ) as matched_post_sequence
+                ", [$tsQuery, $tsQuery])
                 ->where(function ($q) use ($tsQuery) {
                     $q->whereRaw("forum_threads.search_vector @@ to_tsquery('french', ?)", [$tsQuery])
                       ->orWhereExists(function ($subQuery) use ($tsQuery) {
@@ -303,6 +314,7 @@ class ForumController extends Controller
                 if ($thread->matched_post_id) {
                     $matchedPost = [
                         'id' => $thread->matched_post_id,
+                        'sequence' => $thread->matched_post_sequence,
                         'page' => $this->getPostPage($thread->id, $thread->matched_post_id),
                     ];
                 }
