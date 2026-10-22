@@ -7,6 +7,8 @@ IS_LARAVEL = "1"
 NIXPACKS_PHP_ROOT_DIR = "/app/public"
 
 [phases.setup]
+# Nixpkgs revision with PHP 8.4.27 and Node.js 22.23.4 (2026-10-21 security fixes).
+nixpkgsArchive = "985e760fd5222f71997245a4f5d49522e755cbb4"
 nixPkgs = [
   "...",
   "python311Packages.supervisor",
@@ -17,6 +19,9 @@ nixPkgs = [
 
 [phases.build]
 cmds = [
+    # Prevent a deploy if the builder resolves an older, vulnerable runtime.
+    "php -r 'exit((PHP_VERSION_ID >= 80427 && PHP_VERSION_ID < 80500) ? 0 : 1);'",
+    "node -e 'const v=process.versions.node.split(\".\").map(Number); process.exit(v[0] === 22 && (v[1] > 23 || v[1] === 23 && v[2] >= 4) ? 0 : 1)'",
     # Build des assets frontend avec Vite
     "yarn build",
 
