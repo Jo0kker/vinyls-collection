@@ -327,7 +327,7 @@
 
                         <div class="space-y-6">
                                 <div v-for="(post, index) in posts.data" :key="post.id"
-                                     :id="`post-${post.id}`"
+                                     :id="`post-${post.sequence}`"
                                      :class="[
                                          'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm',
                                          post.deleted_at ? 'opacity-50' : '',
